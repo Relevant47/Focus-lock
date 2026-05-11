@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FocusLock WiX v4 installer
+  Build: wix build FocusLock.wxs -o FocusLock.msi
+  Requires: dotnet tool install --global wix
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="FocusLock"
+           Version="1.0.0"
+           Manufacturer="FocusLock"
+           UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890"
+           Language="1033"
+           Codepage="1252">
+
+    <SummaryInformation Keywords="focus productivity blocker" Description="FocusLock Installer" />
+
+    <!-- Require Windows 10+ -->
+    <Launch Condition="VersionNT &gt;= 1000" Message="FocusLock requires Windows 10 or later." />
+
+    <!-- Require .NET 8 runtime -->
+    <util:RegistrySearch Id="FindDotNet8"
+      Root="HKLM"
+      Key="SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedhost"
+      Value="Version"
+      Variable="DOTNET8_VERSION"
+      Result="exists" />
+    <Launch Condition="DOTNET8_VERSION" Message="FocusLock requires the .NET 8 runtime. Please install it from https://aka.ms/dotnet/8.0." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Always upgrade, never allow downgrades -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of FocusLock is already installed." />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLDIR" Name="FocusLock">
+
+        <!-- Daemon sub-directory -->
+        <Directory Id="DAEMONDIR" Name="daemon">
+          <Component Id="DaemonBinary" Guid="B1C2D3E4-F5A6-7890-BCDE-F12345678901">
+            <File Id="DaemonExe" Name="FocusLock.Daemon.exe" Source="daemon\FocusLock.Daemon.exe" KeyPath="yes" />
+          </Component>
+          <!-- Additional daemon files (dlls, runtimeconfig.json, etc.) -->
+          <Component Id="DaemonFiles" Guid="C2D3E4F5-A6B7-8901-CDEF-012345678902">
+            <File Id="DaemonRuntimeConfig" Name="FocusLock.Daemon.runtimeconfig.json" Source="daemon\FocusLock.Daemon.runtimeconfig.json" />
+          </Component>
+        </Directory>
+
+        <!-- UI sub-directory -->
+        <Directory Id="UIDIR" Name="ui">
+          <Component Id="UIBinary" Guid="D3E4F5A6-B7C8-9012-DEFA-123456789003">
+            <File Id="UIExe" Name="FocusLock.exe" Source="ui\FocusLock.exe" KeyPath="yes" />
+          </Component>
+        </Directory>
+
+        <!-- Uninstaller script -->
+        <Component Id="UninstallScript" Guid="E4F5A6B7-C8D9-0123-EFAB-234567890004">
+          <File Id="UninstallPs1" Name="uninstall.ps1" Source="uninstall.ps1" />
+        </Component>
+
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Start Menu shortcuts -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="FocusLockMenuDir" Name="FocusLock">
+        <Component Id="StartMenuShortcuts" Guid="F5A6B7C8-D9E0-1234-FABC-345678900005">
+          <Shortcut Id="UIShortcut"
+                    Name="FocusLock"
+                    Description="FocusLock — website and app blocker"
+                    Target="[UIDIR]FocusLock.exe"
+                    WorkingDirectory="UIDIR" />
+          <Shortcut Id="UninstallShortcut"
+                    Name="Uninstall FocusLock"
+                    Description="Remove FocusLock"
+                    Target="[SystemFolder]WindowsPowerShell\v1.0\powershell.exe"
+                    Arguments="-ExecutionPolicy Bypass -File &quot;[INSTALLDIR]uninstall.ps1&quot;" />
+          <RemoveFolder Id="RemoveFocusLockMenuDir" Directory="FocusLockMenuDir" On="uninstall" />
+          <RegistryValue Root="HKCU" Key="Software\FocusLock" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Registry: Add/Remove Programs entry -->
+    <Component Id="RegistryEntries" Guid="A6B7C8D9-E0F1-2345-ABCD-456789010006" Directory="INSTALLDIR">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\FocusLock">
+        <RegistryValue Name="DisplayName"    Value="FocusLock" Type="string" />
+        <RegistryValue Name="DisplayVersion" Value="1.0.0" Type="string" />
+        <RegistryValue Name="Publisher"      Value="FocusLock" Type="string" />
+        <RegistryValue Name="InstallLocation" Value="[INSTALLDIR]" Type="string" />
+        <RegistryValue Name="NoModify"  Value="1" Type="integer" />
+        <RegistryValue Name="NoRepair"  Value="1" Type="integer" />
+      </RegistryKey>
+    </Component>
+
+    <Feature Id="ProductFeature" Title="FocusLock" Level="1">
+      <ComponentRef Id="DaemonBinary" />
+      <ComponentRef Id="DaemonFiles" />
+      <ComponentRef Id="UIBinary" />
+      <ComponentRef Id="UninstallScript" />
+      <ComponentRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="RegistryEntries" />
+    </Feature>
+
+    <!-- Custom actions: install and start Windows service -->
+    <CustomAction Id="InstallService"
+      Directory="DAEMONDIR"
+      ExeCommand="[SystemFolder]sc.exe create FocusLockDaemon binPath= &quot;[DAEMONDIR]FocusLock.Daemon.exe&quot; DisplayName= &quot;FocusLock Daemon&quot; start= auto"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <CustomAction Id="StartService"
+      Directory="DAEMONDIR"
+      ExeCommand="[SystemFolder]sc.exe start FocusLockDaemon"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <CustomAction Id="StopService"
+      Directory="DAEMONDIR"
+      ExeCommand="[SystemFolder]sc.exe stop FocusLockDaemon"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <CustomAction Id="DeleteService"
+      Directory="DAEMONDIR"
+      ExeCommand="[SystemFolder]sc.exe delete FocusLockDaemon"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <CustomAction Id="SetFailureActions"
+      Directory="DAEMONDIR"
+      ExeCommand="[SystemFolder]sc.exe failure FocusLockDaemon reset= 300 actions= restart/5000/restart/10000/restart/30000"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <Custom Action="StopService"   Before="RemoveFiles">Installed</Custom>
+      <Custom Action="DeleteService" Before="RemoveFiles">Installed</Custom>
+      <Custom Action="InstallService" After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="SetFailureActions" After="InstallService">NOT Installed</Custom>
+      <Custom Action="StartService"  After="SetFailureActions">NOT Installed</Custom>
+    </InstallExecuteSequence>
+
+  </Package>
+</Wix>

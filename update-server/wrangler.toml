@@ -1,0 +1,7 @@
+name = "focuslock-updates"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+GITHUB_OWNER = "Relevant47"
+GITHUB_REPO  = "focus-lock"

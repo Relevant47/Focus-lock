@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Rounded square background -->
+  <rect width="1024" height="1024" rx="230" fill="#4f46e5"/>
+  <!-- Subtle gradient overlay -->
+  <rect width="1024" height="1024" rx="230" fill="url(#grad)"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#3730a3" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <!-- Lock shackle (top arc) -->
+  <path d="M336 490 L336 360 Q336 190 512 190 Q688 190 688 360 L688 490"
+        fill="none" stroke="white" stroke-width="88" stroke-linecap="round"
+        opacity="0.96"/>
+  <!-- Lock body -->
+  <rect x="230" y="488" width="564" height="346" rx="76" fill="white" opacity="0.96"/>
+  <!-- Keyhole circle -->
+  <circle cx="512" cy="650" r="58" fill="#4f46e5"/>
+  <!-- Keyhole stem -->
+  <rect x="484" y="650" width="56" height="90" rx="22" fill="#4f46e5"/>
+</svg>

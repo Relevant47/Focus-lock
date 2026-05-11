@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.focuslock.daemon</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/PrivilegedHelperTools/FocusLockDaemon</string>
+    </array>
+
+    <!-- Run as root so we can edit /etc/hosts and kill any process -->
+    <key>UserName</key>
+    <string>root</string>
+
+    <!-- Start automatically at boot, before user login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Auto-restart on crash or kill -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Throttle restarts so rapid crashes don't spin -->
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <key>StandardErrorPath</key>
+    <string>/Library/Logs/FocusLock/daemon.log</string>
+
+    <key>StandardOutPath</key>
+    <string>/Library/Logs/FocusLock/daemon.log</string>
+
+    <!-- Ensure the log directory exists before launch -->
+    <key>WorkingDirectory</key>
+    <string>/Library/Application Support/FocusLock</string>
+</dict>
+</plist>

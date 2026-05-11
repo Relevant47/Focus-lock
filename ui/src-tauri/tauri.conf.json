@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "FocusLock",
+  "version": "1.0.0",
+  "identifier": "app.focuslock.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "FocusLock",
+        "width": 980,
+        "height": 700,
+        "minWidth": 720,
+        "minHeight": 520,
+        "resizable": true,
+        "decorations": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "trayIcon": {
+      "id": "main-tray",
+      "title": "FocusLock",
+      "tooltip": "FocusLock"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "FocusLock",
+    "copyright": "© 2025 FocusLock",
+    "category": "Productivity",
+    "shortDescription": "Block distractions. Own your focus.",
+    "longDescription": "FocusLock blocks distracting websites and apps at the operating system level — no browser extensions, no workarounds. Blocks survive app restarts, force quits, and even reboots.",
+    "externalBin": [],
+    "resources": [],
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNFMTk2MzEzMTRGNUQyNjQKUldSazB2VVVFMk1aUHBrdHZ0Qk9QZk5wWVhWL0xINDRFcDZ1RWtsUFhaOWVzRzFVblpMQ2VNY3UK",
+      "endpoints": [
+        "https://releases.focuslock.app/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "dialog": true,
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

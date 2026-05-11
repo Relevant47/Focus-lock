@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# postinstall — runs as root after pkg files are copied
+set -euo pipefail
+
+PLIST_NAME="com.focuslock.daemon.plist"
+PLIST_SRC="/Library/LaunchDaemons/$PLIST_NAME"
+LOG_DIR="/Library/Logs/FocusLock"
+APP_SUPPORT="/Library/Application Support/FocusLock"
+HELPER="/Library/PrivilegedHelperTools/FocusLockDaemon"
+
+# Create required directories
+mkdir -p "$LOG_DIR" "$APP_SUPPORT"
+
+# Correct permissions on daemon binary
+if [[ -f "$HELPER" ]]; then
+    chown root:wheel "$HELPER"
+    chmod 755 "$HELPER"
+fi
+
+# Correct permissions on plist
+if [[ -f "$PLIST_SRC" ]]; then
+    chown root:wheel "$PLIST_SRC"
+    chmod 644 "$PLIST_SRC"
+fi
+
+# Unload existing instance if running
+launchctl unload -w "$PLIST_SRC" 2>/dev/null || true
+sleep 1
+
+# Load daemon
+launchctl load -w "$PLIST_SRC"
+
+echo "FocusLock daemon installed and started."
+exit 0

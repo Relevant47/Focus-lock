@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+ui/node_modules/
+update-server/node_modules/
+
+# Build outputs
+ui/dist/
+ui/src-tauri/target/
+daemon-win/FocusLock.Daemon/bin/
+daemon-win/FocusLock.Daemon/obj/
+daemon-win/FocusLock.Daemon/publish/
+daemon-mac/.build/
+
+# Installer outputs
+installer/windows/*.msi
+installer/windows/daemon/
+installer/windows/ui/
+installer/macos/*.pkg
+installer/macos/pkg-root/
+
+# Keys — NEVER commit these
+*.key
+updater.key
+updater.key.pub
+*.pfx
+*.p12
+*.pem
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Rust
+ui/src-tauri/gen/
