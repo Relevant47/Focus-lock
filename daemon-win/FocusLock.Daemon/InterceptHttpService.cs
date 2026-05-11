@@ -85,7 +85,7 @@ public sealed class InterceptHttpService : BackgroundService
                 ? System.Web.HttpUtility.HtmlEncode(status.Session.MotivationalMessage)
                 : Quotes[Rng.Next(Quotes.Length)];
 
-            var html = $$"""
+            var html = $$$"""
                 <!DOCTYPE html>
                 <html lang="en">
                 <head>
@@ -134,11 +134,11 @@ public sealed class InterceptHttpService : BackgroundService
                     <span class="icon">🔒</span>
                     <h1>This site is blocked</h1>
                     <p class="sub">FocusLock is keeping you on track</p>
-                    <div class="timer">{{timeStr}}</div>
+                    <div class="timer">{{{timeStr}}}</div>
                     <div class="timer-label">remaining in your session</div>
                     <div class="track"><div class="bar"></div></div>
-                    <div class="message">{{message}}</div>
-                    <p class="attempts">{{attemptsLabel}} this session</p>
+                    <div class="message">{{{message}}}</div>
+                    <p class="attempts">{{{attemptsLabel}}} this session</p>
                     <p class="brand">FocusLock</p>
                   </div>
                 </body>
