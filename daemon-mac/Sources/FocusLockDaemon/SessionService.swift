@@ -308,15 +308,18 @@ final class SessionService {
     }
 
     private func sign(_ s: SessionState, key: SymmetricKey) -> String {
-        let payload = "\(s.sessionId)|\(s.startTime.iso8601)|\(s.endTime.iso8601)|\(s.hardcoreMode)|" +
-            s.blockedDomains.joined(separator: ",") + "|" +
-            s.blockedProcesses.joined(separator: ",") + "|" +
-            s.allowlistedDomains.joined(separator: ",") + "|" +
-            (s.unlockTokenHash ?? "")
-        let mac = HMAC<SHA256>.authenticationCode(
-            for: Data(payload.utf8),
-            using: key
-        )
+        let parts: [String] = [
+            s.sessionId,
+            s.startTime.iso8601,
+            s.endTime.iso8601,
+            "\(s.hardcoreMode)",
+            s.blockedDomains.joined(separator: ","),
+            s.blockedProcesses.joined(separator: ","),
+            s.allowlistedDomains.joined(separator: ","),
+            s.unlockTokenHash ?? "",
+        ]
+        let payload = parts.joined(separator: "|")
+        let mac = HMAC<SHA256>.authenticationCode(for: Data(payload.utf8), using: key)
         return Data(mac).hexString
     }
 
@@ -324,7 +327,7 @@ final class SessionService {
         guard let data = try? Data(contentsOf: statePath) else { return nil }
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
-        guard var state = try? dec.decode(SessionState.self, from: data) else { return nil }
+        guard let state = try? dec.decode(SessionState.self, from: data) else { return nil }
         guard state.isActive else { return nil }
         return state
     }
