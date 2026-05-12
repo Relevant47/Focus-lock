@@ -13,6 +13,8 @@ jobs:
   build-windows:
     name: Build (Windows)
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -99,6 +101,8 @@ jobs:
   build-macos:
     name: Build (macOS)
     runs-on: macos-14  # Apple Silicon runner
+    permissions:
+      contents: write
     strategy:
       matrix:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
@@ -199,6 +203,8 @@ jobs:
     name: Publish Release
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
