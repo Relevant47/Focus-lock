@@ -1001,47 +1001,74 @@
 <!-- REVIEWS -->
 <section class="reviews">
   <div class="container">
-    <p class="section-eyebrow">Early users</p>
+    <p class="section-eyebrow">What people are saying</p>
     <h2 class="section-title">Real outcomes from real people</h2>
   </div>
-  <div class="reviews-track-wrap" style="margin-top:48px">
-    <div class="reviews-track" id="reviews-track">
-      <!-- Replace these with real reviews when available -->
-      <div class="review-card">
-        <div class="review-stars">★★★★★</div>
-        <p class="review-text">"I finally submitted my dissertation. Three months of trying every productivity app out there. FocusLock was the only one I couldn't talk myself out of."</p>
-        <div class="review-author">Marcus T.</div>
-        <div class="review-role">PhD student, Computer Science</div>
+
+  <!-- Live reviews loaded from database -->
+  <div id="reviews-live-wrap" style="margin-top:48px;display:none;">
+    <div class="reviews-track-wrap">
+      <div class="reviews-track" id="reviews-track"></div>
+    </div>
+  </div>
+
+  <!-- Shown when no reviews yet -->
+  <div id="reviews-empty" style="margin-top:48px;text-align:center;padding:40px 24px;">
+    <p style="color:var(--dim);font-size:.9rem;">No reviews yet — be the first to share your experience.</p>
+  </div>
+</section>
+
+<!-- LEAVE A REVIEW -->
+<section style="padding:80px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--card);">
+  <div class="container">
+    <div style="max-width:560px;margin:0 auto;text-align:center;">
+      <p class="section-eyebrow">Share your experience</p>
+      <h2 class="section-title" style="margin-bottom:8px;">Leave a review</h2>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:40px;">Honest reviews only. Good ones (4–5 stars) go live automatically.</p>
+
+      <div id="review-form-wrap">
+        <!-- Star rating -->
+        <div style="margin-bottom:24px;">
+          <div id="star-rating" style="display:flex;justify-content:center;gap:8px;margin-bottom:8px;">
+            <span class="star" data-val="1" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
+            <span class="star" data-val="2" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
+            <span class="star" data-val="3" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
+            <span class="star" data-val="4" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
+            <span class="star" data-val="5" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
+          </div>
+          <p id="star-label" style="font-size:.78rem;color:var(--dim);">Click to rate</p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;text-align:left;">
+          <textarea id="review-text" placeholder="Tell us about your experience with FocusLock..." rows="4"
+            style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;color:var(--text);font-family:inherit;font-size:.9rem;resize:vertical;outline:none;transition:border-color .2s;"
+            onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <input id="review-name" type="text" placeholder="Your name" maxlength="60"
+              style="flex:1;min-width:140px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text);font-family:inherit;font-size:.875rem;outline:none;transition:border-color .2s;"
+              onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border2)'" />
+            <input id="review-role" type="text" placeholder="What you do (optional)" maxlength="60"
+              style="flex:1;min-width:140px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text);font-family:inherit;font-size:.875rem;outline:none;transition:border-color .2s;"
+              onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border2)'" />
+          </div>
+        </div>
+
+        <p id="review-error" style="color:#f87171;font-size:.8rem;margin-top:10px;display:none;"></p>
+
+        <button id="review-submit" onclick="submitReview()"
+          style="margin-top:16px;width:100%;padding:13px;background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9375rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;"
+          onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+          Submit Review
+        </button>
+        <p style="font-size:.73rem;color:var(--dim);margin-top:10px;">Reviews are not edited. Spam and irrelevant submissions are removed.</p>
       </div>
-      <div class="review-card">
-        <div class="review-stars">★★★★★</div>
-        <p class="review-text">"The Friend Lock feature is genuinely genius. I sent the token to my girlfriend before my exam week. Knowing she had the only key changed everything."</p>
-        <div class="review-author">Priya K.</div>
-        <div class="review-role">Medical student</div>
-      </div>
-      <div class="review-card">
-        <div class="review-stars">★★★★★</div>
-        <p class="review-text">"I've used Freedom, Cold Turkey, every Chrome extension. They all had workarounds my brain found within a week. This one doesn't. The reboot thing is the difference."</p>
-        <div class="review-author">James R.</div>
-        <div class="review-role">Freelance developer</div>
-      </div>
-      <div class="review-card">
-        <div class="review-stars">★★★★★</div>
-        <p class="review-text">"Shipped the side project I'd been 'almost done with' for 18 months. Blocked Twitter and YouTube for 6 weeks. That's it. That's the whole story."</p>
-        <div class="review-author">Sofia M.</div>
-        <div class="review-role">Indie developer</div>
-      </div>
-      <div class="review-card">
-        <div class="review-stars">★★★★★</div>
-        <p class="review-text">"The open source part matters to me. Something that runs as root should be auditable. Every other app in this space is a black box. FocusLock isn't."</p>
-        <div class="review-author">David L.</div>
-        <div class="review-role">Security engineer</div>
-      </div>
-      <div class="review-card">
-        <div class="review-stars">★★★★★</div>
-        <p class="review-text">"I was losing 4–5 hours a night to YouTube. Not exaggerating. Three weeks with FocusLock and I've read four books. I didn't think that was still a thing I could do."</p>
-        <div class="review-author">Aisha B.</div>
-        <div class="review-role">Writer</div>
+
+      <!-- Success state -->
+      <div id="review-success" style="display:none;padding:32px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:var(--radius);">
+        <div style="font-size:2rem;margin-bottom:12px;">✓</div>
+        <p style="font-weight:700;color:#4ade80;margin-bottom:8px;" id="review-success-msg">Thank you!</p>
+        <p style="font-size:.875rem;color:var(--muted);">Your review has been submitted.</p>
       </div>
     </div>
   </div>
@@ -1230,10 +1257,6 @@
   }, { threshold: 0.12 });
   document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
-  // ── Duplicate reviews for seamless loop ──
-  const track = document.getElementById('reviews-track');
-  track.innerHTML += track.innerHTML;
-
   // ── GitHub stars (async, non-blocking) ──
   fetch('https://api.github.com/repos/Relevant47/focus-lock')
     .then(r => r.json())
@@ -1248,6 +1271,108 @@
     .catch(() => {
       document.getElementById('gh-star-line').textContent = 'Every line of the daemon that runs as root is public. Audit it yourself.';
     });
+
+  // ── Reviews: load from database ──
+  async function loadReviews() {
+    try {
+      const resp = await fetch('/.netlify/functions/get-reviews');
+      if (!resp.ok) return;
+      const reviews = await resp.json();
+      if (!Array.isArray(reviews) || reviews.length === 0) return;
+
+      const track = document.getElementById('reviews-track');
+      const html = reviews.map(r => `
+        <div class="review-card">
+          <div class="review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</div>
+          <p class="review-text">"${r.review_text}"</p>
+          <div class="review-author">${r.name}</div>
+          ${r.role ? `<div class="review-role">${r.role}</div>` : ''}
+        </div>
+      `).join('');
+      track.innerHTML = html + html; // duplicate for seamless loop
+
+      document.getElementById('reviews-live-wrap').style.display = 'block';
+      document.getElementById('reviews-empty').style.display = 'none';
+    } catch (e) {
+      // silently fail — empty state stays visible
+    }
+  }
+  loadReviews();
+
+  // ── Reviews: star rating ──
+  let selectedStars = 0;
+  const starLabels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
+  document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('mouseover', () => {
+      const val = +star.dataset.val;
+      document.querySelectorAll('.star').forEach(s => {
+        s.style.color = +s.dataset.val <= val ? '#f59e0b' : 'var(--border2)';
+      });
+      document.getElementById('star-label').textContent = starLabels[val];
+    });
+    star.addEventListener('mouseout', () => {
+      document.querySelectorAll('.star').forEach(s => {
+        s.style.color = +s.dataset.val <= selectedStars ? '#f59e0b' : 'var(--border2)';
+      });
+      document.getElementById('star-label').textContent = selectedStars ? starLabels[selectedStars] : 'Click to rate';
+    });
+    star.addEventListener('click', () => {
+      selectedStars = +star.dataset.val;
+      document.getElementById('star-label').textContent = starLabels[selectedStars];
+    });
+  });
+
+  // ── Reviews: submit ──
+  async function submitReview() {
+    const btn = document.getElementById('review-submit');
+    const errEl = document.getElementById('review-error');
+    const text = document.getElementById('review-text').value.trim();
+    const name = document.getElementById('review-name').value.trim();
+    const role = document.getElementById('review-role').value.trim();
+
+    errEl.style.display = 'none';
+
+    if (!selectedStars) { showReviewError('Please select a star rating.'); return; }
+    if (!text) { showReviewError('Please write your review.'); return; }
+    if (text.length < 20) { showReviewError('Review must be at least 20 characters.'); return; }
+    if (!name) { showReviewError('Please enter your name.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      const resp = await fetch('/.netlify/functions/submit-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, role, stars: selectedStars, review_text: text }),
+      });
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        showReviewError(data.error || 'Something went wrong. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Review';
+        return;
+      }
+
+      document.getElementById('review-form-wrap').style.display = 'none';
+      const successEl = document.getElementById('review-success');
+      document.getElementById('review-success-msg').textContent = data.message;
+      successEl.style.display = 'block';
+
+      if (data.approved) loadReviews();
+    } catch {
+      showReviewError('Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Submit Review';
+    }
+  }
+
+  function showReviewError(msg) {
+    const el = document.getElementById('review-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
 
   // ── FAQ ──
   function toggleFaq(btn) {
