@@ -6,7 +6,7 @@
   <title>Privacy Policy — FocusLock</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#030712;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.7;padding:48px 24px}
+    body{background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.7;padding:48px 24px}
     .wrap{max-width:720px;margin:0 auto}
     a{color:#818cf8;text-decoration:none}
     a:hover{text-decoration:underline}
@@ -18,9 +18,9 @@
     p{margin-bottom:16px;color:#94a3b8}
     ul{margin:0 0 16px 24px;color:#94a3b8}
     ul li{margin-bottom:8px}
-    .highlight{background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:20px;margin-bottom:24px}
+    .highlight{background:#13131a;border:1px solid #1e1e2e;border-radius:8px;padding:20px;margin-bottom:24px}
     .highlight p{margin:0;color:#cbd5e1}
-    footer{margin-top:64px;padding-top:24px;border-top:1px solid #1e293b;color:#475569;font-size:.8rem}
+    footer{margin-top:64px;padding-top:24px;border-top:1px solid #1e1e2e;color:#475569;font-size:.8rem}
   </style>
 </head>
 <body>
@@ -28,52 +28,47 @@
   <nav><a href="/">← Back to FocusLock</a></nav>
 
   <h1>Privacy Policy</h1>
-  <p class="date">Last updated: January 2025</p>
+  <p class="date">Last updated: May 2026</p>
 
   <div class="highlight">
-    <p><strong>Short version:</strong> FocusLock runs entirely on your device. We do not collect, transmit, or store any personal data on our servers — not your browsing habits, blocked sites, session history, or anything else. The only external communication is to validate your license key (via Lemon Squeezy) and to check for software updates (via GitHub Releases).</p>
+    <p><strong>Short version:</strong> FocusLock collects nothing. No account, no telemetry, no analytics, no payment data. Everything stays on your device. The only external request is to check for software updates.</p>
   </div>
 
   <h2>1. What data we collect</h2>
-  <p>FocusLock collects <strong>no personal data</strong>. All application data — your focus profiles, session history, analytics, and settings — is stored locally on your device in:</p>
+  <p>FocusLock collects <strong>no personal data whatsoever</strong>. All application data — your focus profiles, session history, block lists, analytics, and settings — is stored locally on your device in:</p>
   <ul>
     <li>Windows: <code>%ProgramData%\FocusLock\</code></li>
     <li>macOS: <code>/Library/Application Support/FocusLock/</code></li>
   </ul>
-  <p>This data never leaves your device except as described below.</p>
+  <p>This data never leaves your device.</p>
 
-  <h2>2. License validation</h2>
-  <p>When you activate a license key, FocusLock sends the following to Lemon Squeezy's API (<code>api.lemonsqueezy.com</code>):</p>
-  <ul>
-    <li>Your license key</li>
-    <li>An anonymised instance identifier (a random string generated on your device)</li>
-  </ul>
-  <p>We do not send your name, email address (it remains on your device), IP address, or any app usage data. Lemon Squeezy's privacy policy applies to this interaction: <a href="https://www.lemonsqueezy.com/privacy" target="_blank">lemonsqueezy.com/privacy</a>.</p>
-
-  <h2>3. Software updates</h2>
-  <p>FocusLock periodically checks for updates by contacting <code>releases.focuslock.app</code> and the GitHub API. This request includes:</p>
+  <h2>2. Software updates</h2>
+  <p>FocusLock periodically checks for updates by contacting our update server and the GitHub API. This request includes:</p>
   <ul>
     <li>Your operating system and CPU architecture (e.g. "windows-x86_64")</li>
     <li>Your current FocusLock version number</li>
   </ul>
-  <p>No personally identifiable information is included. Your IP address is visible to our update server as part of the normal HTTP request, but it is not logged or stored.</p>
+  <p>No personally identifiable information is included. Your IP address is visible to the update server as part of the normal HTTP request, but it is not logged or stored.</p>
 
-  <h2>4. Crash reporting and telemetry</h2>
-  <p>FocusLock has <strong>no crash reporting, telemetry, or analytics</strong>. We receive no data about how you use the application, which sites you block, or how long your sessions are.</p>
+  <h2>3. No telemetry</h2>
+  <p>FocusLock has <strong>no crash reporting, telemetry, analytics, or tracking</strong> of any kind. We receive no data about how you use the application, which sites you block, or how long your sessions are. The full source code is public on <a href="https://github.com/Relevant47/focus-lock" target="_blank">GitHub</a> — you can verify this yourself.</p>
 
-  <h2>5. Payment information</h2>
-  <p>Payments are processed by Lemon Squeezy. FocusLock never sees your credit card number or any payment details. Refer to Lemon Squeezy's privacy policy for how they handle payment data.</p>
+  <h2>4. No account required</h2>
+  <p>FocusLock does not require an account, email address, or any personal information to download or use. There is no registration process.</p>
+
+  <h2>5. No payments</h2>
+  <p>FocusLock is completely free. We do not process payments and we do not collect any financial information.</p>
 
   <h2>6. Children's privacy</h2>
-  <p>FocusLock is not directed at children under 13. We do not knowingly collect any information from children.</p>
+  <p>FocusLock does not knowingly collect any information from anyone, including children.</p>
 
   <h2>7. Changes to this policy</h2>
-  <p>If we make material changes to this policy, we will update the "Last updated" date above and notify users through the app's update mechanism.</p>
+  <p>If we make material changes to this policy, we will update the "Last updated" date above. Changes will also be reflected in the GitHub repository.</p>
 
   <h2>8. Contact</h2>
-  <p>Privacy questions: <a href="mailto:privacy@focuslock.app">privacy@focuslock.app</a></p>
+  <p>Privacy questions: <a href="mailto:me@oscarpetrikas.com">me@oscarpetrikas.com</a> or open an issue on <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank">GitHub</a>.</p>
 
-  <footer>© 2025 FocusLock · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></footer>
+  <footer>© 2026 FocusLock · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></footer>
 </div>
 </body>
 </html>
