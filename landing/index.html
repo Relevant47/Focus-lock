@@ -667,6 +667,28 @@
       line-height: 1.85; margin-bottom: 18px;
     }
     .story-block p:last-child { margin-bottom: 0; }
+    .story-expandable {
+      overflow: hidden; max-height: 0;
+      transition: max-height .5s ease;
+    }
+    .story-expandable.open { max-height: 3000px; }
+    .story-expand-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin-top: 28px;
+      background: none; border: 1px solid var(--border2);
+      border-radius: 999px; padding: 9px 20px;
+      color: #a5b4fc; font-size: .85rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: all .2s;
+    }
+    .story-expand-btn:hover {
+      border-color: rgba(99,102,241,.5);
+      background: rgba(99,102,241,.07);
+    }
+    .story-expand-btn .btn-arrow {
+      transition: transform .3s;
+    }
+    .story-expand-btn.open .btn-arrow { transform: rotate(180deg); }
 
     /* ── FOUNDER CARD ── */
     .founder-section {
@@ -680,6 +702,16 @@
       padding: 48px 52px;
       position: relative; overflow: hidden;
     }
+    .founder-top {
+      display: flex; align-items: center; gap: 24px; margin-bottom: 20px;
+    }
+    .founder-avatar {
+      width: 80px; height: 80px; border-radius: 50%; flex-shrink: 0;
+      object-fit: cover;
+      border: 2px solid rgba(99,102,241,.35);
+      box-shadow: 0 0 20px rgba(99,102,241,.2);
+    }
+    .founder-name { margin-bottom: 0; }
     .founder-card::before {
       content: '';
       position: absolute; top: -80px; right: -80px;
@@ -927,24 +959,30 @@
         <p>So I built FocusLock. Not as a business. Not as a startup. Not because someone told me to. I built it because I was 13 years old, sitting in my room in Thailand, staring at a screen full of distractions, and I decided that if no one had built the right tool yet, I would. FocusLock is the tool I wish I had from the beginning — and I made it free so that every other kid, student, and person who struggles the way I did can have it too, no questions asked.</p>
       </div>
 
-      <div class="story-block fade-up">
-        <h3 class="story-block-heading">Built for Everyone Who Struggles to Focus</h3>
-        <p>Distraction doesn't discriminate. It hits the homeschooled twelve-year-old trying to finish their math lesson just as hard as it hits the entrepreneur trying to ship their product, the university student pulling an all-nighter before exams, or the remote worker who's supposed to be in a meeting but somehow ended up on Reddit. The internet is extraordinary, and it is also relentlessly, deliberately designed to pull your attention away from what you actually want to be doing.</p>
-        <p>FocusLock was built for all of them. For the student who needs to write an essay but keeps opening TikTok. For the parent who wants to set healthy screen boundaries for their children without paying for another monthly subscription. For the freelancer who bills by the hour but loses two of them every afternoon to mindless scrolling. For the person with ADHD who knows exactly what they should be doing and just needs the exit ramps removed. For the homeschooled kid with no supervision and a world of distractions one click away. For anyone, anywhere, who has ever looked up from their screen and wondered where the last three hours went.</p>
-      </div>
+      <button class="story-expand-btn" id="story-expand-btn" onclick="toggleStory()">
+        Read more <span class="btn-arrow">▼</span>
+      </button>
 
-      <div class="story-block fade-up">
-        <h3 class="story-block-heading">Why It's Free — and Always Will Be</h3>
-        <p>FocusLock costs nothing. There is no premium tier, no trial period, no feature locked behind a paywall, and no plan to change that. Every single thing the app can do is available to every single person who downloads it, from day one, forever.</p>
-        <p>This isn't a loss-leader strategy. There are no ads, no data collection, no monetization plan quietly waiting in the wings. FocusLock is free because the people who need it most — kids, students, people in developing countries, anyone without disposable income to spend on productivity software — deserve access to tools that actually work just as much as anyone else does. The idea that you should have to pay a monthly fee just to be able to concentrate on your own life has always felt wrong to me. So I made it free. And I'm keeping it that way.</p>
-        <p>The full source code is publicly available on GitHub under the GPL-3.0 license. Every line of it. You don't have to trust me — you can read exactly what the software does, how it does it, and verify for yourself that it does nothing it shouldn't. That level of transparency is something no paid product can offer you.</p>
-      </div>
+      <div class="story-expandable" id="story-expandable">
+        <div class="story-block" style="margin-top:40px;">
+          <h3 class="story-block-heading">Built for Everyone Who Struggles to Focus</h3>
+          <p>Distraction doesn't discriminate. It hits the homeschooled twelve-year-old trying to finish their math lesson just as hard as it hits the entrepreneur trying to ship their product, the university student pulling an all-nighter before exams, or the remote worker who's supposed to be in a meeting but somehow ended up on Reddit. The internet is extraordinary, and it is also relentlessly, deliberately designed to pull your attention away from what you actually want to be doing.</p>
+          <p>FocusLock was built for all of them. For the student who needs to write an essay but keeps opening TikTok. For the parent who wants to set healthy screen boundaries for their children without paying for another monthly subscription. For the freelancer who bills by the hour but loses two of them every afternoon to mindless scrolling. For the person with ADHD who knows exactly what they should be doing and just needs the exit ramps removed. For the homeschooled kid with no supervision and a world of distractions one click away. For anyone, anywhere, who has ever looked up from their screen and wondered where the last three hours went.</p>
+        </div>
 
-      <div class="story-block fade-up">
-        <h3 class="story-block-heading">One Person. No Funding. No Agenda.</h3>
-        <p>FocusLock was designed, built, and is maintained by one person — a 13-year-old self-taught programmer living in Thailand. There is no company behind it, no investors to answer to, no growth targets to hit. Just a kid who had a problem, taught himself how to solve it, and decided to give the solution to the world for free.</p>
-        <p>If FocusLock helps you finish your thesis, get through your workday, keep your kids on task, or simply reclaim a few hours of your week — that's enough. That's the whole point.</p>
-        <p>Download it. Use it. Tell someone else about it if it helps. That's all anyone here will ever ask of you.</p>
+        <div class="story-block">
+          <h3 class="story-block-heading">Why It's Free — and Always Will Be</h3>
+          <p>FocusLock costs nothing. There is no premium tier, no trial period, no feature locked behind a paywall, and no plan to change that. Every single thing the app can do is available to every single person who downloads it, from day one, forever.</p>
+          <p>This isn't a loss-leader strategy. There are no ads, no data collection, no monetization plan quietly waiting in the wings. FocusLock is free because the people who need it most — kids, students, people in developing countries, anyone without disposable income to spend on productivity software — deserve access to tools that actually work just as much as anyone else does. The idea that you should have to pay a monthly fee just to be able to concentrate on your own life has always felt wrong to me. So I made it free. And I'm keeping it that way.</p>
+          <p>The full source code is publicly available on GitHub under the GPL-3.0 license. Every line of it. You don't have to trust me — you can read exactly what the software does, how it does it, and verify for yourself that it does nothing it shouldn't. That level of transparency is something no paid product can offer you.</p>
+        </div>
+
+        <div class="story-block">
+          <h3 class="story-block-heading">One Person. No Funding. No Agenda.</h3>
+          <p>FocusLock was designed, built, and is maintained by one person — a 13-year-old self-taught programmer living in Thailand. There is no company behind it, no investors to answer to, no growth targets to hit. Just a kid who had a problem, taught himself how to solve it, and decided to give the solution to the world for free.</p>
+          <p>If FocusLock helps you finish your thesis, get through your workday, keep your kids on task, or simply reclaim a few hours of your week — that's enough. That's the whole point.</p>
+          <p>Download it. Use it. Tell someone else about it if it helps. That's all anyone here will ever ask of you.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -955,8 +993,11 @@
   <div class="container">
     <div class="founder-card fade-up">
       <p class="founder-eyebrow">Meet the Maker</p>
-      <h2 class="founder-name">Oscar Petrikas</h2>
-      <p class="founder-bio">I'm a 13-year-old self-taught programmer, enthusiastic entrepreneur, and homeschooled kid living in Thailand. I'm also a professional athlete competing in Judo, Jiu-Jitsu, Muay Thai, MMA, and Wrestling, and I play Tennis, Drums, and Piano. Outside of FocusLock I'm deeply passionate about investing, trading, stocks, crypto, AI, podcasting, video editing, and running. I have multiple other projects in the making — FocusLock is just the beginning.</p>
+      <div class="founder-top">
+        <img src="https://instagram.fbkk25-1.fna.fbcdn.net/v/t51.82787-19/696806996_18001274930933778_2550989411008145886_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=instagram.fbkk25-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2gGZRJ_8cO13NZOmN4V9v--pEAcB6C5Px1BX38805qE8Hasd6SpLEJBAcAymemuT3yVcVpriimLQ-Qg4DQsVaK4h&_nc_ohc=duOoo2ykfhUQ7kNvwEJAlQ0&_nc_gid=jh0H5cpB8Vy5gNAjj6B0dQ&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Af4199nSot9nKQLnbKXJj7OvQE53t89SMq8KapF5KOHw6Q&oe=6A08E48E&_nc_sid=8b3546" alt="Oscar Petrikas" class="founder-avatar" />
+        <h2 class="founder-name">Oscar Petrikas</h2>
+      </div>
+      <p class="founder-bio">I'm a 13-year-old self-taught programmer, enthusiastic entrepreneur, and homeschooled kid living in Thailand. I'm also a professional athlete competing in Judo, Jiu-Jitsu, Muay Thai, MMA, Wrestling, and many other sports, and I play Tennis, Drums, and Piano. I have multiple other projects in the making — FocusLock is just the beginning.</p>
       <p class="founder-follow-label">Follow my journey</p>
       <div class="founder-socials">
         <a href="https://www.instagram.com/oscarpetrikas/" target="_blank" rel="noopener" class="social-pill">
@@ -1533,6 +1574,17 @@
     const el = document.getElementById('review-error');
     el.textContent = msg;
     el.style.display = 'block';
+  }
+
+  // ── Story expand ──
+  function toggleStory() {
+    const el = document.getElementById('story-expandable');
+    const btn = document.getElementById('story-expand-btn');
+    const open = el.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    btn.innerHTML = open
+      ? 'Read less <span class="btn-arrow" style="transform:rotate(180deg)">▼</span>'
+      : 'Read more <span class="btn-arrow">▼</span>';
   }
 
   // ── FAQ ──
