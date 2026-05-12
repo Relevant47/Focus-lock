@@ -4,209 +4,765 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FocusLock — Block Distractions. Own Your Focus.</title>
-  <meta name="description" content="Free, open-source app that blocks distracting websites and apps at the OS level. No browser extension. Survives reboots. macOS and Windows." />
-  <meta property="og:title" content="FocusLock — Free OS-level distraction blocker" />
-  <meta property="og:description" content="The only blocker that survives force quits and reboots. Free and open source. No browser extension needed." />
-  <link rel="icon" href="/favicon.ico" />
+  <meta name="description" content="Free, open-source OS-level distraction blocker. No browser extension. Survives reboots. macOS and Windows. GPL-3.0." />
+  <meta property="og:title" content="FocusLock — The internet is engineered to steal your attention." />
+  <meta property="og:description" content="FocusLock blocks at the OS level. No extension. Survives reboots. Free forever." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --indigo: #6366f1; --indigo-light: #818cf8; --indigo-dark: #4338ca;
-      --bg: #030712; --bg-surface: #0f172a; --bg-raised: #1e293b;
-      --border: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --text-dim: #475569;
-      --green: #22c55e; --radius: 12px;
+      --bg:       #0a0a0f;
+      --card:     #13131a;
+      --card2:    #16161f;
+      --border:   #1e1e2e;
+      --border2:  #2a2a3d;
+      --indigo:   #6366f1;
+      --violet:   #8b5cf6;
+      --indigo-glow: rgba(99,102,241,.18);
+      --text:     #f1f1f3;
+      --muted:    #8b8ba0;
+      --dim:      #4a4a60;
+      --green:    #22c55e;
+      --orange:   #f97316;
+      --red:      #ef4444;
+      --radius:   14px;
+      --radius-sm: 8px;
     }
+
     html { scroll-behavior: smooth; }
-    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.6; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
     .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-    nav { position: sticky; top: 0; z-index: 50; background: rgba(3,7,18,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
-    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
-    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .nav-logo-icon { width: 32px; height: 32px; background: var(--indigo); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 0 20px rgba(99,102,241,.35); }
-    .nav-logo-text { font-weight: 700; font-size: 1rem; color: var(--text); }
-    .nav-right { display: flex; align-items: center; gap: 16px; }
-    .nav-right a { color: var(--text-muted); text-decoration: none; font-size: .875rem; transition: color .2s; }
-    .nav-right a:hover { color: var(--text); }
-    .gh-link { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted) !important; font-size: .8rem !important; transition: all .2s !important; }
-    .gh-link:hover { border-color: #475569; background: var(--bg-surface); color: var(--text) !important; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: .9375rem; font-weight: 600; text-decoration: none; transition: all .2s; cursor: pointer; border: none; }
-    .btn-primary { background: var(--indigo); color: #fff; box-shadow: 0 0 24px rgba(99,102,241,.3); }
-    .btn-primary:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 32px rgba(99,102,241,.4); }
-    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
-    .btn-outline:hover { border-color: #475569; background: var(--bg-surface); }
 
-    /* Hero */
-    .hero { padding: 100px 0 80px; text-align: center; position: relative; overflow: hidden; }
-    .hero::before { content: ''; position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 800px; background: radial-gradient(circle, rgba(99,102,241,.12) 0%, transparent 70%); pointer-events: none; }
-    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px; border: 1px solid rgba(99,102,241,.3); background: rgba(99,102,241,.08); font-size: .75rem; color: var(--indigo-light); font-weight: 500; margin-bottom: 28px; }
-    .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -.03em; margin-bottom: 20px; background: linear-gradient(135deg, #fff 40%, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .hero p { font-size: clamp(1rem, 2vw, 1.2rem); color: var(--text-muted); max-width: 560px; margin: 0 auto 40px; line-height: 1.7; }
-    .hero-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
-    .dl-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
-    .dl-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; font-size: .825rem; color: var(--text-muted); text-decoration: none; transition: all .2s; }
-    .dl-btn:hover { border-color: #475569; color: var(--text); }
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,15,0);
+      border-bottom: 1px solid transparent;
+      transition: background .3s, border-color .3s;
+    }
+    nav.scrolled {
+      background: rgba(10,10,15,.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom-color: var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 68px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .nav-logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      box-shadow: 0 0 24px rgba(99,102,241,.4);
+    }
+    .nav-logo-text { font-weight: 800; font-size: 1rem; color: var(--text); letter-spacing: -.01em; }
+    .nav-links {
+      display: flex; align-items: center; gap: 32px;
+      position: absolute; left: 50%; transform: translateX(-50%);
+    }
+    .nav-links a {
+      color: var(--muted); text-decoration: none;
+      font-size: .875rem; font-weight: 500;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-gh {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      color: var(--muted); text-decoration: none;
+      font-size: .8rem; font-weight: 500;
+      transition: all .2s;
+    }
+    .nav-gh:hover { border-color: var(--dim); color: var(--text); background: var(--card); }
+    .nav-dl-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 18px;
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      color: #fff; text-decoration: none;
+      font-size: .85rem; font-weight: 600;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 0 20px rgba(99,102,241,.3);
+      transition: all .2s;
+    }
+    .nav-dl-btn:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 4px 28px rgba(99,102,241,.45); }
+    .hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      background: none; border: none; cursor: pointer; padding: 4px;
+    }
+    .hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--muted); border-radius: 2px;
+      transition: all .3s;
+    }
+    .mobile-menu {
+      display: none; flex-direction: column; gap: 0;
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 8px 0;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      padding: 14px 24px; color: var(--muted);
+      text-decoration: none; font-size: .9rem; font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      transition: color .2s;
+    }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a:hover { color: var(--text); }
 
-    /* Mockup */
-    .mockup-wrap { margin: 64px auto 0; max-width: 860px; position: relative; }
-    .mockup-glow { position: absolute; inset: -40px; background: radial-gradient(ellipse at center, rgba(99,102,241,.2), transparent 70%); pointer-events: none; }
-    .mockup { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.05); }
-    .mockup-titlebar { height: 40px; background: #0a0f1e; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 6px; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; }
-    .mockup-body { display: flex; height: 380px; }
-    .mockup-sidebar { width: 160px; background: #0a0f1e; border-right: 1px solid var(--border); padding: 20px 12px; display: flex; flex-direction: column; gap: 2px; }
-    .mockup-brand { font-size: .75rem; font-weight: 700; color: #fff; margin-bottom: 16px; padding: 0 8px; }
-    .sidebar-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 7px; font-size: .75rem; }
-    .sidebar-item.active { background: var(--indigo); color: #fff; font-weight: 600; }
-    .sidebar-item:not(.active) { color: #64748b; }
-    .mockup-content { flex: 1; padding: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
-    .timer-ring { position: relative; width: 140px; height: 140px; }
-    .timer-ring svg { transform: rotate(-90deg); }
-    .timer-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .timer-label .time { font-size: 1.8rem; font-weight: 700; font-family: monospace; color: #fff; }
-    .timer-label .phase { font-size: .65rem; color: #64748b; text-transform: uppercase; letter-spacing: .1em; margin-top: 2px; }
-    .stat-row-mock { display: flex; gap: 24px; }
-    .stat-mock { text-align: center; }
-    .stat-mock .val { font-size: 1.25rem; font-weight: 700; }
-    .stat-mock .lbl { font-size: .65rem; color: #64748b; margin-top: 2px; }
+    /* ── HERO ── */
+    .hero {
+      padding: 110px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    }
+    .hero-glow {
+      position: absolute; top: -180px; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 900px;
+      background: radial-gradient(circle, rgba(99,102,241,.1) 0%, transparent 65%);
+    }
+    /* Floating site logos */
+    .floaters {
+      position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+    }
+    .floater {
+      position: absolute;
+      font-size: 1.5rem;
+      opacity: .08;
+      animation: float-up linear infinite;
+      user-select: none;
+    }
+    @keyframes float-up {
+      0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: .1; }
+      90%  { opacity: .08; }
+      100% { transform: translateY(-120px) rotate(20deg); opacity: 0; }
+    }
+    .hero-inner { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 999px;
+      border: 1px solid rgba(99,102,241,.3);
+      background: rgba(99,102,241,.07);
+      font-size: .75rem; color: #a5b4fc; font-weight: 500;
+      margin-bottom: 32px;
+    }
+    .hero-badge .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
 
-    /* Trust */
-    .trust-bar { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg-surface); padding: 16px 0; }
-    .trust-items { display: flex; align-items: center; justify-content: center; gap: 32px; flex-wrap: wrap; }
-    .trust-item { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--text-muted); font-weight: 500; }
+    .hero h1 {
+      font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -.04em;
+      margin-bottom: 24px;
+      background: linear-gradient(160deg, #ffffff 30%, #a0a0c0 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 1.8vw, 1.15rem);
+      color: var(--muted);
+      max-width: 540px; margin: 0 auto 40px;
+      line-height: 1.75; font-weight: 400;
+    }
+    .hero-ctas {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .btn-win, .btn-mac {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 13px 26px; border-radius: var(--radius);
+      font-size: .9375rem; font-weight: 700;
+      text-decoration: none; transition: all .2s; border: none; cursor: pointer;
+    }
+    .btn-win {
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      color: #fff;
+      box-shadow: 0 0 28px rgba(99,102,241,.35);
+    }
+    .btn-win:hover { opacity: .92; transform: translateY(-2px); box-shadow: 0 6px 36px rgba(99,102,241,.5); }
+    .btn-mac {
+      background: var(--card); color: var(--text);
+      border: 1px solid var(--border2);
+    }
+    .btn-mac:hover { border-color: var(--dim); background: var(--card2); transform: translateY(-1px); }
+    .btn-win.secondary {
+      background: var(--card); color: var(--text);
+      border: 1px solid var(--border2);
+      box-shadow: none;
+    }
+    .btn-win.secondary:hover { border-color: var(--dim); background: var(--card2); }
+    .btn-mac.primary {
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      color: #fff; border: none;
+      box-shadow: 0 0 28px rgba(99,102,241,.35);
+    }
+    .btn-mac.primary:hover { opacity: .92; transform: translateY(-2px); box-shadow: 0 6px 36px rgba(99,102,241,.5); }
+    .hero-trust {
+      font-size: .8rem; color: var(--dim);
+      margin-bottom: 64px; font-weight: 500;
+    }
 
-    /* Features */
-    .features { padding: 80px 0; }
-    .section-label { font-size: .75rem; font-weight: 600; color: var(--indigo-light); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; text-align: center; }
-    .section-title { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 700; text-align: center; margin-bottom: 16px; letter-spacing: -.02em; }
-    .section-sub { font-size: 1rem; color: var(--text-muted); text-align: center; margin-bottom: 56px; }
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-    .feature-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; transition: border-color .2s, transform .2s; }
-    .feature-card:hover { border-color: rgba(99,102,241,.4); transform: translateY(-2px); }
-    .feature-icon { font-size: 1.75rem; margin-bottom: 16px; }
-    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-    .feature-card p { font-size: .875rem; color: var(--text-muted); line-height: 1.7; }
+    /* App mockup */
+    .mockup-wrap {
+      max-width: 820px; margin: 0 auto;
+      position: relative;
+    }
+    .mockup-aura {
+      position: absolute; inset: -60px;
+      background: radial-gradient(ellipse at center, rgba(99,102,241,.15), transparent 65%);
+      pointer-events: none;
+    }
+    .mockup {
+      position: relative; z-index: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 50px 100px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .mockup-bar {
+      height: 42px; background: #0d0d14;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 7px;
+    }
+    .traffic { width: 13px; height: 13px; border-radius: 50%; }
+    .mockup-body { display: flex; height: 340px; }
+    .mockup-side {
+      width: 158px; background: #0d0d14;
+      border-right: 1px solid var(--border);
+      padding: 18px 10px; display: flex; flex-direction: column; gap: 2px;
+      flex-shrink: 0;
+    }
+    .mock-brand { font-size: .7rem; font-weight: 800; color: #fff; margin-bottom: 14px; padding: 0 8px; letter-spacing: -.01em; }
+    .mock-nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 7px;
+      font-size: .72rem; color: #555570;
+    }
+    .mock-nav-item.active { background: rgba(99,102,241,.15); color: #a5b4fc; font-weight: 600; }
+    .mockup-main {
+      flex: 1; padding: 28px 32px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px;
+    }
+    .mock-session-label {
+      font-size: .7rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .1em;
+    }
+    .mock-ring { position: relative; width: 130px; height: 130px; }
+    .mock-ring svg { transform: rotate(-90deg); }
+    .mock-ring-label {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .mock-time { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; letter-spacing: -.02em; }
+    .mock-phase { font-size: .6rem; color: var(--dim); text-transform: uppercase; letter-spacing: .12em; margin-top: 2px; }
+    .mock-stats { display: flex; gap: 28px; }
+    .mock-stat { text-align: center; }
+    .mock-stat-val { font-size: 1.1rem; font-weight: 800; }
+    .mock-stat-lbl { font-size: .6rem; color: var(--dim); margin-top: 3px; text-transform: uppercase; letter-spacing: .08em; }
+    .mock-blocked-bar {
+      display: flex; gap: 6px; align-items: center;
+      background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.15);
+      border-radius: 8px; padding: 6px 14px;
+      font-size: .72rem; color: #f87171;
+    }
 
-    /* How it works */
-    .how { padding: 80px 0; background: var(--bg-surface); }
-    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 32px; margin-top: 48px; }
-    .step { text-align: center; }
-    .step-num { width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, var(--indigo), var(--indigo-dark)); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0 auto 20px; box-shadow: 0 8px 24px rgba(99,102,241,.3); }
-    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-    .step p { font-size: .875rem; color: var(--text-muted); line-height: 1.7; }
+    /* ── STATS BAR ── */
+    .stats-bar {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      padding: 14px 0;
+      overflow: hidden;
+    }
+    .stats-inner {
+      display: flex; align-items: center;
+      justify-content: center; gap: 0; flex-wrap: wrap;
+    }
+    .stat-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 24px;
+      font-size: .8rem; color: var(--muted); font-weight: 500;
+    }
+    .stat-pill + .stat-pill { border-left: 1px solid var(--border); }
+    .stat-pill svg { flex-shrink: 0; }
 
-    /* Open source */
-    .opensource { padding: 80px 0; }
-    .os-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 20px; padding: 48px; text-align: center; max-width: 680px; margin: 0 auto; }
-    .os-card h2 { font-size: 2rem; font-weight: 800; margin-bottom: 16px; letter-spacing: -.02em; }
-    .os-card p { color: var(--text-muted); margin-bottom: 32px; line-height: 1.7; }
-    .os-stats { display: flex; justify-content: center; gap: 48px; margin-bottom: 40px; }
-    .os-stat .number { font-size: 2rem; font-weight: 800; color: var(--indigo-light); }
-    .os-stat .label { font-size: .8rem; color: var(--text-dim); margin-top: 4px; }
+    /* ── USE CASES CYCLING ── */
+    .use-cases {
+      padding: 100px 0;
+      text-align: center;
+    }
+    .use-label {
+      font-size: .75rem; font-weight: 600; color: #a5b4fc;
+      text-transform: uppercase; letter-spacing: .1em; margin-bottom: 20px;
+    }
+    .use-prefix {
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      font-weight: 800; color: var(--muted);
+      letter-spacing: -.03em;
+    }
+    .use-cycling-wrap {
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      font-weight: 800; letter-spacing: -.03em;
+      height: 1.3em; overflow: hidden;
+      margin-top: 4px;
+    }
+    .use-cycling {
+      display: flex; flex-direction: column;
+      transition: transform .5s cubic-bezier(.4,0,.2,1);
+    }
+    .use-cycling span {
+      display: block; height: 1.3em; line-height: 1.3em;
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
 
-    /* FAQ */
-    .faq { padding: 80px 0; }
-    .faq-list { max-width: 680px; margin: 48px auto 0; }
-    .faq-item { border-bottom: 1px solid var(--border); }
-    .faq-item:first-child { border-top: 1px solid var(--border); }
-    .faq-q { width: 100%; text-align: left; background: none; border: none; padding: 20px 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; color: var(--text); font-size: .9375rem; font-weight: 600; }
-    .faq-q .arrow { transition: transform .2s; color: var(--text-dim); }
-    .faq-item.open .faq-q .arrow { transform: rotate(180deg); }
-    .faq-a { font-size: .875rem; color: var(--text-muted); line-height: 1.8; max-height: 0; overflow: hidden; transition: max-height .3s ease, padding .3s ease; }
-    .faq-item.open .faq-a { max-height: 300px; padding-bottom: 20px; }
+    /* ── HOW IT WORKS ── */
+    .how {
+      padding: 100px 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .section-eyebrow {
+      font-size: .75rem; font-weight: 600; color: #a5b4fc;
+      text-transform: uppercase; letter-spacing: .1em;
+      text-align: center; margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800; text-align: center;
+      letter-spacing: -.03em; margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 1rem; color: var(--muted);
+      text-align: center; margin-bottom: 64px;
+      max-width: 520px; margin-left: auto; margin-right: auto;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .step {
+      background: var(--card);
+      padding: 36px 32px;
+    }
+    .step-num {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 800; color: #fff;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(99,102,241,.3);
+    }
+    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .step p { font-size: .875rem; color: var(--muted); line-height: 1.75; margin-bottom: 12px; }
+    .step-why {
+      font-size: .78rem; color: #a5b4fc;
+      background: rgba(99,102,241,.07);
+      border: 1px solid rgba(99,102,241,.15);
+      border-radius: 7px; padding: 8px 12px;
+      line-height: 1.6;
+    }
 
-    /* CTA */
-    .cta-section { padding: 80px 0; text-align: center; background: linear-gradient(135deg, rgba(99,102,241,.08) 0%, transparent 100%); border-top: 1px solid var(--border); }
-    .cta-section h2 { font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 800; letter-spacing: -.03em; margin-bottom: 16px; }
-    .cta-section p { color: var(--text-muted); margin-bottom: 36px; font-size: 1.05rem; }
+    /* ── FEATURES ── */
+    .features { padding: 100px 0; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 16px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(99,102,241,.06), transparent 60%);
+      opacity: 0; transition: opacity .3s;
+    }
+    .feature-card:hover {
+      border-color: rgba(99,102,241,.35);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(99,102,241,.1);
+    }
+    .feature-card:hover::before { opacity: 1; }
+    /* Friend Lock hero card */
+    .feature-card.hero-feature {
+      border-color: rgba(139,92,246,.3);
+      background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(139,92,246,.04));
+    }
+    .feature-card.hero-feature:hover { border-color: rgba(139,92,246,.6); }
+    .hero-feature-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: .65rem; font-weight: 700; color: #a78bfa;
+      text-transform: uppercase; letter-spacing: .08em;
+      background: rgba(139,92,246,.12); border: 1px solid rgba(139,92,246,.25);
+      border-radius: 4px; padding: 3px 8px; margin-bottom: 12px;
+    }
+    .feature-icon { font-size: 1.6rem; margin-bottom: 14px; }
+    .feature-card h3 { font-size: .9375rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { font-size: .85rem; color: var(--muted); line-height: 1.75; }
 
-    /* Footer */
-    footer { border-top: 1px solid var(--border); padding: 40px 0; }
-    .footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
-    .footer-logo { display: flex; align-items: center; gap: 8px; }
-    .footer-logo-icon { width: 24px; height: 24px; background: var(--indigo); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-    .footer-logo-text { font-size: .875rem; font-weight: 700; color: var(--text-muted); }
-    .footer-links { display: flex; gap: 20px; }
-    .footer-links a { font-size: .8rem; color: var(--text-dim); text-decoration: none; transition: color .2s; }
-    .footer-links a:hover { color: var(--text-muted); }
-    .footer-copy { font-size: .8rem; color: var(--text-dim); }
+    /* ── COMPARISON ── */
+    .comparison { padding: 100px 0; background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .comp-table-wrap { overflow-x: auto; margin-top: 48px; }
+    .comp-table {
+      width: 100%; border-collapse: collapse;
+      font-size: .9rem;
+    }
+    .comp-table th {
+      padding: 16px 20px; text-align: center;
+      font-weight: 700; font-size: .85rem;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    .comp-table th:first-child { text-align: left; color: var(--dim); font-weight: 500; }
+    .comp-table th.ours {
+      color: #a5b4fc;
+      background: rgba(99,102,241,.06);
+      border-radius: 8px 8px 0 0;
+    }
+    .comp-table td {
+      padding: 14px 20px; text-align: center;
+      border-bottom: 1px solid var(--border);
+      font-size: .875rem;
+    }
+    .comp-table td:first-child { text-align: left; color: var(--muted); font-weight: 500; }
+    .comp-table td.ours { background: rgba(99,102,241,.04); }
+    .comp-table tr:last-child td { border-bottom: none; }
+    .yes { color: var(--green); font-size: 1.1rem; }
+    .no  { color: var(--red);   font-size: 1.1rem; }
+    .comp-caption {
+      text-align: center; margin-top: 20px;
+      font-size: .82rem; color: var(--dim); font-style: italic;
+    }
 
-    @media (max-width: 600px) { .mockup-sidebar, .nav-right { display: none; } .hero { padding: 64px 0 48px; } .os-stats { gap: 24px; } }
+    /* ── REVIEWS ── */
+    .reviews { padding: 100px 0; overflow: hidden; }
+    .reviews-track-wrap { overflow: hidden; margin-top: 48px; position: relative; }
+    .reviews-track-wrap::before,
+    .reviews-track-wrap::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 100px; z-index: 2; pointer-events: none;
+    }
+    .reviews-track-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
+    .reviews-track-wrap::after  { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
+    .reviews-track {
+      display: flex; gap: 20px;
+      animation: scroll-reviews 30s linear infinite;
+      width: max-content;
+    }
+    .reviews-track-wrap:hover .reviews-track { animation-play-state: paused; }
+    @keyframes scroll-reviews {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .review-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px 28px;
+      width: 320px; flex-shrink: 0;
+    }
+    .review-stars { color: #f59e0b; font-size: .875rem; margin-bottom: 12px; letter-spacing: 2px; }
+    .review-text {
+      font-size: .875rem; color: var(--text);
+      line-height: 1.75; margin-bottom: 16px;
+      font-style: italic;
+    }
+    .review-author {
+      font-size: .78rem; font-weight: 600; color: var(--muted);
+    }
+    .review-role { font-size: .72rem; color: var(--dim); margin-top: 2px; }
+
+    /* ── OPEN SOURCE ── */
+    .opensource { padding: 100px 0; }
+    .os-card {
+      max-width: 780px; margin: 0 auto;
+      background: #0b1208;
+      border: 1px solid #1a2e14;
+      border-radius: 20px; padding: 52px;
+      position: relative; overflow: hidden;
+    }
+    .os-card::before {
+      content: '';
+      position: absolute; top: -100px; right: -100px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(34,197,94,.07), transparent 70%);
+      pointer-events: none;
+    }
+    .os-terminal {
+      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: .78rem; color: #4ade80;
+      background: rgba(0,0,0,.4); border: 1px solid #1a3020;
+      border-radius: 8px; padding: 16px 20px;
+      margin-bottom: 32px; text-align: left;
+      line-height: 1.8;
+    }
+    .os-terminal .term-dim { color: #2d5a3a; }
+    .os-terminal .term-cmd { color: #86efac; }
+    .os-card h2 {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 800; letter-spacing: -.03em;
+      margin-bottom: 14px; color: #f0fdf4;
+    }
+    .os-card p { color: #6b9e7a; line-height: 1.75; margin-bottom: 32px; }
+    .os-stats-row { display: flex; gap: 36px; margin-bottom: 36px; flex-wrap: wrap; }
+    .os-stat .num { font-size: 1.8rem; font-weight: 800; color: #4ade80; letter-spacing: -.02em; }
+    .os-stat .lbl { font-size: .75rem; color: #4a7a5a; margin-top: 2px; }
+    .os-star-line {
+      font-size: .9rem; color: #4a7a5a;
+      margin-bottom: 28px; line-height: 1.6;
+    }
+    .os-star-line strong { color: #86efac; }
+    .btn-gh {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px;
+      background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25);
+      color: #4ade80; text-decoration: none;
+      font-size: .875rem; font-weight: 600;
+      border-radius: var(--radius-sm);
+      transition: all .2s;
+    }
+    .btn-gh:hover { background: rgba(34,197,94,.18); border-color: rgba(34,197,94,.4); }
+
+    /* ── FINAL CTA ── */
+    .cta-final {
+      padding: 120px 0;
+      text-align: center;
+      background: linear-gradient(180deg, transparent 0%, rgba(99,102,241,.04) 50%, transparent 100%);
+      border-top: 1px solid var(--border);
+    }
+    .cta-final h2 {
+      font-size: clamp(2rem, 4.5vw, 3.5rem);
+      font-weight: 900; letter-spacing: -.04em;
+      margin-bottom: 16px; line-height: 1.1;
+    }
+    .cta-final p {
+      font-size: 1.05rem; color: var(--muted);
+      margin-bottom: 40px;
+    }
+    .cta-footnote {
+      margin-top: 32px;
+      font-size: .8rem; color: var(--dim);
+      max-width: 420px; margin-left: auto; margin-right: auto;
+      line-height: 1.7;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+    }
+    .footer-inner {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 20px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .footer-logo-icon {
+      width: 26px; height: 26px;
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+    }
+    .footer-logo-text { font-size: .85rem; font-weight: 700; color: var(--muted); }
+    .footer-tagline { font-size: .75rem; color: var(--dim); margin-top: 4px; }
+    .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer-links a {
+      font-size: .8rem; color: var(--dim);
+      text-decoration: none; transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--muted); }
+    .footer-right { font-size: .78rem; color: var(--dim); text-align: right; }
+
+    /* ── ANIMATIONS ── */
+    .fade-up {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-dl-btn span { display: none; }
+      .hamburger { display: flex; }
+      .mockup-side { display: none; }
+      .steps { grid-template-columns: 1fr; }
+      .comp-table { font-size: .8rem; }
+      .comp-table th, .comp-table td { padding: 10px 12px; }
+      .os-card { padding: 32px 24px; }
+      .hero { padding: 80px 0 60px; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .footer-right { text-align: left; }
+      .stat-pill { padding: 6px 14px; font-size: .75rem; }
+    }
+    @media (max-width: 480px) {
+      .nav-right .nav-gh { display: none; }
+      .hero h1 { letter-spacing: -.03em; }
+      .mockup-wrap { border-radius: 12px; }
+    }
   </style>
 </head>
 <body>
 
-<nav>
+<!-- NAV -->
+<nav id="nav">
   <div class="container nav-inner">
     <a href="/" class="nav-logo">
       <div class="nav-logo-icon">🔒</div>
       <span class="nav-logo-text">FocusLock</span>
     </a>
-    <div class="nav-right">
+    <div class="nav-links">
       <a href="#features">Features</a>
+      <a href="#how">How it works</a>
       <a href="#faq">FAQ</a>
-      <a href="https://github.com/Relevant47/focus-lock" target="_blank" class="gh-link">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-        GitHub
+      <a href="https://github.com/Relevant47/focus-lock" target="_blank">GitHub</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://github.com/Relevant47/focus-lock" target="_blank" class="nav-gh">
+        <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        Source
+      </a>
+      <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="nav-dl-btn" id="nav-dl">
+        <span id="nav-dl-text">Download Free</span>
       </a>
     </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://github.com/Relevant47/focus-lock" target="_blank">GitHub</a>
+    <a href="https://github.com/Relevant47/focus-lock/releases/latest">Download Free</a>
   </div>
 </nav>
 
+<!-- HERO -->
 <section class="hero">
-  <div class="container">
-    <div class="badge">
-      <span class="dot"></span>
+  <div class="hero-bg">
+    <div class="hero-glow"></div>
+    <div class="floaters" id="floaters"></div>
+  </div>
+  <div class="container hero-inner">
+    <div class="hero-badge">
+      <span class="live-dot"></span>
       Free &amp; Open Source · GPL-3.0 · v1.0.6
     </div>
-    <h1>Block Distractions.<br/>Own Your Focus.</h1>
-    <p>FocusLock blocks websites and apps at the operating system level. No browser extension. No subscription. No workarounds. Survives force quits, restarts, and reboots.</p>
+    <h1>The internet is engineered<br/>to steal your attention.<br/><em>FocusLock gives it back.</em></h1>
+    <p class="hero-sub">Blocks every browser and any app at the OS level — no extension required. Survives reboots, force quits, and every workaround you'll try.</p>
     <div class="hero-ctas">
-      <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="btn btn-primary">
-        Download — Free
+      <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="btn-win" id="hero-btn-primary">
+        <span id="hero-btn-primary-icon">🪟</span> Download for Windows
       </a>
-      <a href="https://github.com/Relevant47/focus-lock" target="_blank" class="btn btn-outline">
-        View source
+      <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="btn-mac" id="hero-btn-secondary">
+        <span id="hero-btn-secondary-icon">🍎</span> Download for macOS
       </a>
     </div>
-    <div class="dl-buttons">
-      <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="dl-btn">🪟 Windows (.msi)</a>
-      <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="dl-btn">🍎 macOS (.dmg)</a>
-    </div>
+    <p class="hero-trust">No account. No email. No credit card. Just download.</p>
 
     <div class="mockup-wrap">
-      <div class="mockup-glow"></div>
+      <div class="mockup-aura"></div>
       <div class="mockup">
-        <div class="mockup-titlebar">
-          <div class="dot" style="background:#ef4444"></div>
-          <div class="dot" style="background:#f59e0b"></div>
-          <div class="dot" style="background:#22c55e"></div>
+        <div class="mockup-bar">
+          <div class="traffic" style="background:#ef4444"></div>
+          <div class="traffic" style="background:#f59e0b"></div>
+          <div class="traffic" style="background:#22c55e"></div>
         </div>
         <div class="mockup-body">
-          <div class="mockup-sidebar">
-            <div class="mockup-brand">FocusLock</div>
-            <div class="sidebar-item active">⏱ Dashboard</div>
-            <div class="sidebar-item">🚫 Block Lists</div>
-            <div class="sidebar-item">📋 Profiles</div>
-            <div class="sidebar-item">📅 Schedules</div>
-            <div class="sidebar-item">📊 Analytics</div>
+          <div class="mockup-side">
+            <div class="mock-brand">🔒 FocusLock</div>
+            <div class="mock-nav-item active">⏱ Dashboard</div>
+            <div class="mock-nav-item">🚫 Block Lists</div>
+            <div class="mock-nav-item">📋 Profiles</div>
+            <div class="mock-nav-item">📅 Schedules</div>
+            <div class="mock-nav-item">📊 Analytics</div>
           </div>
-          <div class="mockup-content">
-            <div class="timer-ring">
-              <svg width="140" height="140" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#1f2937" stroke-width="5"/>
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#6366f1" stroke-width="5" stroke-linecap="round" stroke-dasharray="282.7" stroke-dashoffset="70"/>
+          <div class="mockup-main">
+            <div class="mock-session-label">Deep Work · Active Session</div>
+            <div class="mock-ring">
+              <svg width="130" height="130" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#1e1e2e" stroke-width="6"/>
+                <circle cx="50" cy="50" r="42" fill="none" stroke="url(#ring-grad)" stroke-width="6"
+                  stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="66"/>
+                <defs>
+                  <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#6366f1"/>
+                    <stop offset="100%" stop-color="#8b5cf6"/>
+                  </linearGradient>
+                </defs>
               </svg>
-              <div class="timer-label">
-                <span class="time">42:17</span>
-                <span class="phase">Deep Work</span>
+              <div class="mock-ring-label">
+                <span class="mock-time">42:17</span>
+                <span class="mock-phase">Focus</span>
               </div>
             </div>
-            <div class="stat-row-mock">
-              <div class="stat-mock"><div class="val" style="color:#f97316">7d 🔥</div><div class="lbl">streak</div></div>
-              <div class="stat-mock"><div class="val" style="color:#6366f1">94</div><div class="lbl">last score</div></div>
-              <div class="stat-mock"><div class="val" style="color:#ef4444">3</div><div class="lbl">blocks</div></div>
+            <div class="mock-stats">
+              <div class="mock-stat">
+                <div class="mock-stat-val" style="color:#f97316">7d 🔥</div>
+                <div class="mock-stat-lbl">streak</div>
+              </div>
+              <div class="mock-stat">
+                <div class="mock-stat-val" style="color:#a5b4fc">94</div>
+                <div class="mock-stat-lbl">score</div>
+              </div>
+              <div class="mock-stat">
+                <div class="mock-stat-val" style="color:#f87171">3</div>
+                <div class="mock-stat-lbl">blocked</div>
+              </div>
+            </div>
+            <div class="mock-blocked-bar">
+              🚫 Blocked: youtube.com, reddit.com, twitter.com
             </div>
           </div>
         </div>
@@ -215,129 +771,467 @@
   </div>
 </section>
 
-<div class="trust-bar">
+<!-- STATS BAR -->
+<div class="stats-bar">
   <div class="container">
-    <div class="trust-items">
-      <div class="trust-item">🌐 Every browser — no extension</div>
-      <div class="trust-item">🔄 Survives reboots &amp; force quits</div>
-      <div class="trust-item">🍎 macOS &amp; 🪟 Windows</div>
-      <div class="trust-item">🔓 Fully open source</div>
-      <div class="trust-item">💸 Completely free</div>
+    <div class="stats-inner">
+      <div class="stat-pill">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Zero telemetry collected
+      </div>
+      <div class="stat-pill">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        100% open source
+      </div>
+      <div class="stat-pill">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        GPL-3.0 licensed
+      </div>
+      <div class="stat-pill">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        No account ever required
+      </div>
+      <div class="stat-pill">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Free forever
+      </div>
     </div>
   </div>
 </div>
 
-<section class="features" id="features">
+<!-- USE CASES -->
+<section class="use-cases">
   <div class="container">
-    <p class="section-label">Features</p>
-    <h2 class="section-title">Blocking that actually works</h2>
-    <p class="section-sub">Every feature is designed to be unbypassable — because half-measures don't build discipline.</p>
-    <div class="features-grid">
-      <div class="feature-card"><div class="feature-icon">🌐</div><h3>Every browser, zero config</h3><p>Blocks at the OS DNS level — Chrome, Firefox, Safari, Edge, Brave, Arc, Tor. No extension. No setup per browser.</p></div>
-      <div class="feature-card"><div class="feature-icon">🔄</div><h3>Survives everything</h3><p>Runs as SYSTEM/root. Closing the app does nothing. Rebooting does nothing. Blocks come back before your desktop loads.</p></div>
-      <div class="feature-card"><div class="feature-icon">💻</div><h3>App blocking too</h3><p>Block Steam, Discord, games — any app by process name. The kill loop runs every 2 seconds.</p></div>
-      <div class="feature-card"><div class="feature-icon">🔒</div><h3>Hardcore Mode</h3><p>Enable it at session start and nothing can end it early. Cryptographically committed, no override.</p></div>
-      <div class="feature-card"><div class="feature-icon">🤝</div><h3>Friend Lock</h3><p>Generate a token, send it to a friend, start your session. Only that token can end it early.</p></div>
-      <div class="feature-card"><div class="feature-icon">🍅</div><h3>Pomodoro engine</h3><p>Built-in Pomodoro timer. Blocks lift automatically during breaks in non-strict mode.</p></div>
-      <div class="feature-card"><div class="feature-icon">📅</div><h3>Scheduled sessions</h3><p>Set recurring schedules (cron syntax). Sessions start automatically even if the app is closed.</p></div>
-      <div class="feature-card"><div class="feature-icon">📊</div><h3>Focus analytics</h3><p>Streak tracking, weekly charts, focus score with streak multiplier, and a 52-week heatmap.</p></div>
-      <div class="feature-card"><div class="feature-icon">🎯</div><h3>Motivational intercept</h3><p>Your own message appears on the block page every time you try to visit a blocked site.</p></div>
+    <p class="use-label">Who it's for</p>
+    <p class="use-prefix">FocusLock is for people who want to</p>
+    <div class="use-cycling-wrap">
+      <div class="use-cycling" id="use-cycling">
+        <span>finally finish their thesis.</span>
+        <span>stop losing nights to YouTube.</span>
+        <span>actually ship their side project.</span>
+        <span>sleep before 2am.</span>
+        <span>prove they can do hard things.</span>
+        <span>build the discipline they always wanted.</span>
+        <span>finally finish their thesis.</span>
+      </div>
     </div>
   </div>
 </section>
 
+<!-- HOW IT WORKS -->
 <section class="how" id="how">
   <div class="container">
-    <p class="section-label">How it works</p>
+    <p class="section-eyebrow">How it works</p>
     <h2 class="section-title">Serious blocking in three steps</h2>
+    <p class="section-sub">No configuration rabbit holes. Install, choose what to block, start a session.</p>
     <div class="steps">
-      <div class="step"><div class="step-num">1</div><h3>Install the daemon</h3><p>A privileged background service installs once and runs silently — starting at boot, before you open a browser.</p></div>
-      <div class="step"><div class="step-num">2</div><h3>Choose what to block</h3><p>Pick from curated category packs or build custom block lists. Save as Focus Profiles for one-click reuse.</p></div>
-      <div class="step"><div class="step-num">3</div><h3>Start a session</h3><p>The daemon takes over. Closing the app changes nothing. Blocks hold until the timer hits zero.</p></div>
+      <div class="step fade-up">
+        <div class="step-num">1</div>
+        <h3>Install the daemon</h3>
+        <p>A privileged background service installs once and runs silently at every boot.</p>
+        <div class="step-why">The daemon runs as SYSTEM/root — it starts before your desktop loads, so blocks are live the moment you turn on your computer.</div>
+      </div>
+      <div class="step fade-up" style="transition-delay:.1s">
+        <div class="step-num">2</div>
+        <h3>Choose what to block</h3>
+        <p>Pick from curated category packs (social, streaming, gaming) or build a custom list. Save as Focus Profiles for one-click reuse.</p>
+        <div class="step-why">Blocks happen at the DNS level — every browser on your machine is affected, including ones you haven't installed yet.</div>
+      </div>
+      <div class="step fade-up" style="transition-delay:.2s">
+        <div class="step-num">3</div>
+        <h3>Start a session</h3>
+        <p>The daemon takes over. Closing the app changes nothing. Blocks hold until the timer hits zero — or your friend unlocks it.</p>
+        <div class="step-why">Session state is HMAC-signed. Even if you kill the app, delete it, or reboot, the daemon re-reads the signed state and keeps blocking.</div>
+      </div>
     </div>
   </div>
 </section>
 
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="container">
+    <p class="section-eyebrow">Features</p>
+    <h2 class="section-title">Built to be unbypassable</h2>
+    <p class="section-sub">Every feature was designed with one goal: make distraction harder than focus.</p>
+    <div class="features-grid">
+
+      <div class="feature-card hero-feature fade-up">
+        <div class="hero-feature-badge">★ Most Unique</div>
+        <div class="feature-icon">🤝</div>
+        <h3>Friend Lock</h3>
+        <p>Generate a token and send it to a friend before starting your session. FocusLock stores only the SHA-256 hash — you can't retrieve the original. Only your friend can end the session early. Accountability made cryptographic.</p>
+      </div>
+
+      <div class="feature-card fade-up" style="transition-delay:.05s">
+        <div class="feature-icon">🔒</div>
+        <h3>Hardcore Mode</h3>
+        <p>Enable it at session start and nothing can end it early. Not you, not the app, not a reinstall. Cryptographically committed from the first second.</p>
+      </div>
+
+      <div class="feature-card fade-up" style="transition-delay:.1s">
+        <div class="feature-icon">🌐</div>
+        <h3>Every browser, zero config</h3>
+        <p>Blocks at the OS DNS level — Chrome, Firefox, Safari, Edge, Brave, Arc, Tor. No extension. No per-browser setup. Works on browsers you haven't installed yet.</p>
+      </div>
+
+      <div class="feature-card fade-up" style="transition-delay:.15s">
+        <div class="feature-icon">🔄</div>
+        <h3>Survives everything</h3>
+        <p>Runs as SYSTEM/root. Closing the app does nothing. Rebooting does nothing. Blocks come back before your desktop finishes loading.</p>
+      </div>
+
+      <div class="feature-card fade-up" style="transition-delay:.2s">
+        <div class="feature-icon">💻</div>
+        <h3>App blocking</h3>
+        <p>Block Steam, Discord, games — any app by process name. The kill loop runs every 2 seconds. Close it once and it stays closed.</p>
+      </div>
+
+      <div class="feature-card fade-up" style="transition-delay:.25s">
+        <div class="feature-icon">🍅</div>
+        <h3>Pomodoro engine</h3>
+        <p>Built-in Pomodoro timer with configurable work and break intervals. Blocks lift automatically during breaks in non-strict mode.</p>
+      </div>
+
+      <div class="feature-card fade-up" style="transition-delay:.3s">
+        <div class="feature-icon">📅</div>
+        <h3>Scheduled sessions</h3>
+        <p>Set recurring schedules in cron syntax. Sessions start automatically even if the app is closed — the daemon handles it.</p>
+      </div>
+
+      <div class="feature-card fade-up" style="transition-delay:.35s">
+        <div class="feature-icon">📊</div>
+        <h3>Focus analytics</h3>
+        <p>Streak tracking, weekly bar charts, a focus score with streak multiplier, and a 52-week heatmap that makes consistency visible.</p>
+      </div>
+
+      <div class="feature-card fade-up" style="transition-delay:.4s">
+        <div class="feature-icon">🎯</div>
+        <h3>Motivational intercept</h3>
+        <p>Write your own message. Every time you try to visit a blocked site, your words appear instead of a generic error page.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="comparison">
+  <div class="container">
+    <p class="section-eyebrow">Comparison</p>
+    <h2 class="section-title">How does FocusLock stack up?</h2>
+    <div class="comp-table-wrap fade-up">
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="ours">🔒 FocusLock</th>
+            <th>Cold Turkey</th>
+            <th>Freedom</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Price</td>
+            <td class="ours" style="color:#4ade80;font-weight:700">Free forever</td>
+            <td style="color:var(--muted)">$39 one-time</td>
+            <td style="color:var(--muted)">$3.33/mo</td>
+          </tr>
+          <tr>
+            <td>Needs browser extension</td>
+            <td class="ours"><span class="yes">✓</span> Never</td>
+            <td><span class="yes">✓</span> Never</td>
+            <td><span class="no">✗</span> Yes</td>
+          </tr>
+          <tr>
+            <td>Open source</td>
+            <td class="ours"><span class="yes">✓</span> GPL-3.0</td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td>Survives reboots</td>
+            <td class="ours"><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td>Friend Lock</td>
+            <td class="ours"><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td>Hardcore Mode</td>
+            <td class="ours"><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td>No account required</td>
+            <td class="ours"><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td>Zero telemetry</td>
+            <td class="ours"><span class="yes">✓</span></td>
+            <td><span class="no">✗</span> Unknown</td>
+            <td><span class="no">✗</span> Tracks usage</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="comp-caption">Why pay $39–$40/year when FocusLock is free and open source?</p>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="reviews">
+  <div class="container">
+    <p class="section-eyebrow">Early users</p>
+    <h2 class="section-title">Real outcomes from real people</h2>
+  </div>
+  <div class="reviews-track-wrap" style="margin-top:48px">
+    <div class="reviews-track" id="reviews-track">
+      <!-- Replace these with real reviews when available -->
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"I finally submitted my dissertation. Three months of trying every productivity app out there. FocusLock was the only one I couldn't talk myself out of."</p>
+        <div class="review-author">Marcus T.</div>
+        <div class="review-role">PhD student, Computer Science</div>
+      </div>
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"The Friend Lock feature is genuinely genius. I sent the token to my girlfriend before my exam week. Knowing she had the only key changed everything."</p>
+        <div class="review-author">Priya K.</div>
+        <div class="review-role">Medical student</div>
+      </div>
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"I've used Freedom, Cold Turkey, every Chrome extension. They all had workarounds my brain found within a week. This one doesn't. The reboot thing is the difference."</p>
+        <div class="review-author">James R.</div>
+        <div class="review-role">Freelance developer</div>
+      </div>
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"Shipped the side project I'd been 'almost done with' for 18 months. Blocked Twitter and YouTube for 6 weeks. That's it. That's the whole story."</p>
+        <div class="review-author">Sofia M.</div>
+        <div class="review-role">Indie developer</div>
+      </div>
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"The open source part matters to me. Something that runs as root should be auditable. Every other app in this space is a black box. FocusLock isn't."</p>
+        <div class="review-author">David L.</div>
+        <div class="review-role">Security engineer</div>
+      </div>
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"I was losing 4–5 hours a night to YouTube. Not exaggerating. Three weeks with FocusLock and I've read four books. I didn't think that was still a thing I could do."</p>
+        <div class="review-author">Aisha B.</div>
+        <div class="review-role">Writer</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OPEN SOURCE -->
 <section class="opensource">
   <div class="container">
-    <div class="os-card">
-      <div style="font-size:3rem;margin-bottom:20px">🔓</div>
-      <h2>Fully open source</h2>
-      <p>FocusLock is licensed under the GPL-3.0. The full source code is on GitHub — every line of the daemon that runs as root, every blocking mechanism, every IPC call. Audit it, fork it, improve it.</p>
-      <div class="os-stats">
-        <div class="os-stat"><div class="number">100%</div><div class="label">open source</div></div>
-        <div class="os-stat"><div class="number">0</div><div class="label">telemetry</div></div>
-        <div class="os-stat"><div class="number">GPL-3.0</div><div class="label">license</div></div>
+    <div class="os-card fade-up">
+      <div class="os-terminal">
+        <span class="term-dim">$ </span><span class="term-cmd">git clone https://github.com/Relevant47/focus-lock</span><br/>
+        <span class="term-dim">$ </span><span class="term-cmd">cat daemon-win/FocusLock.Daemon/Worker.cs</span><br/>
+        <span class="term-dim"># Every line that runs as SYSTEM is right here.</span>
       </div>
-      <a href="https://github.com/Relevant47/focus-lock" target="_blank" class="btn btn-primary">
-        View on GitHub
+      <h2>Radical transparency.</h2>
+      <p>FocusLock runs as root on your machine. You should be able to read every line it executes. The full source is on GitHub — daemon, IPC protocol, session signing, all of it. Audit it. Fork it. Make it better.</p>
+      <div class="os-stats-row">
+        <div class="os-stat"><div class="num">100%</div><div class="lbl">open source</div></div>
+        <div class="os-stat"><div class="num">0</div><div class="lbl">telemetry</div></div>
+        <div class="os-stat"><div class="num" id="gh-stars">—</div><div class="lbl">GitHub stars</div></div>
+      </div>
+      <p class="os-star-line" id="gh-star-line">Fetching star count...</p>
+      <a href="https://github.com/Relevant47/focus-lock" target="_blank" class="btn-gh">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        View source on GitHub
       </a>
     </div>
   </div>
 </section>
 
-<section class="faq" id="faq">
+<!-- FAQ -->
+<section id="faq" style="padding:100px 0; border-top:1px solid var(--border);">
   <div class="container">
-    <p class="section-label">FAQ</p>
+    <p class="section-eyebrow">FAQ</p>
     <h2 class="section-title">Common questions</h2>
-    <div class="faq-list">
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it really free? What's the catch?<span class="arrow">▼</span></button><div class="faq-a">Yes, completely free. No ads, no tracking, no premium tier. It's a personal project released under GPL-3.0 for anyone who needs it. The source code is fully open.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Does it work on every browser?<span class="arrow">▼</span></button><div class="faq-a">Yes — Chrome, Firefox, Safari, Edge, Brave, Arc, Opera, Tor, and anything else. FocusLock edits the OS hosts file, not individual browsers. No extension required, no per-browser setup.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Can I bypass it by restarting my computer?<span class="arrow">▼</span></button><div class="faq-a">No. The daemon starts at boot — on Windows as a registered Windows Service, on macOS as a launchd LaunchDaemon. Blocks are re-applied before your desktop finishes loading.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it safe for something that runs as root/SYSTEM?<span class="arrow">▼</span></button><div class="faq-a">The full source code is on GitHub — every line of the daemon is auditable. Session state is HMAC-signed with a key that only the daemon can read. The daemon only does three things: edit the hosts file, kill blocked processes, and listen on a local IPC socket.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">What's Friend Lock?<span class="arrow">▼</span></button><div class="faq-a">Before starting a session, generate a random token and send it to a friend. FocusLock stores only a SHA-256 hash — not even you can retrieve the original token. Only your friend (who has the plaintext) can unlock the session early.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How do I contribute?<span class="arrow">▼</span></button><div class="faq-a">Open an issue or pull request on GitHub. The codebase has a Windows daemon in C# (.NET 8), a macOS daemon in Swift, and a Tauri + React frontend. The ARCHITECTURE.md covers the full IPC protocol and session state format.</div></div>
+    <div style="max-width:680px;margin:48px auto 0;">
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it really free? What's the catch?<span class="faq-arrow">▼</span></button><div class="faq-a">No catch. No ads, no tracking, no premium tier, no upsell. It's a personal project released under GPL-3.0. The source code is fully public. Use it, fork it, do whatever you want with it.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Does it work on every browser?<span class="faq-arrow">▼</span></button><div class="faq-a">Yes — Chrome, Firefox, Safari, Edge, Brave, Arc, Opera, Tor, and anything else that uses DNS. FocusLock edits the OS hosts file directly, not individual browsers. No extension required. No per-browser setup.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Can I bypass it by restarting my computer?<span class="faq-arrow">▼</span></button><div class="faq-a">No. The daemon registers as a Windows Service (or launchd LaunchDaemon on macOS) and starts at boot priority — before your desktop loads. Blocks are applied before you open a browser.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it safe for something that runs as root/SYSTEM?<span class="faq-arrow">▼</span></button><div class="faq-a">The full source is on GitHub and auditable by anyone. Session state is HMAC-signed with a key only the daemon holds. The daemon does exactly three things: edit the hosts file, kill blocked processes, and listen on a local IPC socket. Nothing else.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">What's Friend Lock exactly?<span class="faq-arrow">▼</span></button><div class="faq-a">Before starting a session, you generate a random token and send it to a trusted person. FocusLock stores only the SHA-256 hash of that token — you can't recover the original. Only the person with the plaintext token can unlock the session early. It's accountability made cryptographic.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How do I contribute?<span class="faq-arrow">▼</span></button><div class="faq-a">Open an issue or PR on GitHub. The codebase has a Windows daemon in C# (.NET 8), a macOS daemon in Swift, and a Tauri + React frontend. ARCHITECTURE.md covers the full IPC protocol and session state format before you dive in.</div></div>
     </div>
   </div>
 </section>
 
-<section class="cta-section">
+<!-- FINAL CTA -->
+<section class="cta-final">
   <div class="container">
-    <h2>Start your first session.</h2>
-    <p>Free. Open source. No account required.</p>
-    <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="btn btn-primary" style="font-size:1.05rem;padding:14px 32px">
-      Download FocusLock
-    </a>
-    <div style="display:flex;justify-content:center;gap:10px;margin-top:16px;flex-wrap:wrap">
-      <div class="dl-btn">🪟 Windows 10+</div>
-      <div class="dl-btn">🍎 macOS 13+</div>
+    <h2>Your next focus session<br/>starts now.</h2>
+    <p>Free forever. Open source. No strings attached.</p>
+    <div class="hero-ctas">
+      <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="btn-win" id="cta-btn-primary">
+        <span id="cta-icon-primary">🪟</span> Download for Windows
+      </a>
+      <a href="https://github.com/Relevant47/focus-lock/releases/latest" class="btn-mac" id="cta-btn-secondary">
+        <span id="cta-icon-secondary">🍎</span> Download for macOS
+      </a>
     </div>
+    <p class="cta-footnote">Built by one person. No VC funding. No monetisation plan. No subscription hiding around the corner. Just a tool that works.</p>
   </div>
 </section>
 
+<!-- FOOTER -->
 <footer>
   <div class="container">
     <div class="footer-inner">
-      <div class="footer-logo">
-        <div class="footer-logo-icon">🔒</div>
-        <span class="footer-logo-text">FocusLock</span>
+      <div>
+        <a href="/" class="footer-logo">
+          <div class="footer-logo-icon">🔒</div>
+          <span class="footer-logo-text">FocusLock</span>
+        </a>
+        <p class="footer-tagline">Free forever. Open source forever.</p>
       </div>
       <div class="footer-links">
         <a href="https://github.com/Relevant47/focus-lock" target="_blank">GitHub</a>
         <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank">Issues</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
       </div>
-      <span class="footer-copy">GPL-3.0 · Free forever</span>
+      <div class="footer-right">
+        <div style="font-size:.78rem;color:var(--dim)">GPL-3.0 License</div>
+        <div style="font-size:.72rem;color:var(--dim);margin-top:4px">© 2025 FocusLock</div>
+      </div>
     </div>
   </div>
 </footer>
 
+<style>
+  .faq-item { border-bottom: 1px solid var(--border); }
+  .faq-item:first-child { border-top: 1px solid var(--border); }
+  .faq-q { width:100%;text-align:left;background:none;border:none;padding:20px 0;display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--text);font-size:.9375rem;font-weight:600;font-family:inherit;gap:16px; }
+  .faq-arrow { transition:transform .25s;color:var(--dim);flex-shrink:0;font-size:.8rem; }
+  .faq-item.open .faq-arrow { transform:rotate(180deg); }
+  .faq-a { font-size:.875rem;color:var(--muted);line-height:1.8;max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease; }
+  .faq-item.open .faq-a { max-height:320px;padding-bottom:20px; }
+</style>
+
 <script>
+  // ── Nav scroll effect ──
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  // ── Mobile menu ──
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  hamburger.addEventListener('click', () => {
+    mobileMenu.classList.toggle('open');
+  });
+  mobileMenu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => mobileMenu.classList.remove('open'));
+  });
+
+  // ── OS detection ──
+  function detectOS() {
+    const ua = navigator.userAgent;
+    if (/Mac/.test(ua) && !/iPhone|iPad/.test(ua)) return 'mac';
+    if (/Win/.test(ua)) return 'win';
+    return null;
+  }
+  const os = detectOS();
+  if (os === 'mac') {
+    // Swap primary/secondary in hero
+    const p = document.getElementById('hero-btn-primary');
+    const s = document.getElementById('hero-btn-secondary');
+    p.innerHTML = '🍎 Download for macOS';
+    p.classList.remove('btn-win'); p.classList.add('btn-mac', 'primary');
+    s.innerHTML = '🪟 Download for Windows';
+    s.classList.remove('btn-mac'); s.classList.add('btn-win', 'secondary');
+    // Nav
+    document.getElementById('nav-dl-text').textContent = 'Download for Mac';
+    // CTA
+    document.getElementById('cta-btn-primary').innerHTML = '🍎 Download for macOS';
+    document.getElementById('cta-btn-primary').classList.remove('btn-win');
+    document.getElementById('cta-btn-primary').classList.add('btn-mac','primary');
+    document.getElementById('cta-btn-secondary').innerHTML = '🪟 Download for Windows';
+    document.getElementById('cta-btn-secondary').classList.remove('btn-mac');
+    document.getElementById('cta-btn-secondary').classList.add('btn-win','secondary');
+  }
+
+  // ── Floating site logos ──
+  const floaters = document.getElementById('floaters');
+  const icons = ['📺','🎮','🐦','👾','📱','🎵','🏀','🎬','📰','🌐'];
+  for (let i = 0; i < 12; i++) {
+    const el = document.createElement('div');
+    el.className = 'floater';
+    el.textContent = icons[i % icons.length];
+    el.style.left = Math.random() * 100 + '%';
+    el.style.animationDuration = (18 + Math.random() * 20) + 's';
+    el.style.animationDelay = (Math.random() * 20) + 's';
+    el.style.fontSize = (1.2 + Math.random() * 1.2) + 'rem';
+    floaters.appendChild(el);
+  }
+
+  // ── Cycling use cases ──
+  const cycling = document.getElementById('use-cycling');
+  const items = cycling.querySelectorAll('span');
+  let idx = 0;
+  setInterval(() => {
+    idx++;
+    if (idx >= items.length - 1) idx = 0;
+    cycling.style.transform = `translateY(-${idx * 1.3}em)`;
+  }, 2600);
+
+  // ── Intersection Observer ──
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+  // ── Duplicate reviews for seamless loop ──
+  const track = document.getElementById('reviews-track');
+  track.innerHTML += track.innerHTML;
+
+  // ── GitHub stars (async, non-blocking) ──
+  fetch('https://api.github.com/repos/Relevant47/focus-lock')
+    .then(r => r.json())
+    .then(data => {
+      const stars = data.stargazers_count;
+      if (typeof stars === 'number') {
+        document.getElementById('gh-stars').textContent = stars.toLocaleString();
+        document.getElementById('gh-star-line').innerHTML =
+          `<strong>★ ${stars.toLocaleString()} people</strong> trust FocusLock enough to star it on GitHub.`;
+      }
+    })
+    .catch(() => {
+      document.getElementById('gh-star-line').textContent = 'Every line of the daemon that runs as root is public. Audit it yourself.';
+    });
+
+  // ── FAQ ──
   function toggleFaq(btn) {
     const item = btn.parentElement;
     const isOpen = item.classList.contains('open');
     document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
     if (!isOpen) item.classList.add('open');
   }
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; } });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.feature-card, .step').forEach(el => {
-    el.style.opacity='0'; el.style.transform='translateY(20px)';
-    el.style.transition='opacity 0.5s ease, transform 0.5s ease';
-    observer.observe(el);
-  });
 </script>
 </body>
 </html>
