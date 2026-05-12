@@ -158,7 +158,23 @@ jobs:
             --entitlements daemon-mac/entitlements.plist \
             daemon-mac/.build/release/FocusLockDaemon
 
-      - name: Build Tauri app (macOS)
+      - name: Build Tauri app (macOS, unsigned)
+        if: ${{ secrets.APPLE_CERT_BASE64 == '' }}
+        uses: tauri-apps/tauri-action@v0
+        with:
+          projectPath: ui
+          tagName: ${{ github.ref_name }}
+          releaseName: FocusLock ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Build Tauri app (macOS, signed)
+        if: ${{ secrets.APPLE_CERT_BASE64 != '' }}
         uses: tauri-apps/tauri-action@v0
         with:
           projectPath: ui
