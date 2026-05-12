@@ -2,7 +2,7 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::time::Duration;
 use serde_json::{json, Value};
 use tauri::{
-    Manager,
+    Emitter, Manager,
     menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder},
     tray::{TrayIconBuilder, TrayIconEvent},
 };
@@ -251,15 +251,9 @@ pub fn run() {
                         _ => json!(null),
                     };
 
-                    // Update status label
-                    if let Some(tray) = poll_handle.tray_by_id("main-tray") {
-                        if let Some(menu) = tray.menu() {
-                            if let Some(item) = menu.get("status") {
-                                let _ = item.as_menuitem().map(|m| m.set_text(session_label(&payload)));
-                            }
-                        }
-                        // Rebuild full menu (incl. profiles) every 30s
-                        if tick % 30 == 0 {
+                    // Rebuild tray menu every 5s to refresh status label + profiles
+                    if tick % 5 == 0 {
+                        if let Some(tray) = poll_handle.tray_by_id("main-tray") {
                             if let Ok(new_menu) = build_tray_menu(&poll_handle, &session_label(&payload)) {
                                 let _ = tray.set_menu(Some(new_menu));
                             }
