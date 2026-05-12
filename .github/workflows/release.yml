@@ -104,6 +104,7 @@ jobs:
     permissions:
       contents: write
     strategy:
+      fail-fast: false
       matrix:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
     steps:
