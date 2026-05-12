@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <marker id="arr-fav" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+      <polyline points="1,1 4,2.5 1,4"
+        stroke="#6366f1" stroke-width="1"
+        fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <g transform="translate(50,50)">
+    <line x1="-76" y1="-76" x2="-18" y2="-18" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arr-fav)"/>
+    <line x1="76"  y1="-76" x2="18"  y2="-18" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arr-fav)"/>
+    <line x1="76"  y1="76"  x2="18"  y2="18"  stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arr-fav)"/>
+    <line x1="-76" y1="76"  x2="-18" y2="18"  stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arr-fav)"/>
+    <circle cx="0" cy="0" r="5.5" fill="#6366f1"/>
+  </g>
+</svg>

@@ -7,6 +7,8 @@
   <meta name="description" content="Free, open-source OS-level distraction blocker. No browser extension. Survives reboots. macOS and Windows. GPL-3.0." />
   <meta property="og:title" content="FocusLock — The internet is engineered to steal your attention." />
   <meta property="og:description" content="FocusLock blocks at the OS level. No extension. Survives reboots. Free forever." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="alternate icon" href="/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -657,7 +659,18 @@
 <nav id="nav">
   <div class="container nav-inner">
     <a href="/" class="nav-logo">
-      <div class="nav-logo-icon">🔒</div>
+      <div class="nav-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><marker id="arr-nav" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><polyline points="1,1 4,2.5 1,4" stroke="white" stroke-width="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <g transform="translate(50,50)">
+            <line x1="-76" y1="-76" x2="-18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-nav)"/>
+            <line x1="76" y1="-76" x2="18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-nav)"/>
+            <line x1="76" y1="76" x2="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-nav)"/>
+            <line x1="-76" y1="76" x2="-18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-nav)"/>
+            <circle cx="0" cy="0" r="5" fill="white"/>
+          </g>
+        </svg>
+      </div>
       <span class="nav-logo-text">FocusLock</span>
     </a>
     <div class="nav-links">
@@ -1098,7 +1111,18 @@
     <div class="footer-inner">
       <div>
         <a href="/" class="footer-logo">
-          <div class="footer-logo-icon">🔒</div>
+          <div class="footer-logo-icon">
+          <svg width="16" height="16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="arr-ft" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><polyline points="1,1 4,2.5 1,4" stroke="white" stroke-width="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+            <g transform="translate(50,50)">
+              <line x1="-76" y1="-76" x2="-18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
+              <line x1="76" y1="-76" x2="18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
+              <line x1="76" y1="76" x2="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
+              <line x1="-76" y1="76" x2="-18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
+              <circle cx="0" cy="0" r="5" fill="white"/>
+            </g>
+          </svg>
+        </div>
           <span class="footer-logo-text">FocusLock</span>
         </a>
         <p class="footer-tagline">Free forever. Open source forever.</p>
