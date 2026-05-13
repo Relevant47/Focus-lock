@@ -51,3 +51,6 @@ logs/
 
 # Rust
 ui/src-tauri/gen/
+
+# Local Netlify folder
+.netlify
