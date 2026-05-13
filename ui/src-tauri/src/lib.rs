@@ -62,6 +62,71 @@ async fn ipc_request(request: Value) -> Result<Value, String> {
         .map_err(|e| e.to_string())?
 }
 
+#[cfg(target_os = "windows")]
+fn try_install_daemon_sync(app: &tauri::AppHandle) -> Result<String, String> {
+    use std::process::Command;
+
+    // Try starting the service first — works if the NSIS installer already created it
+    let out = Command::new("sc.exe")
+        .args(["start", "FocusLockDaemon"])
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if out.status.success() {
+        return Ok("started".to_string());
+    }
+    // Error 1056 means the service is already running — that's fine
+    if String::from_utf8_lossy(&out.stdout).contains("1056") {
+        return Ok("already_running".to_string());
+    }
+
+    // Service doesn't exist yet — install it with elevation
+    let res_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+    let daemon_exe = res_dir.join("FocusLockDaemon.exe");
+    let script_file = res_dir.join("install-service.ps1");
+
+    if !daemon_exe.exists() {
+        return Err("FocusLockDaemon.exe not found — please reinstall FocusLock.".to_string());
+    }
+
+    let daemon_path = daemon_exe.to_string_lossy().replace('"', "\\\"");
+    let script_path = script_file.to_string_lossy().replace('"', "\\\"");
+
+    let ps_cmd = format!(
+        "Start-Process powershell -Verb RunAs -Wait -WindowStyle Hidden \
+         -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -DaemonPath \"{daemon}\"'",
+        script = script_path,
+        daemon = daemon_path,
+    );
+
+    let status = Command::new("powershell.exe")
+        .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_cmd])
+        .status()
+        .map_err(|e| e.to_string())?;
+
+    if status.success() {
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        Ok("installed".to_string())
+    } else {
+        Err("Installation failed or was cancelled. Try running FocusLock as Administrator.".to_string())
+    }
+}
+
+#[tauri::command]
+async fn install_daemon(app: tauri::AppHandle) -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    {
+        tokio::task::spawn_blocking(move || try_install_daemon_sync(&app))
+            .await
+            .map_err(|e| e.to_string())?
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
+        Err("Not supported on this platform".to_string())
+    }
+}
+
 #[tauri::command]
 async fn check_for_updates(app: tauri::AppHandle) -> Result<bool, String> {
     let updater = app.updater().map_err(|e| e.to_string())?;
@@ -266,7 +331,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![ipc_request, check_for_updates])
+        .invoke_handler(tauri::generate_handler![ipc_request, check_for_updates, install_daemon])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

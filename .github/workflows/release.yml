@@ -91,6 +91,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+      - name: Stage daemon binary for Tauri bundle
+        run: |
+          New-Item -ItemType Directory -Force -Path "ui/src-tauri/resources" | Out-Null
+          Copy-Item "daemon-win/FocusLock.Daemon/publish/FocusLockDaemon.exe" "ui/src-tauri/resources/FocusLockDaemon.exe"
+
       - name: Upload daemon artifact
         uses: actions/upload-artifact@v4
         with:

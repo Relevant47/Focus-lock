@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { useDaemon } from '../stores/daemon';
 
 const STORAGE_KEY = 'focuslock_onboarding_done';
@@ -36,9 +37,23 @@ const STEPS = [
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
   const { connected } = useDaemon();
+  const [installing, setInstalling] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
   const isCheck = current.isCheck;
+
+  async function handleInstallDaemon() {
+    setInstalling(true);
+    setInstallError(null);
+    try {
+      await invoke('install_daemon');
+    } catch (e) {
+      setInstallError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setInstalling(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -66,13 +81,24 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           {/* Daemon check step */}
           {isCheck && (
             <div className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-6 ${connected ? 'bg-green-900/20 border border-green-800/40' : 'bg-gray-800 border border-gray-700'}`}>
-              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${connected ? 'bg-green-400' : 'bg-yellow-500 animate-pulse'}`} />
-              <div>
+              <span className={`w-2.5 h-2.5 rounded-full shrink-0 mt-0.5 ${connected ? 'bg-green-400' : 'bg-yellow-500 animate-pulse'}`} />
+              <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium ${connected ? 'text-green-300' : 'text-gray-300'}`}>
                   {connected ? 'Daemon connected' : 'Daemon not running'}
                 </p>
                 {!connected && (
-                  <p className="text-xs text-gray-500 mt-0.5 font-mono">sc start FocusLockDaemon</p>
+                  <>
+                    <button
+                      onClick={handleInstallDaemon}
+                      disabled={installing}
+                      className="mt-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-semibold text-white transition-colors"
+                    >
+                      {installing ? 'Installing…' : 'Install & Start Daemon'}
+                    </button>
+                    {installError && (
+                      <p className="text-xs text-red-400 mt-1.5 leading-snug">{installError}</p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
