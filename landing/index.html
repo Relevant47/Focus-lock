@@ -989,10 +989,10 @@
     <p class="hero-sub">Not a browser extension — a real OS-level block that stops every browser, every app. Survives reboots, force quits, and every attempt to bypass it.</p>
     <div class="hero-ctas">
       <a href="/.netlify/functions/download?os=win" class="btn-win" id="hero-btn-primary">
-        <span id="hero-btn-primary-icon">🪟</span> Download for Windows
+        <svg id="hero-btn-primary-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z"/></svg> Download for Windows
       </a>
       <a href="/.netlify/functions/download?os=mac" class="btn-mac" id="hero-btn-secondary">
-        <span id="hero-btn-secondary-icon">🍎</span> Download for macOS
+        <svg id="hero-btn-secondary-icon" width="13" height="16" viewBox="0 0 814 1000" fill="currentColor" style="flex-shrink:0"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 612 0 510.4 0 413.4c0-188.3 122.7-288 244-288 61.6 0 112.8 40.2 151.1 40.2 37 0 95.6-42.6 165.3-42.6 34.4 0 125.4 3.2 190.1 88.3zm-234-181.5c28.8-34.4 49.3-82.6 49.3-130.9 0-6.4-.6-12.9-1.9-18.4-46.3 1.9-101.3 31-134.5 71.6-26.2 30.9-50.2 78.4-50.2 127.3 0 7.1 1.3 14.2 1.9 16.5 3.2.6 8.4 1.3 13.5 1.3 41.5 0 93.8-27.5 121.9-67.4z"/></svg> Download for macOS
       </a>
     </div>
     <p class="hero-trust">No account. No email. No credit card. Just download.</p>
@@ -1498,10 +1498,10 @@
     <p>Free forever. Open source. No strings attached.</p>
     <div class="hero-ctas">
       <a href="/.netlify/functions/download?os=win" class="btn-win" id="cta-btn-primary">
-        <span id="cta-icon-primary">🪟</span> Download for Windows
+        <svg id="cta-icon-primary" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z"/></svg> Download for Windows
       </a>
       <a href="/.netlify/functions/download?os=mac" class="btn-mac" id="cta-btn-secondary">
-        <span id="cta-icon-secondary">🍎</span> Download for macOS
+        <svg id="cta-icon-secondary" width="13" height="16" viewBox="0 0 814 1000" fill="currentColor" style="flex-shrink:0"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 612 0 510.4 0 413.4c0-188.3 122.7-288 244-288 61.6 0 112.8 40.2 151.1 40.2 37 0 95.6-42.6 165.3-42.6 34.4 0 125.4 3.2 190.1 88.3zm-234-181.5c28.8-34.4 49.3-82.6 49.3-130.9 0-6.4-.6-12.9-1.9-18.4-46.3 1.9-101.3 31-134.5 71.6-26.2 30.9-50.2 78.4-50.2 127.3 0 7.1 1.3 14.2 1.9 16.5 3.2.6 8.4 1.3 13.5 1.3 41.5 0 93.8-27.5 121.9-67.4z"/></svg> Download for macOS
       </a>
     </div>
     <p class="cta-footnote">Built by one person. No VC funding. No monetisation plan. No subscription hiding around the corner. Just a tool that works.</p>
@@ -1555,6 +1555,9 @@
 </style>
 
 <script>
+  const WIN_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z"/></svg>`;
+  const MAC_SVG = `<svg width="13" height="16" viewBox="0 0 814 1000" fill="currentColor" style="flex-shrink:0"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 612 0 510.4 0 413.4c0-188.3 122.7-288 244-288 61.6 0 112.8 40.2 151.1 40.2 37 0 95.6-42.6 165.3-42.6 34.4 0 125.4 3.2 190.1 88.3zm-234-181.5c28.8-34.4 49.3-82.6 49.3-130.9 0-6.4-.6-12.9-1.9-18.4-46.3 1.9-101.3 31-134.5 71.6-26.2 30.9-50.2 78.4-50.2 127.3 0 7.1 1.3 14.2 1.9 16.5 3.2.6 8.4 1.3 13.5 1.3 41.5 0 93.8-27.5 121.9-67.4z"/></svg>`;
+
   // ── Nav scroll effect ──
   const nav = document.getElementById('nav');
   window.addEventListener('scroll', () => {
@@ -1583,10 +1586,10 @@
     // Swap primary/secondary in hero
     const p = document.getElementById('hero-btn-primary');
     const s = document.getElementById('hero-btn-secondary');
-    p.innerHTML = '🍎 Download for macOS';
+    p.innerHTML = MAC_SVG + ' Download for macOS';
     p.href = '/.netlify/functions/download?os=mac';
     p.classList.remove('btn-win'); p.classList.add('btn-mac', 'primary');
-    s.innerHTML = '🪟 Download for Windows';
+    s.innerHTML = WIN_SVG + ' Download for Windows';
     s.href = '/.netlify/functions/download?os=win';
     s.classList.remove('btn-mac'); s.classList.add('btn-win', 'secondary');
     // Nav
@@ -1594,10 +1597,10 @@
     document.getElementById('nav-dl').href = '/.netlify/functions/download?os=mac';
     document.getElementById('mobile-dl').href = '/.netlify/functions/download?os=mac';
     // CTA
-    document.getElementById('cta-btn-primary').innerHTML = '🍎 Download for macOS';
+    document.getElementById('cta-btn-primary').innerHTML = MAC_SVG + ' Download for macOS';
     document.getElementById('cta-btn-primary').classList.remove('btn-win');
     document.getElementById('cta-btn-primary').classList.add('btn-mac','primary');
-    document.getElementById('cta-btn-secondary').innerHTML = '🪟 Download for Windows';
+    document.getElementById('cta-btn-secondary').innerHTML = WIN_SVG + ' Download for Windows';
     document.getElementById('cta-btn-secondary').classList.remove('btn-mac');
     document.getElementById('cta-btn-secondary').classList.add('btn-win','secondary');
   }
