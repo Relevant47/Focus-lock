@@ -63,10 +63,10 @@ async fn ipc_request(request: Value) -> Result<Value, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn try_install_daemon_sync(app: &tauri::AppHandle) -> Result<String, String> {
+fn try_install_daemon_sync() -> Result<String, String> {
     use std::process::Command;
 
-    // Try starting the service first — works if the NSIS installer already created it
+    // Try starting the service — works if the NSIS installer already created it
     let out = Command::new("sc.exe")
         .args(["start", "FocusLockDaemon"])
         .output()
@@ -75,15 +75,20 @@ fn try_install_daemon_sync(app: &tauri::AppHandle) -> Result<String, String> {
     if out.status.success() {
         return Ok("started".to_string());
     }
-    // Error 1056 means the service is already running — that's fine
+    // Error 1056 = already running
     if String::from_utf8_lossy(&out.stdout).contains("1056") {
         return Ok("already_running".to_string());
     }
 
-    // Service doesn't exist yet — install it with elevation
-    let res_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    let daemon_exe = res_dir.join("FocusLockDaemon.exe");
-    let script_file = res_dir.join("install-service.ps1");
+    // Service doesn't exist — find the daemon next to our own executable
+    let install_dir = std::env::current_exe()
+        .map_err(|e| e.to_string())?
+        .parent()
+        .ok_or_else(|| "Cannot determine install directory".to_string())?
+        .to_owned();
+
+    let daemon_exe = install_dir.join("FocusLockDaemon.exe");
+    let script_file = install_dir.join("install-service.ps1");
 
     if !daemon_exe.exists() {
         return Err("FocusLockDaemon.exe not found — please reinstall FocusLock.".to_string());
@@ -114,17 +119,15 @@ fn try_install_daemon_sync(app: &tauri::AppHandle) -> Result<String, String> {
 
 #[tauri::command]
 async fn install_daemon(app: tauri::AppHandle) -> Result<String, String> {
+    let _ = app;
     #[cfg(target_os = "windows")]
     {
-        tokio::task::spawn_blocking(move || try_install_daemon_sync(&app))
+        tokio::task::spawn_blocking(try_install_daemon_sync)
             .await
             .map_err(|e| e.to_string())?
     }
     #[cfg(not(target_os = "windows"))]
-    {
-        let _ = app;
-        Err("Not supported on this platform".to_string())
-    }
+    Err("Not supported on this platform".to_string())
 }
 
 #[tauri::command]
