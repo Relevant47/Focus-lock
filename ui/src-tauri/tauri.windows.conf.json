@@ -1,0 +1,13 @@
+{
+  "bundle": {
+    "resources": {
+      "resources/FocusLockDaemon.exe": "FocusLockDaemon.exe",
+      "resources/install-service.ps1": "install-service.ps1"
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "nsis-hook.nsh"
+      }
+    }
+  }
+}
