@@ -395,6 +395,80 @@
       background-clip: text;
     }
 
+    /* ── BUILT FOR EVERYONE (marquee) ── */
+    .audience {
+      padding: 100px 0 60px;
+      overflow: hidden;
+    }
+    .audience .container { text-align: center; }
+    .audience-headline {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -.03em;
+      margin-bottom: 14px;
+    }
+    .audience-sub {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 580px;
+      margin: 0 auto 56px;
+    }
+    .audience-marquee {
+      width: 100%;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+              mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    }
+    .audience-track {
+      display: flex;
+      width: max-content;
+      gap: 20px;
+      animation: audience-scroll 42s linear infinite;
+    }
+    .audience-marquee:hover .audience-track,
+    .audience-marquee:focus-within .audience-track {
+      animation-play-state: paused;
+    }
+    @keyframes audience-scroll {
+      from { transform: translate3d(0, 0, 0); }
+      to   { transform: translate3d(-50%, 0, 0); }
+    }
+    .audience-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 26px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 999px;
+      white-space: nowrap;
+      transition: border-color .3s, background .3s, box-shadow .3s, transform .3s;
+      cursor: default;
+    }
+    .audience-item:hover {
+      border-color: var(--indigo);
+      background: var(--card2);
+      box-shadow: 0 0 28px rgba(99,102,241,.22);
+      transform: translateY(-2px);
+    }
+    .audience-emoji { font-size: 1.35rem; line-height: 1; }
+    .audience-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+    }
+    .audience-tag {
+      color: var(--muted);
+      font-size: .9rem;
+      font-weight: 400;
+      border-left: 1px solid var(--border2);
+      padding-left: 14px;
+      margin-left: 4px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .audience-track { animation: none; }
+    }
+
     /* ── HOW IT WORKS ── */
     .how {
       padding: 100px 0;
@@ -1190,6 +1264,31 @@
         <span>build the discipline they always wanted.</span>
         <span>finally finish their thesis.</span>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- BUILT FOR EVERYONE -->
+<section class="audience" id="audience">
+  <div class="container">
+    <p class="section-eyebrow">Built for everyone</p>
+    <h2 class="audience-headline">Distraction doesn't discriminate.</h2>
+    <p class="audience-sub">Whoever you are, wherever you're starting from — if you've ever looked up and wondered where the last three hours went, FocusLock was built for you.</p>
+  </div>
+  <div class="audience-marquee" tabindex="0" aria-label="Who FocusLock is for">
+    <div class="audience-track">
+      <div class="audience-item"><span class="audience-emoji">🎓</span><span class="audience-name">Students</span><span class="audience-tag">Finish your essays without opening TikTok for the eighth time today.</span></div>
+      <div class="audience-item"><span class="audience-emoji">🚀</span><span class="audience-name">Entrepreneurs</span><span class="audience-tag">Ship the product. Then ship the next thing. No scroll detour.</span></div>
+      <div class="audience-item"><span class="audience-emoji">💻</span><span class="audience-name">Freelancers</span><span class="audience-tag">Bill more hours by actually using them.</span></div>
+      <div class="audience-item"><span class="audience-emoji">👨‍👩‍👧</span><span class="audience-name">Parents</span><span class="audience-tag">Healthy screen boundaries — no monthly subscription required.</span></div>
+      <div class="audience-item"><span class="audience-emoji">🧠</span><span class="audience-name">People with ADHD</span><span class="audience-tag">Remove the exit ramps. The focus was always there.</span></div>
+      <div class="audience-item"><span class="audience-emoji">📚</span><span class="audience-name">Self-learners</span><span class="audience-tag">Stay on task without a teacher watching. Built by someone who's lived it.</span></div>
+      <div class="audience-item" aria-hidden="true"><span class="audience-emoji">🎓</span><span class="audience-name">Students</span><span class="audience-tag">Finish your essays without opening TikTok for the eighth time today.</span></div>
+      <div class="audience-item" aria-hidden="true"><span class="audience-emoji">🚀</span><span class="audience-name">Entrepreneurs</span><span class="audience-tag">Ship the product. Then ship the next thing. No scroll detour.</span></div>
+      <div class="audience-item" aria-hidden="true"><span class="audience-emoji">💻</span><span class="audience-name">Freelancers</span><span class="audience-tag">Bill more hours by actually using them.</span></div>
+      <div class="audience-item" aria-hidden="true"><span class="audience-emoji">👨‍👩‍👧</span><span class="audience-name">Parents</span><span class="audience-tag">Healthy screen boundaries — no monthly subscription required.</span></div>
+      <div class="audience-item" aria-hidden="true"><span class="audience-emoji">🧠</span><span class="audience-name">People with ADHD</span><span class="audience-tag">Remove the exit ramps. The focus was always there.</span></div>
+      <div class="audience-item" aria-hidden="true"><span class="audience-emoji">📚</span><span class="audience-name">Self-learners</span><span class="audience-tag">Stay on task without a teacher watching. Built by someone who's lived it.</span></div>
     </div>
   </div>
 </section>
