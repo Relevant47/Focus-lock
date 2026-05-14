@@ -61,7 +61,9 @@
       border-bottom-color: var(--border);
     }
     .nav-inner {
-      display: flex; align-items: center; justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
       height: 68px;
     }
     .nav-logo {
@@ -78,8 +80,7 @@
     }
     .nav-logo-text { font-weight: 800; font-size: 1rem; color: var(--text); letter-spacing: -.01em; }
     .nav-links {
-      display: flex; align-items: center; gap: 32px;
-      position: absolute; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 28px;
     }
     .nav-links a {
       color: var(--muted); text-decoration: none;
@@ -87,7 +88,7 @@
       transition: color .2s;
     }
     .nav-links a:hover { color: var(--text); }
-    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-right { display: flex; align-items: center; gap: 12px; justify-self: end; }
     .nav-gh {
       display: flex; align-items: center; gap: 6px;
       padding: 7px 14px;
