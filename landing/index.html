@@ -3,35 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FocusLock — Block Distractions. Own Your Focus.</title>
+  <title>FocusLock — Block Distractions. Unblock Your Life. Free. Forever.</title>
   <meta name="description" content="Free, open-source OS-level distraction blocker. No browser extension. Survives reboots. macOS and Windows. GPL-3.0." />
-  <meta property="og:title" content="FocusLock — The internet is engineered to steal your attention." />
+  <meta property="og:title" content="FocusLock — Block distractions. Unblock your life. Free forever." />
   <meta property="og:description" content="FocusLock blocks at the OS level. No extension. Survives reboots. Free forever." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="alternate icon" href="/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,800;9..144,900&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0a0a0f;
-      --card:     #13131a;
-      --card2:    #16161f;
-      --border:   #1e1e2e;
-      --border2:  #2a2a3d;
-      --indigo:   #6366f1;
-      --violet:   #8b5cf6;
-      --indigo-glow: rgba(99,102,241,.18);
-      --text:     #f1f1f3;
-      --muted:    #8b8ba0;
-      --dim:      #4a4a60;
-      --green:    #22c55e;
-      --orange:   #f97316;
-      --red:      #ef4444;
-      --radius:   14px;
-      --radius-sm: 8px;
+      /* ── Light theme palette ── */
+      --bg:           #ffffff;
+      --bg-alt:       #faf9f7;
+      --bg-dark:      #0f0f1a;
+      --text:         #0f0f10;
+      --text-soft:    #1f1f22;
+      --muted:        #555555;
+      --dim:          #8a8a8a;
+      --border:       #ebe9e3;
+      --border-soft:  #f1efea;
+
+      --accent:       #6C63FF;
+      --accent-dark:  #5048d6;
+      --accent-soft:  rgba(108,99,255,.08);
+      --accent-tint:  rgba(108,99,255,.14);
+
+      --green:  #16a34a;
+      --amber:  #f59e0b;
+      --red:    #dc2626;
+
+      --radius:      16px;
+      --radius-sm:   10px;
+      --radius-pill: 50px;
+
+      --shadow-sm: 0 1px 2px rgba(15,15,30,.04), 0 1px 3px rgba(15,15,30,.06);
+      --shadow:    0 4px 14px rgba(15,15,30,.06), 0 1px 4px rgba(15,15,30,.04);
+      --shadow-md: 0 18px 40px rgba(15,15,30,.08), 0 4px 12px rgba(15,15,30,.05);
+      --shadow-lg: 0 40px 80px rgba(15,15,30,.12), 0 10px 30px rgba(15,15,30,.06);
+
+      --section-pad: 120px;
+
+      --display: 'Fraunces', 'Source Serif Pro', Georgia, serif;
+      --sans:    'Inter', system-ui, -apple-system, sans-serif;
     }
 
     html { scroll-behavior: smooth; }
@@ -39,505 +56,549 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: var(--sans);
       -webkit-font-smoothing: antialiased;
-      line-height: 1.6;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.7;
       overflow-x: hidden;
     }
 
     .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .container-wide { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+    a { color: inherit; }
+
+    /* ── Shared text styles ── */
+    .eyebrow {
+      display: inline-block;
+      font-size: .75rem; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px;
+    }
+    .section-title {
+      font-family: var(--display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800; letter-spacing: -.02em;
+      line-height: 1.1; color: var(--text);
+      max-width: 760px; margin: 0 auto 18px;
+      text-align: center;
+    }
+    .section-sub {
+      font-size: 1.0625rem; color: var(--muted);
+      max-width: 620px; margin: 0 auto 64px;
+      line-height: 1.75; text-align: center;
+    }
+    .section-head { text-align: center; margin-bottom: 64px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 15px 32px; border-radius: var(--radius-pill);
+      font-size: .9375rem; font-weight: 700;
+      text-decoration: none; cursor: pointer; border: none;
+      font-family: inherit; white-space: nowrap;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s, color .2s, border-color .2s;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 8px 24px rgba(108,99,255,.28);
+    }
+    .btn-primary:hover { background: var(--accent-dark); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(108,99,255,.35); }
+    .btn-outline {
+      background: #fff; color: var(--text);
+      border: 1.5px solid var(--text);
+    }
+    .btn-outline:hover { background: var(--text); color: #fff; transform: translateY(-2px); }
+    .btn-ghost {
+      background: transparent; color: var(--accent);
+      border: 1.5px solid var(--accent-tint);
+    }
+    .btn-ghost:hover { background: var(--accent-soft); border-color: var(--accent); }
+    .btn-small { padding: 10px 22px; font-size: .85rem; }
 
     /* ── NAV ── */
     nav {
       position: sticky; top: 0; z-index: 100;
-      background: rgba(10,10,15,0);
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid transparent;
-      transition: background .3s, border-color .3s;
+      transition: border-color .25s, background .25s;
     }
     nav.scrolled {
-      background: rgba(10,10,15,.9);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: rgba(255,255,255,.95);
       border-bottom-color: var(--border);
     }
     .nav-inner {
       display: grid;
       grid-template-columns: auto 1fr auto;
       align-items: center;
-      height: 68px;
-      gap: 16px;
+      height: 72px; gap: 16px;
     }
     .nav-logo {
       display: flex; align-items: center; gap: 10px;
       text-decoration: none; flex-shrink: 0;
     }
     .nav-logo-icon {
-      width: 34px; height: 34px;
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      width: 32px; height: 32px;
+      background: var(--accent);
       border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 17px;
-      box-shadow: 0 0 24px rgba(99,102,241,.4);
     }
-    .nav-logo-text { font-weight: 800; font-size: 1rem; color: var(--text); letter-spacing: -.01em; }
+    .nav-logo-text { font-weight: 800; font-size: 1.05rem; color: var(--text); letter-spacing: -.02em; }
     .nav-links {
-      display: flex; align-items: center; gap: 28px;
+      display: flex; align-items: center; gap: 32px;
       justify-self: center;
     }
     .nav-links a {
       color: var(--muted); text-decoration: none;
-      font-size: .875rem; font-weight: 500;
+      font-size: .9rem; font-weight: 500;
       transition: color .2s;
     }
     .nav-links a:hover { color: var(--text); }
-    .nav-right { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
-    .nav-gh {
-      display: flex; align-items: center; gap: 6px;
-      padding: 7px 14px;
-      border: 1px solid var(--border2);
-      border-radius: var(--radius-sm);
+    .nav-right { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+    .nav-gh, .nav-kofi {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: var(--radius-pill);
       color: var(--muted); text-decoration: none;
-      font-size: .8rem; font-weight: 500;
+      font-size: .85rem; font-weight: 600;
       transition: all .2s;
     }
-    .nav-gh:hover { border-color: var(--dim); color: var(--text); background: var(--card); }
+    .nav-gh:hover { color: var(--text); background: var(--bg-alt); }
+    .nav-kofi { color: #d33d3a; }
+    .nav-kofi:hover { background: rgba(255,94,91,.08); }
     .nav-dl-btn {
       display: inline-flex; align-items: center; gap: 7px;
-      padding: 8px 18px; white-space: nowrap;
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
-      color: #fff; text-decoration: none;
-      font-size: .85rem; font-weight: 600;
-      border-radius: var(--radius-sm);
-      box-shadow: 0 0 20px rgba(99,102,241,.3);
+      padding: 10px 22px; border-radius: var(--radius-pill);
+      background: var(--accent); color: #fff; text-decoration: none;
+      font-size: .875rem; font-weight: 700;
+      box-shadow: 0 4px 14px rgba(108,99,255,.25);
       transition: all .2s;
     }
-    .nav-dl-btn:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 4px 28px rgba(99,102,241,.45); }
-    .nav-kofi {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 7px 14px;
-      border: 1px solid rgba(255,94,91,.4);
-      border-radius: var(--radius-sm);
-      color: #FF5E5B; text-decoration: none;
-      font-size: .8rem; font-weight: 600;
-      transition: all .2s;
-    }
-    .nav-kofi:hover { background: rgba(255,94,91,.1); border-color: #FF5E5B; }
+    .nav-dl-btn:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 8px 22px rgba(108,99,255,.35); }
     .hamburger {
       display: none; flex-direction: column; gap: 5px;
-      background: none; border: none; cursor: pointer; padding: 4px;
+      background: none; border: none; cursor: pointer; padding: 6px;
     }
     .hamburger span {
       display: block; width: 22px; height: 2px;
-      background: var(--muted); border-radius: 2px;
+      background: var(--text); border-radius: 2px;
       transition: all .3s;
     }
     .mobile-menu {
-      display: none; flex-direction: column; gap: 0;
-      background: var(--card); border-bottom: 1px solid var(--border);
+      display: none; flex-direction: column;
+      background: #fff; border-bottom: 1px solid var(--border);
       padding: 8px 0;
     }
     .mobile-menu.open { display: flex; }
     .mobile-menu a {
-      padding: 14px 24px; color: var(--muted);
-      text-decoration: none; font-size: .9rem; font-weight: 500;
-      border-bottom: 1px solid var(--border);
-      transition: color .2s;
+      padding: 14px 24px; color: var(--text-soft);
+      text-decoration: none; font-size: .95rem; font-weight: 600;
+      border-bottom: 1px solid var(--border-soft);
     }
     .mobile-menu a:last-child { border-bottom: none; }
-    .mobile-menu a:hover { color: var(--text); }
-    .mobile-desktop-only {
-      display: block; padding: 14px 24px;
-      color: var(--dim); font-size: .85rem; font-style: italic;
-    }
+    .mobile-menu a:hover { background: var(--bg-alt); }
 
     /* ── HERO ── */
     .hero {
-      padding: 110px 0 80px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
+      padding: 100px 0 80px;
+      text-align: center; position: relative; overflow: hidden;
     }
     .hero-bg {
       position: absolute; inset: 0; pointer-events: none; z-index: 0;
-      background-image: radial-gradient(circle, rgba(255,255,255,.028) 1px, transparent 1px);
-      background-size: 40px 40px;
+      background:
+        radial-gradient(ellipse 800px 500px at 50% -10%, rgba(108,99,255,.10), transparent 60%),
+        radial-gradient(ellipse 600px 400px at 80% 20%, rgba(255,180,90,.06), transparent 65%);
     }
-    .hero-glow {
-      position: absolute; top: -180px; left: 50%; transform: translateX(-50%);
-      width: 900px; height: 900px;
-      background: radial-gradient(circle, rgba(99,102,241,.2) 0%, transparent 65%);
+    .hero-bg::before {
+      content:''; position:absolute; inset:0;
+      background-image: radial-gradient(circle, rgba(108,99,255,.05) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(ellipse at center, #000 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, transparent 70%);
     }
-    .hero-glow-2 {
-      position: absolute; top: 60px; left: 38%; transform: translateX(-50%);
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(139,92,246,.12) 0%, transparent 65%);
-    }
-    /* Floating site logos */
-    .floaters {
-      position: absolute; inset: 0; pointer-events: none; overflow: hidden;
-    }
-    .floater {
-      position: absolute;
-      font-size: 1.5rem;
-      opacity: .1;
-      animation: float-up linear infinite;
-      user-select: none;
-      filter: blur(1px);
-    }
-    @keyframes float-up {
-      0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-      10%  { opacity: .15; }
-      90%  { opacity: .12; }
-      100% { transform: translateY(-120px) rotate(20deg); opacity: 0; }
-    }
-
-    /* ── HERO ENTRANCE ── */
+    .hero-inner { position: relative; z-index: 1; }
     @keyframes hero-fade-up {
       from { opacity: 0; transform: translateY(22px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     .hero-inner > * { animation: hero-fade-up .7s cubic-bezier(.22,.68,0,1.1) both; }
-    .hero-inner .hero-badge  { animation-delay: .05s; }
-    .hero-inner h1           { animation-delay: .2s; }
-    .hero-inner .hero-sub    { animation-delay: .34s; }
-    .hero-inner .hero-ctas   { animation-delay: .46s; }
-    .hero-inner .hero-trust  { animation-delay: .56s; }
-    .hero-inner .mockup-wrap { animation-delay: .68s; }
-    .hero-inner { position: relative; z-index: 1; }
+    .hero-inner .hero-badge   { animation-delay: .05s; }
+    .hero-inner h1            { animation-delay: .15s; }
+    .hero-inner .hero-sub     { animation-delay: .28s; }
+    .hero-inner .hero-ctas    { animation-delay: .40s; }
+    .hero-inner .hero-trust   { animation-delay: .50s; }
+    .hero-inner .mockup-wrap  { animation-delay: .62s; }
+
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 16px; border-radius: 999px;
-      background: linear-gradient(var(--bg), var(--bg)) padding-box,
-                  linear-gradient(135deg, rgba(99,102,241,.55), rgba(139,92,246,.55)) border-box;
-      border: 1px solid transparent;
-      font-size: .75rem; color: #a5b4fc; font-weight: 500;
-      margin-bottom: 32px;
+      padding: 7px 16px; border-radius: 999px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-tint);
+      font-size: .78rem; color: var(--accent); font-weight: 600;
+      margin-bottom: 28px;
     }
-    .hero-badge .live-dot {
+    .live-dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--green);
       animation: pulse-dot 2s ease-in-out infinite;
     }
-    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
 
     .hero h1 {
-      font-size: clamp(2.4rem, 5.5vw, 4.2rem);
-      font-weight: 900;
-      line-height: 1.08;
-      letter-spacing: -.04em;
-      margin-bottom: 24px;
-      color: #fff;
+      font-family: var(--display);
+      font-size: clamp(2.6rem, 6.2vw, 5rem);
+      font-weight: 800; line-height: 1.04;
+      letter-spacing: -.025em;
+      margin-bottom: 28px; color: var(--text);
     }
-    .hero h1 em {
-      font-style: normal;
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+    .hero h1 .accent { color: var(--accent); font-style: italic; font-weight: 700; }
+    .hero h1 br { display: block; }
     .hero-sub {
-      font-size: clamp(1rem, 1.8vw, 1.15rem);
+      font-size: clamp(1.05rem, 1.5vw, 1.2rem);
       color: var(--muted);
-      max-width: 540px; margin: 0 auto 40px;
-      line-height: 1.75; font-weight: 400;
+      max-width: 580px; margin: 0 auto 36px;
+      line-height: 1.7; font-weight: 400;
     }
     .hero-ctas {
       display: flex; align-items: center; justify-content: center;
-      gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
     }
-    .btn-win, .btn-mac {
-      display: inline-flex; align-items: center; gap: 9px;
-      padding: 13px 26px; border-radius: var(--radius);
-      font-size: .9375rem; font-weight: 700;
-      text-decoration: none; transition: all .2s; border: none; cursor: pointer;
-    }
-    .btn-win {
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
-      color: #fff;
-      box-shadow: 0 0 28px rgba(99,102,241,.35);
-    }
-    .btn-win:hover { opacity: .92; transform: translateY(-2px); box-shadow: 0 6px 36px rgba(99,102,241,.5); }
-    .btn-mac {
-      background: var(--card); color: var(--text);
-      border: 1px solid var(--border2);
-    }
-    .btn-mac:hover { border-color: var(--dim); background: var(--card2); transform: translateY(-1px); }
-    .btn-win.secondary {
-      background: var(--card); color: var(--text);
-      border: 1px solid var(--border2);
-      box-shadow: none;
-    }
-    .btn-win.secondary:hover { border-color: var(--dim); background: var(--card2); }
-    .btn-mac.primary {
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
-      color: #fff; border: none;
-      box-shadow: 0 0 28px rgba(99,102,241,.35);
-    }
-    .btn-mac.primary:hover { opacity: .92; transform: translateY(-2px); box-shadow: 0 6px 36px rgba(99,102,241,.5); }
     .hero-trust {
-      font-size: .8rem; color: var(--dim);
-      margin-bottom: 64px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap; gap: 20px 28px;
+      font-size: .82rem; color: var(--muted);
+      margin-bottom: 70px; font-weight: 500;
     }
+    .trust-item { display: inline-flex; align-items: center; gap: 7px; }
+    .trust-item svg { color: var(--accent); flex-shrink: 0; }
 
-    /* App mockup */
+    /* ── HERO MOCKUP ── */
     .mockup-wrap {
-      max-width: 820px; margin: 0 auto;
+      max-width: 880px; margin: 0 auto;
       position: relative;
     }
     .mockup-aura {
-      position: absolute; inset: -60px;
-      background: radial-gradient(ellipse at center, rgba(99,102,241,.15), transparent 65%);
-      pointer-events: none;
+      position: absolute; inset: -40px -20px;
+      background: radial-gradient(ellipse at center, rgba(108,99,255,.18), transparent 65%);
+      pointer-events: none; filter: blur(20px);
     }
     .mockup {
       position: relative; z-index: 1;
-      background: var(--card);
-      border: 1px solid var(--border);
+      background: #14141e;
       border-radius: 18px;
       overflow: hidden;
-      box-shadow: 0 50px 100px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+      box-shadow: var(--shadow-lg), 0 0 0 1px rgba(15,15,30,.06);
     }
     .mockup-bar {
       height: 42px; background: #0d0d14;
-      border-bottom: 1px solid var(--border);
       display: flex; align-items: center; padding: 0 16px; gap: 7px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
     }
-    .traffic { width: 13px; height: 13px; border-radius: 50%; }
-    .mockup-body { display: flex; height: 340px; }
+    .traffic { width: 12px; height: 12px; border-radius: 50%; }
+    .mockup-body { display: flex; min-height: 360px; }
     .mockup-side {
-      width: 158px; background: #0d0d14;
-      border-right: 1px solid var(--border);
+      width: 168px; background: #0d0d14;
+      border-right: 1px solid rgba(255,255,255,.05);
       padding: 18px 10px; display: flex; flex-direction: column; gap: 2px;
       flex-shrink: 0;
     }
-    .mock-brand { font-size: .7rem; font-weight: 800; color: #fff; margin-bottom: 14px; padding: 0 8px; letter-spacing: -.01em; }
+    .mock-brand { font-size: .72rem; font-weight: 800; color: #fff; margin-bottom: 16px; padding: 0 8px; letter-spacing: -.01em; }
     .mock-nav-item {
       display: flex; align-items: center; gap: 8px;
-      padding: 7px 10px; border-radius: 7px;
-      font-size: .72rem; color: #555570;
+      padding: 8px 10px; border-radius: 8px;
+      font-size: .74rem; color: #6a6a85;
     }
-    .mock-nav-item.active { background: rgba(99,102,241,.15); color: #a5b4fc; font-weight: 600; }
+    .mock-nav-item.active { background: rgba(108,99,255,.18); color: #c4bdff; font-weight: 600; }
     .mockup-main {
-      flex: 1; padding: 28px 32px;
+      flex: 1; padding: 32px 32px;
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 20px;
+      align-items: center; justify-content: center; gap: 22px;
+      color: #fff;
     }
     .mock-session-label {
-      font-size: .7rem; font-weight: 600; color: var(--muted);
-      text-transform: uppercase; letter-spacing: .1em;
+      font-size: .7rem; font-weight: 700; color: #8a8aa0;
+      text-transform: uppercase; letter-spacing: .14em;
     }
-    .mock-ring { position: relative; width: 130px; height: 130px; }
+    .mock-ring { position: relative; width: 140px; height: 140px; }
     .mock-ring svg { transform: rotate(-90deg); }
     .mock-ring-label {
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .mock-time { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; letter-spacing: -.02em; }
-    .mock-phase { font-size: .6rem; color: var(--dim); text-transform: uppercase; letter-spacing: .12em; margin-top: 2px; }
-    .mock-stats { display: flex; gap: 28px; }
+    .mock-time { font-size: 1.85rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; letter-spacing: -.02em; }
+    .mock-phase { font-size: .62rem; color: #6a6a85; text-transform: uppercase; letter-spacing: .14em; margin-top: 3px; }
+    .mock-stats { display: flex; gap: 32px; }
     .mock-stat { text-align: center; }
-    .mock-stat-val { font-size: 1.1rem; font-weight: 800; }
-    .mock-stat-lbl { font-size: .6rem; color: var(--dim); margin-top: 3px; text-transform: uppercase; letter-spacing: .08em; }
+    .mock-stat-val { font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em; }
+    .mock-stat-lbl { font-size: .62rem; color: #6a6a85; margin-top: 3px; text-transform: uppercase; letter-spacing: .1em; }
     .mock-blocked-bar {
-      display: flex; gap: 6px; align-items: center;
-      background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.15);
-      border-radius: 8px; padding: 6px 14px;
-      font-size: .72rem; color: #f87171;
+      display: inline-flex; gap: 8px; align-items: center;
+      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.18);
+      border-radius: 999px; padding: 7px 16px;
+      font-size: .74rem; color: #fca5a5;
     }
 
     /* ── STATS BAR ── */
     .stats-bar {
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      background: var(--card);
-      padding: 14px 0;
-      overflow: hidden;
+      background: var(--bg-alt);
+      padding: 64px 0;
+      border-top: 1px solid var(--border-soft);
+      border-bottom: 1px solid var(--border-soft);
     }
-    .stats-inner {
-      display: flex; align-items: center;
-      justify-content: center; gap: 0; flex-wrap: wrap;
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
     }
-    .stat-pill {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 24px;
-      font-size: .8rem; color: var(--muted); font-weight: 500;
+    .stat-block { text-align: center; }
+    .stat-num {
+      font-family: var(--display);
+      font-size: clamp(2.2rem, 4vw, 3.2rem);
+      font-weight: 800; color: var(--text);
+      letter-spacing: -.03em; line-height: 1;
+      margin-bottom: 8px;
     }
-    .stat-pill + .stat-pill { border-left: 1px solid var(--border); }
-    .stat-pill svg { flex-shrink: 0; }
+    .stat-num .accent { color: var(--accent); }
+    .stat-lbl {
+      font-size: .85rem; color: var(--muted);
+      font-weight: 500; letter-spacing: .01em;
+    }
 
-    /* ── USE CASES CYCLING ── */
-    .use-cases {
-      padding: 100px 0;
-      text-align: center;
+    /* ── WHO IT'S FOR ── */
+    .who {
+      padding: var(--section-pad) 0;
+      background: #fff; text-align: center;
     }
-    .use-label {
-      font-size: .75rem; font-weight: 600; color: #a5b4fc;
-      text-transform: uppercase; letter-spacing: .1em; margin-bottom: 20px;
+    .who-prefix {
+      font-family: var(--display);
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 700; color: var(--text);
+      letter-spacing: -.02em; line-height: 1.15;
+      margin-bottom: 12px;
     }
-    .use-prefix {
-      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-      font-weight: 800; color: var(--muted);
-      letter-spacing: -.03em;
+    .who-cycling-wrap {
+      font-family: var(--display);
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 800; letter-spacing: -.02em;
+      height: 1.35em; overflow: hidden;
+      font-style: italic;
     }
-    .use-cycling-wrap {
-      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-      font-weight: 800; letter-spacing: -.03em;
-      height: 1.3em; overflow: hidden;
-      margin-top: 4px;
-    }
-    .use-cycling {
+    .who-cycling {
       display: flex; flex-direction: column;
-      transition: transform .5s cubic-bezier(.4,0,.2,1);
+      transition: transform .55s cubic-bezier(.4,0,.2,1);
     }
-    .use-cycling span {
-      display: block; height: 1.3em; line-height: 1.3em;
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .who-cycling span {
+      display: block; height: 1.35em; line-height: 1.35em;
+      color: var(--accent);
     }
 
     /* ── HOW IT WORKS ── */
     .how {
-      padding: 100px 0;
-      background: var(--card);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-    .section-eyebrow {
-      font-size: .75rem; font-weight: 600; color: #a5b4fc;
-      text-transform: uppercase; letter-spacing: .1em;
-      text-align: center; margin-bottom: 14px;
-    }
-    .section-title {
-      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
-      font-weight: 800; text-align: center;
-      letter-spacing: -.03em; margin-bottom: 16px;
-    }
-    .section-sub {
-      font-size: 1rem; color: var(--muted);
-      text-align: center; margin-bottom: 64px;
-      max-width: 520px; margin-left: auto; margin-right: auto;
+      padding: var(--section-pad) 0;
+      background: var(--bg-alt);
     }
     .steps {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2px;
-      background: var(--border);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      position: relative;
     }
     .step {
-      background: var(--card);
-      padding: 36px 32px;
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 40px 32px;
+      box-shadow: var(--shadow);
+      position: relative;
+      transition: transform .25s, box-shadow .25s;
     }
+    .step:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
     .step-num {
-      width: 40px; height: 40px; border-radius: 10px;
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent); font-weight: 800;
+      font-size: 1.5rem; font-family: var(--display);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; font-weight: 800; color: #fff;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 20px rgba(99,102,241,.3);
+      margin-bottom: 22px;
     }
-    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
-    .step p { font-size: .875rem; color: var(--muted); line-height: 1.75; margin-bottom: 12px; }
+    .step h3 {
+      font-size: 1.15rem; font-weight: 700;
+      letter-spacing: -.01em; margin-bottom: 10px; color: var(--text);
+    }
+    .step p {
+      font-size: .9375rem; color: var(--muted); line-height: 1.75;
+      margin-bottom: 14px;
+    }
     .step-why {
-      font-size: .78rem; color: #a5b4fc;
-      background: rgba(99,102,241,.07);
-      border: 1px solid rgba(99,102,241,.15);
-      border-radius: 7px; padding: 8px 12px;
+      font-size: .82rem; color: var(--accent-dark);
+      background: var(--accent-soft);
+      border-radius: 10px; padding: 10px 14px;
       line-height: 1.6;
     }
+    .step-arrow {
+      position: absolute;
+      top: 56px; right: -22px;
+      color: var(--accent); opacity: .4;
+      pointer-events: none; z-index: 1;
+    }
+    .step-arrow svg { width: 44px; height: 24px; }
 
     /* ── FEATURES ── */
-    .features { padding: 100px 0; }
+    .features { padding: var(--section-pad) 0; background: #fff; }
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
     }
     .feature-card {
-      background: var(--card);
+      background: #fff;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 28px;
-      transition: border-color .25s, transform .25s, box-shadow .25s;
-      position: relative; overflow: hidden;
-    }
-    .feature-card::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(circle at 50% 0%, rgba(99,102,241,.06), transparent 60%);
-      opacity: 0; transition: opacity .3s;
+      padding: 32px;
+      transition: transform .25s, box-shadow .25s, border-color .25s;
+      position: relative;
     }
     .feature-card:hover {
-      border-color: rgba(99,102,241,.35);
-      transform: translateY(-3px);
-      box-shadow: 0 12px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(99,102,241,.1);
+      transform: translateY(-4px);
+      border-color: var(--accent-tint);
+      box-shadow: var(--shadow-md);
     }
-    .feature-card:hover::before { opacity: 1; }
-    /* Friend Lock hero card */
     .feature-card.hero-feature {
-      border-color: rgba(139,92,246,.3);
-      background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(139,92,246,.04));
+      background: linear-gradient(135deg, #fff 0%, rgba(108,99,255,.04) 100%);
+      border-color: var(--accent-tint);
     }
-    .feature-card.hero-feature:hover { border-color: rgba(139,92,246,.6); }
     .hero-feature-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: .65rem; font-weight: 700; color: #a78bfa;
-      text-transform: uppercase; letter-spacing: .08em;
-      background: rgba(139,92,246,.12); border: 1px solid rgba(139,92,246,.25);
-      border-radius: 4px; padding: 3px 8px; margin-bottom: 12px;
+      position: absolute; top: 18px; right: 18px;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: .65rem; font-weight: 800; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .1em;
+      background: var(--accent-soft);
+      border-radius: 999px; padding: 4px 10px;
     }
-    .feature-icon { font-size: 1.6rem; margin-bottom: 14px; }
-    .feature-card h3 { font-size: .9375rem; font-weight: 700; margin-bottom: 8px; }
-    .feature-card p { font-size: .85rem; color: var(--muted); line-height: 1.75; }
+    .feature-icon {
+      width: 48px; height: 48px;
+      background: var(--accent-soft);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.55rem; margin-bottom: 18px;
+    }
+    .feature-card h3 {
+      font-size: 1.05rem; font-weight: 700;
+      letter-spacing: -.01em; margin-bottom: 10px; color: var(--text);
+    }
+    .feature-card p {
+      font-size: .9rem; color: var(--muted); line-height: 1.75;
+    }
+
+    /* ── SCIENCE / EVIDENCE ── */
+    .science { padding: var(--section-pad) 0; background: var(--bg-alt); }
+    .science-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .study-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      box-shadow: var(--shadow);
+      transition: transform .25s, box-shadow .25s;
+      display: flex; flex-direction: column;
+    }
+    .study-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+    .study-source {
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .12em;
+      margin-bottom: 14px;
+    }
+    .study-stat {
+      font-family: var(--display);
+      font-size: 3rem; font-weight: 800;
+      color: var(--accent); letter-spacing: -.03em;
+      line-height: 1; margin-bottom: 14px;
+    }
+    .study-claim {
+      font-size: 1rem; color: var(--text);
+      font-weight: 600; line-height: 1.45;
+      margin-bottom: 14px;
+    }
+    .study-desc {
+      font-size: .875rem; color: var(--muted);
+      line-height: 1.7; margin-bottom: 22px;
+      flex: 1;
+    }
+    .study-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: .85rem; font-weight: 700;
+      color: var(--accent); text-decoration: none;
+      transition: gap .2s;
+    }
+    .study-link:hover { gap: 10px; }
 
     /* ── COMPARISON ── */
-    .comparison { padding: 100px 0; background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-    .comp-table-wrap { overflow-x: auto; margin-top: 48px; }
+    .comparison { padding: var(--section-pad) 0; background: #fff; }
+    .comp-wrap {
+      max-width: 900px; margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
     .comp-table {
       width: 100%; border-collapse: collapse;
-      font-size: .9rem;
+      font-size: .94rem;
     }
-    .comp-table th {
-      padding: 16px 20px; text-align: center;
-      font-weight: 700; font-size: .85rem;
-      border-bottom: 2px solid var(--border);
-      white-space: nowrap;
-    }
-    .comp-table th:first-child { text-align: left; color: var(--dim); font-weight: 500; }
-    .comp-table th.ours {
-      color: #a5b4fc;
-      background: rgba(99,102,241,.06);
-      border-radius: 8px 8px 0 0;
-    }
-    .comp-table td {
-      padding: 14px 20px; text-align: center;
+    .comp-table thead th {
+      padding: 24px 20px; text-align: center;
+      font-weight: 700; font-size: .9rem;
+      color: var(--muted);
+      background: var(--bg-alt);
       border-bottom: 1px solid var(--border);
-      font-size: .875rem;
+      position: relative;
     }
-    .comp-table td:first-child { text-align: left; color: var(--muted); font-weight: 500; }
-    .comp-table td.ours { background: rgba(99,102,241,.04); }
-    .comp-table tr:last-child td { border-bottom: none; }
-    .yes { color: var(--green); font-size: 1.1rem; }
-    .no  { color: var(--red);   font-size: 1.1rem; }
+    .comp-table thead th:first-child { text-align: left; color: var(--dim); font-weight: 500; }
+    .comp-table thead th.ours {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .comp-table thead th.ours::after {
+      content: 'Best Value';
+      position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff;
+      font-size: .58rem; font-weight: 800;
+      letter-spacing: .12em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(108,99,255,.3);
+    }
+    .comp-table tbody td {
+      padding: 16px 20px; text-align: center;
+      border-bottom: 1px solid var(--border-soft);
+      font-size: .9rem; color: var(--text-soft);
+    }
+    .comp-table tbody td:first-child { text-align: left; color: var(--text); font-weight: 600; }
+    .comp-table tbody td.ours { background: rgba(108,99,255,.035); font-weight: 600; }
+    .comp-table tbody tr:nth-child(even) td { background: var(--bg-alt); }
+    .comp-table tbody tr:nth-child(even) td.ours { background: rgba(108,99,255,.06); }
+    .comp-table tbody tr:last-child td { border-bottom: none; }
+    .yes { color: var(--green); font-size: 1.1rem; font-weight: 800; }
+    .no  { color: var(--red);   font-size: 1.1rem; font-weight: 800; }
     .comp-caption {
-      text-align: center; margin-top: 20px;
-      font-size: .82rem; color: var(--dim); font-style: italic;
+      text-align: center; margin-top: 28px;
+      font-size: .95rem; color: var(--muted);
     }
+    .comp-caption strong { color: var(--text); font-weight: 700; }
 
     /* ── REVIEWS ── */
-    .reviews { padding: 100px 0; overflow: hidden; }
-    .reviews-track-wrap { overflow: hidden; margin-top: 48px; position: relative; }
-    .reviews-track-wrap::before,
-    .reviews-track-wrap::after {
-      content: ''; position: absolute; top: 0; bottom: 0; width: 100px; z-index: 2; pointer-events: none;
+    .reviews { padding: var(--section-pad) 0; background: var(--bg-alt); overflow: hidden; }
+    .reviews-track-wrap {
+      overflow: hidden; margin-top: 16px; position: relative;
+      mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
     }
-    .reviews-track-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
-    .reviews-track-wrap::after  { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
     .reviews-track {
-      display: flex; gap: 20px;
-      animation: scroll-reviews 30s linear infinite;
+      display: flex; gap: 22px;
+      animation: scroll-reviews 38s linear infinite;
       width: max-content;
     }
     .reviews-track-wrap:hover .reviews-track { animation-play-state: paused; }
@@ -546,401 +607,591 @@
       100% { transform: translateX(-50%); }
     }
     .review-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 24px 28px;
-      width: 320px; flex-shrink: 0;
+      background: #fff; border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px 30px;
+      width: 340px; flex-shrink: 0;
     }
-    .review-stars { color: #f59e0b; font-size: .875rem; margin-bottom: 12px; letter-spacing: 2px; }
+    .review-stars { color: var(--amber); font-size: .95rem; margin-bottom: 14px; letter-spacing: 2px; }
     .review-text {
-      font-size: .875rem; color: var(--text);
-      line-height: 1.75; margin-bottom: 16px;
-      font-style: italic;
+      font-size: .94rem; color: var(--text-soft);
+      line-height: 1.75; margin-bottom: 18px;
     }
     .review-author {
-      font-size: .78rem; font-weight: 600; color: var(--muted);
+      font-size: .85rem; font-weight: 700; color: var(--text);
     }
-    .review-role { font-size: .72rem; color: var(--dim); margin-top: 2px; }
+    .review-role { font-size: .78rem; color: var(--dim); margin-top: 2px; }
+    .reviews-empty {
+      text-align: center; padding: 48px 24px;
+      color: var(--dim); font-size: .95rem;
+    }
 
-    /* ── OPEN SOURCE ── */
-    .opensource { padding: 100px 0; }
-    .os-card {
-      max-width: 780px; margin: 0 auto;
-      background: #0b1208;
-      border: 1px solid #1a2e14;
-      border-radius: 20px; padding: 52px;
-      position: relative; overflow: hidden;
+    /* ── LEAVE A REVIEW ── */
+    .leave-review {
+      max-width: 600px; margin: 60px auto 0;
+      background: #fff; border-radius: 20px;
+      padding: 44px 40px;
+      box-shadow: var(--shadow-md);
     }
-    .os-card::before {
-      content: '';
-      position: absolute; top: -100px; right: -100px;
-      width: 300px; height: 300px;
-      background: radial-gradient(circle, rgba(34,197,94,.07), transparent 70%);
-      pointer-events: none;
+    .leave-review-head { text-align: center; margin-bottom: 28px; }
+    .leave-review-head h3 {
+      font-family: var(--display);
+      font-size: 1.5rem; font-weight: 700;
+      letter-spacing: -.01em; margin-bottom: 6px;
     }
-    .os-terminal {
-      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-      font-size: .78rem; color: #4ade80;
-      background: rgba(0,0,0,.4); border: 1px solid #1a3020;
-      border-radius: 8px; padding: 16px 20px;
-      margin-bottom: 32px; text-align: left;
-      line-height: 1.8;
+    .leave-review-head p {
+      font-size: .9rem; color: var(--muted);
     }
-    .os-terminal .term-dim { color: #2d5a3a; }
-    .os-terminal .term-cmd { color: #86efac; }
-    .os-card h2 {
-      font-size: clamp(1.6rem, 3vw, 2.2rem);
-      font-weight: 800; letter-spacing: -.03em;
-      margin-bottom: 14px; color: #f0fdf4;
+    #star-rating {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: 8px;
     }
-    .os-card p { color: #6b9e7a; line-height: 1.75; margin-bottom: 32px; }
-    .os-stats-row { display: flex; gap: 36px; margin-bottom: 36px; flex-wrap: wrap; }
-    .os-stat .num { font-size: 1.8rem; font-weight: 800; color: #4ade80; letter-spacing: -.02em; }
-    .os-stat .lbl { font-size: .75rem; color: #4a7a5a; margin-top: 2px; }
-    .os-star-line {
-      font-size: .9rem; color: #4a7a5a;
-      margin-bottom: 28px; line-height: 1.6;
+    .star {
+      font-size: 2rem; cursor: pointer;
+      color: #d4d2cc; transition: color .15s, transform .15s;
     }
-    .os-star-line strong { color: #86efac; }
-    .btn-gh {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 24px;
-      background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25);
-      color: #4ade80; text-decoration: none;
-      font-size: .875rem; font-weight: 600;
-      border-radius: var(--radius-sm);
-      transition: all .2s;
-    }
-    .btn-gh:hover { background: rgba(34,197,94,.18); border-color: rgba(34,197,94,.4); }
-
-    /* ── FINAL CTA ── */
-    .cta-final {
-      padding: 120px 0;
+    .star:hover { transform: scale(1.1); }
+    #star-label {
       text-align: center;
-      background: linear-gradient(180deg, transparent 0%, rgba(99,102,241,.04) 50%, transparent 100%);
-      border-top: 1px solid var(--border);
-    }
-    .cta-final h2 {
-      font-size: clamp(2rem, 4.5vw, 3.5rem);
-      font-weight: 900; letter-spacing: -.04em;
-      margin-bottom: 16px; line-height: 1.1;
-    }
-    .cta-final p {
-      font-size: 1.05rem; color: var(--muted);
-      margin-bottom: 40px;
-    }
-    .cta-footnote {
-      margin-top: 32px;
       font-size: .8rem; color: var(--dim);
-      max-width: 420px; margin-left: auto; margin-right: auto;
-      line-height: 1.7;
+      margin-bottom: 22px;
     }
-
-    /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 36px 0;
+    .review-form-fields {
+      display: flex; flex-direction: column; gap: 12px;
     }
-    .footer-inner {
-      display: flex; justify-content: space-between; align-items: center;
-      flex-wrap: wrap; gap: 20px;
-    }
-    .footer-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-    .footer-logo-icon {
-      width: 26px; height: 26px;
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
-      border-radius: 6px; display: flex; align-items: center; justify-content: center;
-      font-size: 13px;
-    }
-    .footer-logo-text { font-size: .85rem; font-weight: 700; color: var(--muted); }
-    .footer-tagline { font-size: .75rem; color: var(--dim); margin-top: 4px; }
-    .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
-    .footer-links a {
-      font-size: .8rem; color: var(--dim);
-      text-decoration: none; transition: color .2s;
-    }
-    .footer-links a:hover { color: var(--muted); }
-    .footer-right { font-size: .78rem; color: var(--dim); text-align: right; }
-
-    /* ── ANIMATIONS ── */
-    .fade-up {
-      opacity: 0; transform: translateY(24px);
-      transition: opacity .6s ease, transform .6s ease;
-    }
-    .fade-up.visible { opacity: 1; transform: translateY(0); }
-
-    /* ── OUR STORY ── */
-    .story-section {
-      padding: 110px 0;
-      border-top: 1px solid var(--border);
-    }
-    .story-inner { max-width: 780px; margin: 0 auto; }
-    .story-eyebrow {
-      font-size: .75rem; font-weight: 600; color: #a5b4fc;
-      text-transform: uppercase; letter-spacing: .1em; margin-bottom: 14px;
-    }
-    .story-headline {
-      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
-      font-weight: 800; letter-spacing: -.03em;
-      margin-bottom: 48px; line-height: 1.15;
-    }
-    .story-founder-note {
-      border-left: 3px solid var(--indigo);
-      padding: 4px 0 4px 28px;
-      margin-bottom: 48px;
-    }
-    .story-founder-note p {
-      font-size: 1.075rem; font-style: italic;
-      color: #c8c8e0; line-height: 1.85;
-    }
-    .story-block { margin-bottom: 52px; }
-    .story-block:last-child { margin-bottom: 0; }
-    .story-block-heading {
-      font-size: 1.15rem; font-weight: 700;
-      letter-spacing: -.02em; margin-bottom: 16px;
+    .lr-textarea, .lr-input {
+      background: var(--bg-alt);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 13px 16px;
       color: var(--text);
+      font-family: inherit; font-size: .9375rem;
+      outline: none;
+      transition: border-color .2s, background .2s;
     }
-    .story-block p {
-      font-size: .9625rem; color: var(--muted);
-      line-height: 1.85; margin-bottom: 18px;
+    .lr-textarea:focus, .lr-input:focus { border-color: var(--accent); background: #fff; }
+    .lr-textarea { resize: vertical; min-height: 96px; }
+    .lr-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .lr-row > input { flex: 1; min-width: 140px; }
+    .lr-submit {
+      margin-top: 10px;
+      padding: 14px; width: 100%;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius-pill);
+      font-family: inherit; font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: background .2s, transform .2s;
+      box-shadow: 0 6px 18px rgba(108,99,255,.25);
     }
-    .story-block p:last-child { margin-bottom: 0; }
+    .lr-submit:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .lr-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .lr-error { color: var(--red); font-size: .82rem; margin-top: 6px; display: none; }
+    .lr-note { font-size: .78rem; color: var(--dim); text-align: center; margin-top: 14px; }
+    .lr-success {
+      display: none; text-align: center; padding: 28px;
+      background: rgba(22,163,74,.06); border: 1px solid rgba(22,163,74,.2);
+      border-radius: var(--radius);
+    }
+    .lr-success-tick {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; font-weight: 800; margin-bottom: 14px;
+    }
+
+    /* ── STORY / FOUNDER ── */
+    .story-section {
+      padding: var(--section-pad) 0;
+      background: #fff;
+    }
+    .story-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 72px; align-items: center;
+    }
+    .story-text .eyebrow { display: block; margin-bottom: 14px; }
+    .story-text h2 {
+      font-family: var(--display);
+      font-size: clamp(1.9rem, 3.5vw, 2.8rem);
+      font-weight: 800; letter-spacing: -.025em;
+      line-height: 1.1; margin-bottom: 28px; color: var(--text);
+    }
+    .story-text p {
+      font-size: 1rem; color: var(--muted);
+      line-height: 1.8; margin-bottom: 18px;
+    }
+    .pull-quote {
+      font-family: var(--display);
+      font-size: 1.25rem; font-style: italic;
+      color: var(--text); line-height: 1.45;
+      padding: 18px 0 18px 24px;
+      border-left: 3px solid var(--accent);
+      margin: 28px 0;
+      font-weight: 500;
+    }
     .story-expandable {
       overflow: hidden; max-height: 0;
       transition: max-height .5s ease;
     }
-    .story-expandable.open { max-height: 3000px; }
+    .story-expandable.open { max-height: 4000px; }
     .story-expand-btn {
       display: inline-flex; align-items: center; gap: 7px;
-      margin-top: 28px;
-      background: none; border: 1px solid var(--border2);
-      border-radius: 999px; padding: 9px 20px;
-      color: #a5b4fc; font-size: .85rem; font-weight: 600;
+      margin-top: 18px;
+      background: none;
+      border: 1.5px solid var(--accent-tint);
+      border-radius: var(--radius-pill); padding: 10px 20px;
+      color: var(--accent); font-size: .85rem; font-weight: 700;
       cursor: pointer; font-family: inherit;
       transition: all .2s;
     }
-    .story-expand-btn:hover {
-      border-color: rgba(99,102,241,.5);
-      background: rgba(99,102,241,.07);
-    }
-    .story-expand-btn .btn-arrow {
-      transition: transform .3s;
-    }
+    .story-expand-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+    .story-expand-btn .btn-arrow { transition: transform .3s; display: inline-block; }
     .story-expand-btn.open .btn-arrow { transform: rotate(180deg); }
+    .story-block { margin-top: 36px; }
+    .story-block-heading {
+      font-size: 1.1rem; font-weight: 700;
+      color: var(--text); margin-bottom: 12px;
+      letter-spacing: -.01em;
+    }
 
-    /* ── FOUNDER CARD ── */
-    .founder-section {
-      padding: 0 0 110px;
-    }
+    .founder-side { position: relative; }
     .founder-card {
-      max-width: 780px; margin: 0 auto;
-      background: var(--card);
-      border: 1px solid var(--border2);
+      background: var(--bg-alt);
       border-radius: 20px;
-      padding: 48px 52px;
-      position: relative; overflow: hidden;
+      padding: 40px 36px;
+      box-shadow: var(--shadow);
+      text-align: center;
     }
-    .founder-top {
-      display: flex; align-items: center; gap: 24px; margin-bottom: 20px;
-    }
-    .founder-avatar {
-      width: 80px; height: 80px; border-radius: 50%; flex-shrink: 0;
-      object-fit: cover;
-      border: 2px solid rgba(99,102,241,.35);
-      box-shadow: 0 0 20px rgba(99,102,241,.2);
-    }
-    .founder-name { margin-bottom: 0; }
-    .founder-card::before {
-      content: '';
-      position: absolute; top: -80px; right: -80px;
-      width: 260px; height: 260px;
-      background: radial-gradient(circle, rgba(99,102,241,.07), transparent 70%);
-      pointer-events: none;
-    }
-    .founder-eyebrow {
-      font-size: .75rem; font-weight: 600; color: #a5b4fc;
-      text-transform: uppercase; letter-spacing: .1em; margin-bottom: 20px;
-    }
-    .founder-name {
-      font-size: 1.6rem; font-weight: 800;
-      letter-spacing: -.03em; margin-bottom: 20px;
-    }
-    .founder-bio {
-      font-size: .9375rem; color: var(--muted);
-      line-height: 1.85; margin-bottom: 32px;
-    }
-    .founder-follow-label {
-      font-size: .8rem; font-weight: 600; color: var(--dim);
-      text-transform: uppercase; letter-spacing: .08em;
-      margin-bottom: 14px;
-    }
-    .founder-socials {
-      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    .founder-photo {
+      width: 140px; height: 140px;
+      border-radius: 50%; object-fit: cover;
+      border: 4px solid #fff;
+      box-shadow: 0 12px 32px rgba(108,99,255,.18);
       margin-bottom: 20px;
     }
+    .founder-name {
+      font-family: var(--display);
+      font-size: 1.4rem; font-weight: 800;
+      letter-spacing: -.02em; margin-bottom: 4px;
+    }
+    .founder-loc {
+      font-size: .85rem; color: var(--muted);
+      margin-bottom: 22px;
+    }
+    .founder-socials {
+      display: flex; justify-content: center; flex-wrap: wrap;
+      gap: 8px; margin-bottom: 14px;
+    }
     .social-pill {
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 9px 18px;
-      background: rgba(99,102,241,.08);
-      border: 1px solid rgba(99,102,241,.22);
-      border-radius: 999px;
-      color: #a5b4fc; text-decoration: none;
-      font-size: .85rem; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: var(--radius-pill);
+      background: #fff;
+      border: 1px solid var(--border);
+      color: var(--text-soft); text-decoration: none;
+      font-size: .82rem; font-weight: 600;
       transition: all .2s;
     }
     .social-pill:hover {
-      background: rgba(99,102,241,.16);
-      border-color: rgba(99,102,241,.45);
-      color: #c7d2fe;
+      border-color: var(--accent);
+      color: var(--accent);
       transform: translateY(-1px);
     }
+    .social-pill.kofi { color: #d33d3a; border-color: rgba(211,61,58,.25); }
+    .social-pill.kofi:hover { background: #FF5E5B; color: #fff; border-color: #FF5E5B; }
     .founder-coming-soon {
-      font-size: .8rem; color: var(--dim);
+      font-size: .76rem; color: var(--dim);
       font-style: italic; line-height: 1.6;
+      margin-top: 4px;
     }
 
-    /* ── ENGAGE ── */
-    .engage {
-      padding: 80px 0;
-      border-bottom: 1px solid var(--border);
-      background: var(--card);
-    }
-    .engage-header {
-      text-align: center; margin-bottom: 48px;
-    }
-    .engage-header h2 {
-      font-size: clamp(1.5rem, 2.8vw, 2rem);
-      font-weight: 800; letter-spacing: -.03em; margin-bottom: 8px;
-    }
-    .engage-header p {
-      font-size: .9rem; color: var(--muted);
-    }
-    .engage-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px; max-width: 860px; margin: 0 auto;
-    }
-    .engage-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 40px 44px;
+    /* ── OPEN SOURCE (dark) ── */
+    .opensource {
+      padding: var(--section-pad) 0;
+      background: var(--bg-dark);
+      color: #fff;
       position: relative; overflow: hidden;
-      transition: border-color .25s, box-shadow .25s;
     }
-    .engage-card:hover {
-      border-color: rgba(99,102,241,.35);
-      box-shadow: 0 0 48px rgba(99,102,241,.08);
-    }
-    .engage-card::before {
-      content: '';
-      position: absolute; top: -70px; right: -70px;
-      width: 200px; height: 200px;
-      background: radial-gradient(circle, rgba(99,102,241,.07), transparent 70%);
+    .opensource::before {
+      content:''; position:absolute; inset:0;
+      background:
+        radial-gradient(ellipse 600px 400px at 80% 20%, rgba(108,99,255,.12), transparent 60%),
+        radial-gradient(ellipse 600px 400px at 20% 80%, rgba(22,163,74,.08), transparent 60%);
       pointer-events: none;
     }
-    .engage-eyebrow {
-      font-size: .7rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .12em;
-      color: #a5b4fc; margin-bottom: 10px;
+    .os-inner { position: relative; z-index: 1; max-width: 820px; margin: 0 auto; text-align: center; }
+    .opensource .eyebrow { color: #a5b4fc; }
+    .opensource h2 {
+      font-family: var(--display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800; letter-spacing: -.02em;
+      line-height: 1.1; color: #fff; margin-bottom: 18px;
     }
-    .engage-card h3 {
-      font-size: 1.2rem; font-weight: 800;
-      letter-spacing: -.025em; margin-bottom: 10px;
+    .opensource > .container > .os-inner > p.os-lede {
+      font-size: 1.0625rem; color: #c2c2d8; max-width: 580px; margin: 0 auto 36px; line-height: 1.7;
     }
-    .engage-card > p {
-      font-size: .875rem; color: var(--muted); line-height: 1.75;
-      margin-bottom: 28px;
+    .os-terminal {
+      max-width: 620px; margin: 0 auto 40px;
+      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: .85rem; color: #4ade80;
+      background: rgba(0,0,0,.45);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      padding: 22px 26px; text-align: left;
+      line-height: 1.85;
     }
-    .engage-row {
-      display: flex; gap: 8px; margin-bottom: 10px;
+    .os-terminal .term-dim { color: #5a8a6a; }
+    .os-terminal .term-cmd { color: #86efac; }
+    .os-stats-row {
+      display: flex; justify-content: center; gap: 56px;
+      margin-bottom: 32px; flex-wrap: wrap;
     }
-    .engage-input {
-      flex: 1; background: var(--card2);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius-sm);
-      padding: 11px 14px;
-      color: var(--text); font-family: inherit; font-size: .875rem;
+    .os-stat .num {
+      font-family: var(--display);
+      font-size: 2.4rem; font-weight: 800;
+      color: #4ade80; letter-spacing: -.02em; line-height: 1;
+    }
+    .os-stat .lbl {
+      font-size: .8rem; color: #8aa89a;
+      text-transform: uppercase; letter-spacing: .1em;
+      margin-top: 6px;
+    }
+    .os-star-line {
+      font-size: .95rem; color: #c2c2d8;
+      margin-bottom: 32px; line-height: 1.6;
+    }
+    .os-star-line strong { color: #fff; font-weight: 700; }
+    .btn-gh-dark {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: var(--radius-pill);
+      background: #fff; color: var(--bg-dark);
+      text-decoration: none;
+      font-size: .9rem; font-weight: 700;
+      transition: all .2s;
+    }
+    .btn-gh-dark:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(255,255,255,.18); }
+
+    /* ── FAQ ── */
+    .faq-section { padding: var(--section-pad) 0; background: var(--bg-alt); }
+    .faq-list { max-width: 760px; margin: 0 auto; }
+    .faq-item {
+      background: #fff;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: box-shadow .2s;
+    }
+    .faq-item:hover { box-shadow: var(--shadow); }
+    .faq-q {
+      width: 100%; text-align: left;
+      background: none; border: none;
+      padding: 22px 26px;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; color: var(--text);
+      font-size: 1rem; font-weight: 700; font-family: inherit;
+      gap: 16px;
+    }
+    .faq-arrow {
+      transition: transform .25s;
+      color: var(--accent); flex-shrink: 0;
+      font-size: 1rem; font-weight: 800;
+    }
+    .faq-item.open .faq-arrow { transform: rotate(45deg); }
+    .faq-a {
+      font-size: .94rem; color: var(--muted);
+      line-height: 1.75;
+      max-height: 0; overflow: hidden;
+      padding: 0 26px;
+      transition: max-height .35s ease, padding .35s ease;
+    }
+    .faq-item.open .faq-a { max-height: 400px; padding: 0 26px 22px; }
+
+    /* ── DONATE ── */
+    .donate-section { padding: var(--section-pad) 0; background: #fff; }
+    .donate-card {
+      max-width: 620px; margin: 0 auto;
+      background: linear-gradient(135deg, var(--bg-alt) 0%, #fff 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 52px 48px; text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .donate-title {
+      font-family: var(--display);
+      font-size: clamp(1.5rem, 2.6vw, 2rem);
+      font-weight: 800; letter-spacing: -.02em;
+      margin-bottom: 14px; color: var(--text);
+    }
+    .donate-body {
+      font-size: 1rem; color: var(--muted); line-height: 1.75;
+      max-width: 460px; margin: 0 auto 28px;
+    }
+    .donate-body strong { color: var(--text); font-weight: 700; }
+    .btn-kofi {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: #FF5E5B; color: #fff;
+      padding: 14px 30px; border-radius: var(--radius-pill);
+      font-size: .95rem; font-weight: 700;
+      text-decoration: none; transition: all .2s;
+      box-shadow: 0 8px 24px rgba(255,94,91,.28);
+    }
+    .btn-kofi:hover { background: #ff4541; transform: translateY(-2px); box-shadow: 0 14px 32px rgba(255,94,91,.4); }
+    .donate-note { margin-top: 18px; font-size: .8rem; color: var(--dim); }
+
+    /* ── NEWSLETTER ── */
+    .newsletter-section { padding: var(--section-pad) 0; background: var(--bg-alt); }
+    .nl-inner { max-width: 540px; margin: 0 auto; text-align: center; }
+    .nl-inner h2 {
+      font-family: var(--display);
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 800; letter-spacing: -.02em;
+      line-height: 1.15; margin-bottom: 14px;
+    }
+    .nl-inner > p {
+      font-size: .98rem; color: var(--muted);
+      line-height: 1.7; margin-bottom: 32px;
+    }
+    .nl-form-row {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      justify-content: center;
+    }
+    .nl-input {
+      flex: 1; min-width: 240px; max-width: 320px;
+      background: #fff; border: 1.5px solid var(--border);
+      border-radius: var(--radius-pill);
+      padding: 14px 20px;
+      color: var(--text); font-family: inherit; font-size: .94rem;
       outline: none; transition: border-color .2s;
     }
-    .engage-input:focus { border-color: var(--indigo); }
-    .engage-submit {
-      padding: 11px 20px;
-      background: linear-gradient(135deg, var(--indigo), var(--violet));
-      color: #fff; border: none;
-      border-radius: var(--radius-sm);
-      font-size: .875rem; font-weight: 700;
-      cursor: pointer; font-family: inherit;
-      white-space: nowrap; transition: opacity .2s;
+    .nl-input:focus { border-color: var(--accent); }
+    .nl-btn {
+      padding: 14px 28px; border-radius: var(--radius-pill);
+      background: var(--accent); color: #fff;
+      border: none; font-family: inherit;
+      font-size: .94rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+      transition: background .2s, transform .2s;
+      box-shadow: 0 6px 18px rgba(108,99,255,.25);
     }
-    .engage-submit:hover { opacity: .88; }
-    .engage-submit:disabled { opacity: .5; cursor: not-allowed; }
-    .engage-note { font-size: .73rem; color: var(--dim); }
-    .engage-err { font-size: .78rem; color: #f87171; display: none; margin-bottom: 8px; }
-    .engage-ok {
-      display: none; padding: 12px 16px;
-      background: rgba(34,197,94,.06); border: 1px solid rgba(34,197,94,.2);
-      border-radius: var(--radius-sm);
-      color: #4ade80; font-size: .875rem; font-weight: 600; margin-bottom: 10px;
+    .nl-btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .nl-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .nl-error { color: var(--red); font-size: .82rem; margin-top: 12px; display: none; }
+    .nl-success {
+      display: none; max-width: 420px; margin: 0 auto;
+      padding: 22px;
+      background: rgba(22,163,74,.06); border: 1px solid rgba(22,163,74,.2);
+      border-radius: var(--radius);
     }
-    .engage-stars { display: flex; gap: 3px; margin-bottom: 20px; }
-    .engage-star {
-      font-size: 1.5rem; color: #f59e0b;
-      animation: star-pop .4s ease backwards;
+    .nl-success-title { color: var(--green); font-weight: 800; margin-bottom: 6px; }
+    .nl-success-msg { color: var(--muted); font-size: .9rem; }
+    .nl-fineprint { margin-top: 18px; font-size: .78rem; color: var(--dim); }
+
+    /* ── FINAL CTA ── */
+    .cta-final {
+      padding: 140px 0;
+      text-align: center;
+      background: #fff;
+      position: relative; overflow: hidden;
     }
-    .engage-star:nth-child(1){animation-delay:.05s}
-    .engage-star:nth-child(2){animation-delay:.12s}
-    .engage-star:nth-child(3){animation-delay:.19s}
-    .engage-star:nth-child(4){animation-delay:.26s}
-    .engage-star:nth-child(5){animation-delay:.33s}
-    @keyframes star-pop {
-      from { transform: scale(0) rotate(-15deg); opacity: 0; }
-      to   { transform: scale(1) rotate(0); opacity: 1; }
+    .cta-final::before {
+      content:''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 700px 400px at 50% 50%, rgba(108,99,255,.08), transparent 60%);
+      pointer-events: none;
     }
-    .engage-cta {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 11px 22px;
-      background: rgba(99,102,241,.08);
-      border: 1px solid rgba(99,102,241,.28);
-      border-radius: var(--radius-sm);
-      color: #a5b4fc; font-size: .9rem; font-weight: 700;
-      cursor: pointer; text-decoration: none; transition: all .2s;
+    .cta-final-inner { position: relative; z-index: 1; }
+    .cta-final h2 {
+      font-family: var(--display);
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 800; letter-spacing: -.025em;
+      line-height: 1.05; margin-bottom: 16px;
     }
-    .engage-cta:hover {
-      background: rgba(99,102,241,.18);
-      border-color: rgba(99,102,241,.5);
-      color: #c7d2fe; transform: translateY(-1px);
+    .cta-final h2 .accent { color: var(--accent); font-style: italic; }
+    .cta-final p.lede {
+      font-size: 1.1rem; color: var(--muted);
+      margin-bottom: 40px;
+    }
+    .cta-footnote {
+      margin-top: 36px;
+      font-size: .85rem; color: var(--dim);
+      max-width: 480px; margin-left: auto; margin-right: auto;
+      line-height: 1.7;
     }
 
+    /* ── FOOTER (dark) ── */
+    footer {
+      background: var(--bg-dark);
+      color: #c2c2d8;
+      padding: 72px 0 40px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr 1fr;
+      gap: 48px;
+      padding-bottom: 48px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .footer-brand .footer-logo {
+      display: inline-flex; align-items: center; gap: 10px;
+      text-decoration: none;
+      margin-bottom: 14px;
+    }
+    .footer-logo-icon {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .footer-logo-text { font-size: 1.05rem; font-weight: 800; color: #fff; letter-spacing: -.02em; }
+    .footer-tagline {
+      font-size: .9rem; color: #8a8aa0; line-height: 1.7;
+      max-width: 260px; margin-bottom: 20px;
+    }
+    .footer-socials { display: flex; gap: 10px; }
+    .footer-social {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.06);
+      display: flex; align-items: center; justify-content: center;
+      color: #c2c2d8; text-decoration: none;
+      transition: all .2s;
+    }
+    .footer-social:hover { background: var(--accent); color: #fff; transform: translateY(-2px); }
+    .footer-col h4 {
+      font-size: .8rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .12em;
+      color: #fff; margin-bottom: 16px;
+    }
+    .footer-col ul { list-style: none; }
+    .footer-col li { margin-bottom: 10px; }
+    .footer-col a {
+      color: #8a8aa0; text-decoration: none;
+      font-size: .9rem; transition: color .2s;
+    }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom {
+      display: flex; justify-content: space-between;
+      align-items: center; padding-top: 28px;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-bottom-left { font-size: .82rem; color: #6a6a85; }
+    .footer-bottom-right { font-size: .82rem; color: #6a6a85; }
+
+    /* ── ANIMATIONS ── */
+    .fade-up {
+      opacity: 0; transform: translateY(30px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
     /* ── RESPONSIVE ── */
-    @media (max-width: 768px) {
-      .founder-card { padding: 32px 24px; }
-      .story-founder-note { padding-left: 20px; }
+    @media (max-width: 980px) {
+      :root { --section-pad: 88px; }
       .nav-links { display: none; }
       .nav-dl-btn { display: none; }
+      .nav-gh, .nav-kofi { display: none; }
       .hamburger { display: flex; }
-      .mockup-side { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 36px 24px; }
       .steps { grid-template-columns: 1fr; }
-      .comp-table { font-size: .8rem; }
-      .comp-table th, .comp-table td { padding: 10px 12px; }
-      .os-card { padding: 32px 24px; }
-      .hero { padding: 80px 0 60px; }
-      .footer-inner { flex-direction: column; align-items: flex-start; }
-      .footer-right { text-align: left; }
-      .stat-pill { padding: 6px 14px; font-size: .75rem; }
-      .engage-grid { grid-template-columns: 1fr; }
-      .engage-card { padding: 28px 24px; }
-      .engage-row { flex-direction: column; }
+      .step-arrow { display: none; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .science-grid { grid-template-columns: 1fr; }
+      .story-grid { grid-template-columns: 1fr; gap: 48px; }
+      .founder-side { max-width: 420px; margin: 0 auto; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 36px; }
     }
-    @media (max-width: 480px) {
-      .nav-right .nav-gh { display: none; }
-      .hero h1 { letter-spacing: -.03em; }
-      .mockup-wrap { border-radius: 12px; }
+    @media (max-width: 640px) {
+      :root { --section-pad: 72px; }
+      .hero { padding: 60px 0 56px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .mockup-side { display: none; }
+      .mockup-main { padding: 28px 20px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 28px 16px; }
+      .leave-review { padding: 32px 22px; margin: 40px 0 0; border-radius: var(--radius); }
+      .donate-card { padding: 36px 24px; }
+      .footer-grid { grid-template-columns: 1fr; gap: 36px; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; }
+      .hero-trust { gap: 12px 18px; font-size: .78rem; }
+      .pull-quote { font-size: 1.1rem; padding-left: 18px; }
+      .comp-table { font-size: .82rem; }
+      .comp-table thead th, .comp-table tbody td { padding: 12px 10px; }
     }
+    @media (max-width: 400px) {
+      .hero h1 { font-size: clamp(2rem, 9vw, 2.6rem); }
+    }
+
+    /* ── DOWNLOAD MODAL ── */
+    .dl-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(15,15,30,.55); backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .dl-overlay.open { display: flex; }
+    .dl-modal {
+      background: #fff;
+      border-radius: 20px;
+      padding: 36px;
+      max-width: 480px; width: 100%;
+      box-shadow: var(--shadow-lg);
+      animation: dlIn .25s ease;
+    }
+    @keyframes dlIn { from { opacity: 0; transform: translateY(16px) scale(.97);} to { opacity: 1; transform: none;} }
+    .dl-modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .dl-modal-title {
+      font-family: var(--display);
+      font-size: 1.2rem; font-weight: 800;
+      letter-spacing: -.01em; color: var(--text);
+    }
+    .dl-modal-close {
+      background: none; border: none;
+      color: var(--dim); cursor: pointer;
+      font-size: 1.3rem; line-height: 1; padding: 6px;
+      transition: color .2s;
+    }
+    .dl-modal-close:hover { color: var(--text); }
+    .dl-modal-sub {
+      font-size: .9rem; color: var(--muted); margin-bottom: 22px;
+    }
+    .dl-arch-list { display: flex; flex-direction: column; gap: 10px; }
+    .dl-arch-btn {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg-alt);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      cursor: pointer; text-align: left;
+      transition: all .15s; width: 100%;
+      color: var(--text); font-family: inherit;
+    }
+    .dl-arch-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      transform: translateY(-1px);
+    }
+    .dl-arch-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .dl-arch-btn.recommended { border-color: var(--accent-tint); }
+    .dl-arch-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .dl-arch-name { font-size: .94rem; font-weight: 700; color: var(--text); }
+    .dl-arch-desc { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+    .dl-badge {
+      font-size: .6rem; font-weight: 800;
+      background: var(--accent); color: #fff;
+      padding: 3px 8px; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: .08em;
+      margin-left: 8px; vertical-align: middle;
+    }
+    .dl-modal-status {
+      margin-top: 18px; font-size: .9rem;
+      text-align: center; color: var(--muted);
+      display: none;
+    }
+    .dl-modal-status.show { display: block; }
+    .dl-modal-status.error { color: var(--red); }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ── NAV ── -->
 <nav id="nav">
   <div class="container nav-inner">
     <a href="/" class="nav-logo">
@@ -962,11 +1213,11 @@
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
       <a href="#reviews">Reviews</a>
-      <a href="#newsletter">Newsletter</a>
+      <a href="#story">Story</a>
       <a href="#faq">FAQ</a>
     </div>
     <div class="nav-right">
-      <a href="https://github.com/Relevant47/Focus-lock" target="_blank" class="nav-gh">
+      <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener" class="nav-gh">
         <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
         Source
       </a>
@@ -985,36 +1236,40 @@
     <a href="#features">Features</a>
     <a href="#how">How it works</a>
     <a href="#reviews">Reviews</a>
-    <a href="#newsletter">Newsletter</a>
+    <a href="#story">Story</a>
     <a href="#faq">FAQ</a>
-    <a href="https://github.com/Relevant47/Focus-lock" target="_blank">GitHub</a>
-    <span class="mobile-desktop-only">Download available on Windows &amp; macOS only</span>
+    <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://ko-fi.com/oscarpetrikas" target="_blank" rel="noopener">Support on Ko-fi</a>
+    <a href="#" data-dl="win" id="mobile-dl">Download Free</a>
   </div>
 </nav>
 
-<!-- HERO -->
+<!-- ── HERO ── -->
 <section class="hero">
-  <div class="hero-bg">
-    <div class="hero-glow"></div>
-    <div class="hero-glow-2"></div>
-    <div class="floaters" id="floaters"></div>
-  </div>
+  <div class="hero-bg"></div>
   <div class="container hero-inner">
     <div class="hero-badge">
       <span class="live-dot"></span>
-      Free Forever · Open Source · No Account Needed
+      Free Forever · Open Source · No Account · Zero Telemetry
     </div>
-    <h1>The internet was built<br/>to steal your time.<br/><em>FocusLock takes it back.</em></h1>
-    <p class="hero-sub">Not a browser extension — a real OS-level block that stops every browser, every app. Survives reboots, force quits, and every attempt to bypass it.</p>
+    <h1>Block distractions.<br/>Unblock your life.<br/><span class="accent">Free. Forever.</span></h1>
+    <p class="hero-sub">A real OS-level distraction blocker — not a browser extension. Stops every browser, every app. Survives reboots, force quits, and every clever attempt to bypass it.</p>
     <div class="hero-ctas">
-      <a href="#" data-dl="win" class="btn-win" id="hero-btn-primary">
-        <svg id="hero-btn-primary-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M3,12V6.75L9,5.43V11.91L3,12M20,3V11.75L11,11.91V5.21L20,3M3,13L9,13.09V19.9L3,18.75V13M20,13.25V22L11,20.09V13.09L20,13.25Z"/></svg> Download for Windows
+      <a href="#" data-dl="win" class="btn btn-primary" id="hero-btn-primary">
+        <svg id="hero-btn-primary-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M3,12V6.75L9,5.43V11.91L3,12M20,3V11.75L11,11.91V5.21L20,3M3,13L9,13.09V19.9L3,18.75V13M20,13.25V22L11,20.09V13.09L20,13.25Z"/></svg>
+        Download for Windows
       </a>
-      <a href="#" data-dl="mac" class="btn-mac" id="hero-btn-secondary">
-        <svg id="hero-btn-secondary-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.78,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z"/></svg> Download for macOS
+      <a href="#" data-dl="mac" class="btn btn-outline" id="hero-btn-secondary">
+        <svg id="hero-btn-secondary-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.78,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z"/></svg>
+        Download for macOS
       </a>
     </div>
-    <p class="hero-trust">No account. No email. No credit card. Just download.</p>
+    <div class="hero-trust">
+      <span class="trust-item"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Free Forever</span>
+      <span class="trust-item"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Open Source</span>
+      <span class="trust-item"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> No Account</span>
+      <span class="trust-item"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Zero Telemetry</span>
+    </div>
 
     <div class="mockup-wrap">
       <div class="mockup-aura"></div>
@@ -1036,14 +1291,14 @@
           <div class="mockup-main">
             <div class="mock-session-label">Deep Work · Active Session</div>
             <div class="mock-ring">
-              <svg width="130" height="130" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#1e1e2e" stroke-width="6"/>
+              <svg width="140" height="140" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/>
                 <circle cx="50" cy="50" r="42" fill="none" stroke="url(#ring-grad)" stroke-width="6"
                   stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="66"/>
                 <defs>
                   <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#6366f1"/>
-                    <stop offset="100%" stop-color="#8b5cf6"/>
+                    <stop offset="0%" stop-color="#6C63FF"/>
+                    <stop offset="100%" stop-color="#a78bfa"/>
                   </linearGradient>
                 </defs>
               </svg>
@@ -1054,15 +1309,15 @@
             </div>
             <div class="mock-stats">
               <div class="mock-stat">
-                <div class="mock-stat-val" style="color:#f97316">7d 🔥</div>
+                <div class="mock-stat-val" style="color:#fb923c">7d 🔥</div>
                 <div class="mock-stat-lbl">streak</div>
               </div>
               <div class="mock-stat">
-                <div class="mock-stat-val" style="color:#a5b4fc">94</div>
+                <div class="mock-stat-val" style="color:#a78bfa">94</div>
                 <div class="mock-stat-lbl">score</div>
               </div>
               <div class="mock-stat">
-                <div class="mock-stat-val" style="color:#f87171">3</div>
+                <div class="mock-stat-val" style="color:#fca5a5">3</div>
                 <div class="mock-stat-lbl">blocked</div>
               </div>
             </div>
@@ -1076,112 +1331,37 @@
   </div>
 </section>
 
-
-<!-- STATS BAR -->
-<div class="stats-bar">
+<!-- ── STATS BAR ── -->
+<section class="stats-bar">
   <div class="container">
-    <div class="stats-inner">
-      <div class="stat-pill">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-        Zero telemetry collected
+    <div class="stats-grid">
+      <div class="stat-block fade-up">
+        <div class="stat-num"><span class="accent">100%</span></div>
+        <div class="stat-lbl">Open Source — GPL-3.0</div>
       </div>
-      <div class="stat-pill">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-        100% open source
+      <div class="stat-block fade-up">
+        <div class="stat-num">0</div>
+        <div class="stat-lbl">Telemetry Collected</div>
       </div>
-      <div class="stat-pill">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-        GPL-3.0 licensed
+      <div class="stat-block fade-up">
+        <div class="stat-num">3 Steps</div>
+        <div class="stat-lbl">To Start Blocking</div>
       </div>
-      <div class="stat-pill">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-        No account ever required
-      </div>
-      <div class="stat-pill">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        Free forever
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- OUR STORY -->
-<section class="story-section" id="story">
-  <div class="container">
-    <div class="story-inner">
-      <p class="story-eyebrow">Our Story</p>
-      <h2 class="story-headline">Why FocusLock Exists</h2>
-
-      <div class="story-founder-note fade-up">
-        <p>I was a homeschooled kid with a laptop, a pile of work to get through, and absolutely nothing stopping me from opening YouTube instead. No teacher watching over my shoulder, no classroom to keep me accountable — just me, my screen, and every distraction the internet had to offer. I failed to focus more times than I can count, and I watched it cost me hours, days, and real progress on things that actually mattered to me.</p>
-      </div>
-
-      <div class="story-block fade-up">
-        <p>So I built FocusLock. Not as a business. Not as a startup. Not because someone told me to. I built it because I was 13 years old, sitting in my room in Thailand, staring at a screen full of distractions, and I decided that if no one had built the right tool yet, I would. FocusLock is the tool I wish I had from the beginning — and I made it free so that every other kid, student, and person who struggles the way I did can have it too, no questions asked.</p>
-      </div>
-
-      <button class="story-expand-btn" id="story-expand-btn" onclick="toggleStory()">
-        Read more <span class="btn-arrow">▼</span>
-      </button>
-
-      <div class="story-expandable" id="story-expandable">
-        <div class="story-block" style="margin-top:40px;">
-          <h3 class="story-block-heading">Built for Everyone Who Struggles to Focus</h3>
-          <p>Distraction doesn't discriminate. It hits the homeschooled twelve-year-old trying to finish their math lesson just as hard as it hits the entrepreneur trying to ship their product, the university student pulling an all-nighter before exams, or the remote worker who's supposed to be in a meeting but somehow ended up on Reddit. The internet is extraordinary, and it is also relentlessly, deliberately designed to pull your attention away from what you actually want to be doing.</p>
-          <p>FocusLock was built for all of them. For the student who needs to write an essay but keeps opening TikTok. For the parent who wants to set healthy screen boundaries for their children without paying for another monthly subscription. For the freelancer who bills by the hour but loses two of them every afternoon to mindless scrolling. For the person with ADHD who knows exactly what they should be doing and just needs the exit ramps removed. For the homeschooled kid with no supervision and a world of distractions one click away. For anyone, anywhere, who has ever looked up from their screen and wondered where the last three hours went.</p>
-        </div>
-
-        <div class="story-block">
-          <h3 class="story-block-heading">Why It's Free — and Always Will Be</h3>
-          <p>FocusLock costs nothing. There is no premium tier, no trial period, no feature locked behind a paywall, and no plan to change that. Every single thing the app can do is available to every single person who downloads it, from day one, forever.</p>
-          <p>This isn't a loss-leader strategy. There are no ads, no data collection, no monetization plan quietly waiting in the wings. FocusLock is free because the people who need it most — kids, students, people in developing countries, anyone without disposable income to spend on productivity software — deserve access to tools that actually work just as much as anyone else does. The idea that you should have to pay a monthly fee just to be able to concentrate on your own life has always felt wrong to me. So I made it free. And I'm keeping it that way.</p>
-          <p>The full source code is publicly available on GitHub under the GPL-3.0 license. Every line of it. You don't have to trust me — you can read exactly what the software does, how it does it, and verify for yourself that it does nothing it shouldn't. That level of transparency is something no paid product can offer you.</p>
-        </div>
-
-        <div class="story-block">
-          <h3 class="story-block-heading">One Person. No Funding. No Agenda.</h3>
-          <p>FocusLock was designed, built, and is maintained by one person — a 13-year-old self-taught programmer living in Thailand. There is no company behind it, no investors to answer to, no growth targets to hit. Just a kid who had a problem, taught himself how to solve it, and decided to give the solution to the world for free.</p>
-          <p>If FocusLock helps you finish your thesis, get through your workday, keep your kids on task, or simply reclaim a few hours of your week — that's enough. That's the whole point.</p>
-          <p>Download it. Use it. Tell someone else about it if it helps. That's all anyone here will ever ask of you.</p>
-        </div>
+      <div class="stat-block fade-up">
+        <div class="stat-num"><span class="accent">Free</span></div>
+        <div class="stat-lbl">Forever, No Catch</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FOUNDER CARD -->
-<section class="founder-section">
+<!-- ── WHO IT'S FOR ── -->
+<section class="who">
   <div class="container">
-    <div class="founder-card fade-up">
-      <p class="founder-eyebrow">Meet the Maker</p>
-      <div class="founder-top">
-        <img src="/oscar.jpg" alt="Oscar Petrikas" class="founder-avatar" />
-        <h2 class="founder-name">Oscar Petrikas</h2>
-      </div>
-      <p class="founder-bio">I'm a 13-year-old self-taught programmer, enthusiastic entrepreneur, and homeschooled kid living in Thailand. I'm also a professional athlete and international medalist competing across Judo, Jiu-Jitsu, Muay Thai, MMA, Wrestling, and many other sports, with medals won across competitions around the world. I also play Tennis, Drums, Piano, and art. I have multiple other projects in the making — FocusLock is just the beginning.</p>
-      <p class="founder-follow-label">Follow my journey</p>
-      <div class="founder-socials">
-        <a href="https://www.instagram.com/oscarpetrikas/" target="_blank" rel="noopener" class="social-pill">
-          <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-          Instagram
-        </a>
-        <a href="https://www.tiktok.com/@petrikasoscar" target="_blank" rel="noopener" class="social-pill">
-          <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/></svg>
-          TikTok
-        </a>
-      </div>
-      <p class="founder-coming-soon">Facebook, YouTube (educational/podcast), and my personal website coming soon.</p>
-    </div>
-  </div>
-</section>
-
-<!-- USE CASES -->
-<section class="use-cases">
-  <div class="container">
-    <p class="use-label">Who it's for</p>
-    <p class="use-prefix">FocusLock is for people who want to</p>
-    <div class="use-cycling-wrap">
-      <div class="use-cycling" id="use-cycling">
+    <p class="eyebrow">Built for everyone</p>
+    <p class="who-prefix">Distraction doesn't discriminate.<br/>FocusLock is for people who want to</p>
+    <div class="who-cycling-wrap">
+      <div class="who-cycling" id="who-cycling">
         <span>finally finish their thesis.</span>
         <span>stop losing nights to YouTube.</span>
         <span>actually ship their side project.</span>
@@ -1194,24 +1374,38 @@
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
+<!-- ── HOW IT WORKS ── -->
 <section class="how" id="how">
   <div class="container">
-    <p class="section-eyebrow">How it works</p>
-    <h2 class="section-title">Serious blocking in three steps</h2>
-    <p class="section-sub">No configuration rabbit holes. Install, choose what to block, start a session.</p>
+    <div class="section-head fade-up">
+      <p class="eyebrow">How it works</p>
+      <h2 class="section-title">Serious blocking in three simple steps</h2>
+      <p class="section-sub">No configuration rabbit holes. Install, choose what to block, start a session.</p>
+    </div>
     <div class="steps">
       <div class="step fade-up">
         <div class="step-num">1</div>
         <h3>Install the daemon</h3>
         <p>A privileged background service installs once and runs silently at every boot.</p>
         <div class="step-why">The daemon runs as SYSTEM/root — it starts before your desktop loads, so blocks are live the moment you turn on your computer.</div>
+        <div class="step-arrow">
+          <svg viewBox="0 0 44 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 12 Q 12 4, 22 12 T 42 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" stroke-dasharray="3 4"/>
+            <path d="M36 6 L42 12 L36 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
       </div>
       <div class="step fade-up" style="transition-delay:.1s">
         <div class="step-num">2</div>
         <h3>Choose what to block</h3>
         <p>Pick from curated category packs (social, streaming, gaming) or build a custom list. Save as Focus Profiles for one-click reuse.</p>
         <div class="step-why">Blocks happen at the DNS level — every browser on your machine is affected, including ones you haven't installed yet.</div>
+        <div class="step-arrow">
+          <svg viewBox="0 0 44 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 12 Q 12 20, 22 12 T 42 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" stroke-dasharray="3 4"/>
+            <path d="M36 6 L42 12 L36 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
       </div>
       <div class="step fade-up" style="transition-delay:.2s">
         <div class="step-num">3</div>
@@ -1223,12 +1417,14 @@
   </div>
 </section>
 
-<!-- FEATURES -->
+<!-- ── FEATURES ── -->
 <section class="features" id="features">
   <div class="container">
-    <p class="section-eyebrow">Features</p>
-    <h2 class="section-title">Built to be unbypassable</h2>
-    <p class="section-sub">Every feature was designed with one goal: make distraction harder than focus.</p>
+    <div class="section-head fade-up">
+      <p class="eyebrow">Features</p>
+      <h2 class="section-title">Built to be unbypassable</h2>
+      <p class="section-sub">Every feature was designed with one goal: make distraction harder than focus.</p>
+    </div>
     <div class="features-grid">
 
       <div class="feature-card hero-feature fade-up">
@@ -1290,12 +1486,57 @@
   </div>
 </section>
 
-<!-- COMPARISON -->
-<section class="comparison">
+<!-- ── SCIENCE / EVIDENCE ── -->
+<section class="science" id="science">
   <div class="container">
-    <p class="section-eyebrow">Comparison</p>
-    <h2 class="section-title">How does FocusLock stack up?</h2>
-    <div class="comp-table-wrap fade-up">
+    <div class="section-head fade-up">
+      <p class="eyebrow">Backed by evidence</p>
+      <h2 class="section-title">Focus science is real. So are the results.</h2>
+      <p class="section-sub">Distraction blocking isn't a productivity trend — the cost of fragmented attention has been studied for decades. A few of the findings worth knowing about.</p>
+    </div>
+    <div class="science-grid">
+      <div class="study-card fade-up">
+        <div class="study-source">Carnegie Mellon University</div>
+        <div class="study-stat">22%</div>
+        <p class="study-claim">Higher performance when interruptions are removed.</p>
+        <p class="study-desc">Research by CMU's Human-Computer Interaction Institute found that people interrupted during cognitively demanding tasks score substantially lower on accuracy and completion — and that recovering from interruption takes much longer than the interruption itself.</p>
+        <a href="https://scholar.google.com/scholar?q=Mark+Gloria+Carnegie+Mellon+interruption+focus+productivity" target="_blank" rel="noopener" class="study-link">
+          Read research →
+        </a>
+      </div>
+
+      <div class="study-card fade-up" style="transition-delay:.1s">
+        <div class="study-source">Microsoft Research</div>
+        <div class="study-stat">20%</div>
+        <p class="study-claim">More productive output during distraction-free focus blocks.</p>
+        <p class="study-desc">Microsoft's long-running studies on workplace attention found that knowledge workers switching contexts dozens of times per hour produce measurably less — and that protected focus blocks lift quality and throughput by roughly a fifth.</p>
+        <a href="https://scholar.google.com/scholar?q=Microsoft+Research+focus+productivity+context+switching+attention" target="_blank" rel="noopener" class="study-link">
+          Read research →
+        </a>
+      </div>
+
+      <div class="study-card fade-up" style="transition-delay:.2s">
+        <div class="study-source">PNAS · Cognitive Science</div>
+        <div class="study-stat">∼</div>
+        <p class="study-claim">Sustained attention training shows measurable cognitive benefits.</p>
+        <p class="study-desc">Studies published in PNAS demonstrate that practiced sustained attention — the same skill blocking tools protect — correlates with improvements in working memory, decision quality, and overall cognitive performance across age groups.</p>
+        <a href="https://scholar.google.com/scholar?q=PNAS+sustained+attention+cognitive+performance+training" target="_blank" rel="noopener" class="study-link">
+          Read research →
+        </a>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:36px;font-size:.85rem;color:var(--dim);max-width:640px;margin-left:auto;margin-right:auto;line-height:1.7;">These studies describe distraction and attention broadly. FocusLock doesn't claim to deliver any specific percentage — it claims to be the strictest tool you can run for free.</p>
+  </div>
+</section>
+
+<!-- ── COMPARISON ── -->
+<section class="comparison" id="compare">
+  <div class="container">
+    <div class="section-head fade-up">
+      <p class="eyebrow">Comparison</p>
+      <h2 class="section-title">How does FocusLock stack up?</h2>
+    </div>
+    <div class="comp-wrap fade-up">
       <table class="comp-table">
         <thead>
           <tr>
@@ -1308,9 +1549,9 @@
         <tbody>
           <tr>
             <td>Price</td>
-            <td class="ours" style="color:#4ade80;font-weight:700">Free forever</td>
-            <td style="color:var(--muted)">$39 one-time</td>
-            <td style="color:var(--muted)">$3.33/mo</td>
+            <td class="ours" style="color:var(--green);font-weight:800">Free forever</td>
+            <td>$39 one-time</td>
+            <td>$3.33/mo</td>
           </tr>
           <tr>
             <td>Needs browser extension</td>
@@ -1357,104 +1598,161 @@
         </tbody>
       </table>
     </div>
-    <p class="comp-caption">Why pay $39–$40/year when FocusLock is free and open source?</p>
+    <p class="comp-caption">Why pay <strong>$39–$40/year</strong> when FocusLock is free and open source?</p>
   </div>
 </section>
 
-<!-- REVIEWS -->
+<!-- ── REVIEWS ── -->
 <section class="reviews" id="reviews">
   <div class="container">
-    <p class="section-eyebrow">What people are saying</p>
-    <h2 class="section-title">Real outcomes from real people</h2>
+    <div class="section-head fade-up">
+      <p class="eyebrow">What people are saying</p>
+      <h2 class="section-title">Real outcomes from real people</h2>
+      <p class="section-sub">Honest feedback from the people who use it. Help shape what gets built next.</p>
+    </div>
   </div>
 
   <!-- Live reviews loaded from database -->
-  <div id="reviews-live-wrap" style="margin-top:48px;display:none;">
+  <div id="reviews-live-wrap" style="display:none;">
     <div class="reviews-track-wrap">
       <div class="reviews-track" id="reviews-track"></div>
     </div>
   </div>
 
   <!-- Shown when no reviews yet -->
-  <div id="reviews-empty" style="margin-top:48px;text-align:center;padding:40px 24px;">
-    <p style="color:var(--dim);font-size:.9rem;">No reviews yet — be the first to share your experience.</p>
+  <div id="reviews-empty" class="reviews-empty">
+    No reviews yet — be the first to share your experience.
   </div>
-</section>
 
-<!-- LEAVE A REVIEW -->
-<section id="review-section" style="padding:80px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--card);">
+  <!-- LEAVE A REVIEW -->
   <div class="container">
-    <div style="max-width:560px;margin:0 auto;text-align:center;">
-      <p class="section-eyebrow">Share your experience</p>
-      <h2 class="section-title" style="margin-bottom:8px;">Leave a review</h2>
-      <p style="color:var(--muted);font-size:.9rem;margin-bottom:40px;">We'd love to hear from you. Your feedback — good or bad — helps us understand what's working and what needs fixing.</p>
-
-      <div id="review-form-wrap">
-        <!-- Star rating -->
-        <div style="margin-bottom:24px;">
-          <div id="star-rating" style="display:flex;justify-content:center;gap:8px;margin-bottom:8px;">
-            <span class="star" data-val="1" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
-            <span class="star" data-val="2" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
-            <span class="star" data-val="3" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
-            <span class="star" data-val="4" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
-            <span class="star" data-val="5" style="font-size:2rem;cursor:pointer;color:var(--border2);transition:color .15s;">★</span>
-          </div>
-          <p id="star-label" style="font-size:.78rem;color:var(--dim);">Click to rate</p>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:12px;text-align:left;">
-          <textarea id="review-text" placeholder="Tell us about your experience with FocusLock..." rows="4"
-            style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;color:var(--text);font-family:inherit;font-size:.9rem;resize:vertical;outline:none;transition:border-color .2s;"
-            onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
-
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <input id="review-name" type="text" placeholder="Your name" maxlength="60"
-              style="flex:1;min-width:140px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text);font-family:inherit;font-size:.875rem;outline:none;transition:border-color .2s;"
-              onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border2)'" />
-            <input id="review-role" type="text" placeholder="What you do (optional)" maxlength="60"
-              style="flex:1;min-width:140px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text);font-family:inherit;font-size:.875rem;outline:none;transition:border-color .2s;"
-              onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border2)'" />
-          </div>
-        </div>
-
-        <p id="review-error" style="color:#f87171;font-size:.8rem;margin-top:10px;display:none;"></p>
-
-        <button id="review-submit" onclick="submitReview()"
-          style="margin-top:16px;width:100%;padding:13px;background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9375rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;"
-          onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
-          Submit Review
-        </button>
-        <p style="font-size:.73rem;color:var(--dim);margin-top:10px;">Every review is read. Your feedback directly shapes what gets built next.</p>
+    <div class="leave-review fade-up" id="review-section">
+      <div class="leave-review-head">
+        <h3>Leave a review</h3>
+        <p>Your feedback — good or bad — directly shapes what gets built next.</p>
       </div>
 
-      <!-- Success state -->
-      <div id="review-success" style="display:none;padding:32px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:var(--radius);">
-        <div style="font-size:2rem;margin-bottom:12px;">✓</div>
-        <p style="font-weight:700;color:#4ade80;margin-bottom:8px;" id="review-success-msg">Thank you!</p>
-        <p style="font-size:.875rem;color:var(--muted);">Your review has been submitted.</p>
+      <div id="review-form-wrap">
+        <div id="star-rating">
+          <span class="star" data-val="1">★</span>
+          <span class="star" data-val="2">★</span>
+          <span class="star" data-val="3">★</span>
+          <span class="star" data-val="4">★</span>
+          <span class="star" data-val="5">★</span>
+        </div>
+        <p id="star-label">Click to rate</p>
+
+        <div class="review-form-fields">
+          <textarea id="review-text" class="lr-textarea" placeholder="Tell us about your experience with FocusLock..." rows="4"></textarea>
+          <div class="lr-row">
+            <input id="review-name" class="lr-input" type="text" placeholder="Your name" maxlength="60" />
+            <input id="review-role" class="lr-input" type="text" placeholder="What you do (optional)" maxlength="60" />
+          </div>
+        </div>
+
+        <p id="review-error" class="lr-error"></p>
+
+        <button id="review-submit" class="lr-submit" onclick="submitReview()">Submit Review</button>
+        <p class="lr-note">Every review is read by Oscar personally.</p>
+      </div>
+
+      <div id="review-success" class="lr-success">
+        <div class="lr-success-tick">✓</div>
+        <p style="font-weight:700;color:var(--green);margin-bottom:6px;" id="review-success-msg">Thank you!</p>
+        <p style="font-size:.9rem;color:var(--muted);">Your review has been submitted.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- OPEN SOURCE -->
+<!-- ── STORY / FOUNDER ── -->
+<section class="story-section" id="story">
+  <div class="container">
+    <div class="story-grid">
+      <div class="story-text">
+        <p class="eyebrow">Our story</p>
+        <h2>Built by a 13-year-old who got tired of losing.</h2>
+        <p>I was a homeschooled kid with a laptop, a pile of work to get through, and absolutely nothing stopping me from opening YouTube instead. No teacher watching, no classroom to keep me accountable — just me, my screen, and every distraction the internet had to offer.</p>
+
+        <div class="pull-quote">
+          "I was 13 years old, sitting in my room in Thailand, and I decided if no one had built the right tool, I would."
+        </div>
+
+        <p>So I built FocusLock. Not as a business. Not as a startup. I built it because the right tool didn't exist, and I made it free so every other kid, student, and person who struggles the way I did can have it too — no questions asked, no card on file.</p>
+
+        <button class="story-expand-btn" id="story-expand-btn" onclick="toggleStory()">
+          Read more <span class="btn-arrow">▼</span>
+        </button>
+
+        <div class="story-expandable" id="story-expandable">
+          <div class="story-block">
+            <h4 class="story-block-heading">Built for everyone who struggles to focus</h4>
+            <p>Distraction doesn't discriminate. It hits the homeschooled twelve-year-old trying to finish their math lesson just as hard as it hits the entrepreneur trying to ship their product, the university student pulling an all-nighter before exams, or the remote worker who's supposed to be in a meeting but somehow ended up on Reddit.</p>
+            <p>FocusLock was built for all of them — students, parents, freelancers, people with ADHD, anyone who's ever looked up from their screen and wondered where the last three hours went.</p>
+          </div>
+
+          <div class="story-block">
+            <h4 class="story-block-heading">Why it's free — and always will be</h4>
+            <p>There is no premium tier, no trial period, no feature locked behind a paywall, and no plan to change that. The full source code is public on GitHub under GPL-3.0. You don't have to trust me — you can read exactly what the software does, line by line.</p>
+            <p>The idea that you should have to pay a monthly fee just to be able to concentrate on your own life has always felt wrong to me. So I made it free. And I'm keeping it that way.</p>
+          </div>
+
+          <div class="story-block">
+            <h4 class="story-block-heading">One person. No funding. No agenda.</h4>
+            <p>FocusLock was designed, built, and is maintained by one self-taught 13-year-old in Thailand. No company. No investors. No growth targets. Just a kid who had a problem, taught himself to solve it, and decided to give the solution to the world.</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="founder-side fade-up">
+        <div class="founder-card">
+          <img src="/oscar.jpg" alt="Oscar Petrikas" class="founder-photo" />
+          <div class="founder-name">Oscar Petrikas</div>
+          <div class="founder-loc">13 · Self-taught · Thailand</div>
+          <div class="founder-socials">
+            <a href="https://www.instagram.com/oscarpetrikas/" target="_blank" rel="noopener" class="social-pill">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              Instagram
+            </a>
+            <a href="https://www.tiktok.com/@petrikasoscar" target="_blank" rel="noopener" class="social-pill">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/></svg>
+              TikTok
+            </a>
+            <a href="https://ko-fi.com/oscarpetrikas" target="_blank" rel="noopener" class="social-pill kofi">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.881 8.948c-.773-4.085-4.859-4.591-4.859-4.591H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.918zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
+              Ko-fi
+            </a>
+          </div>
+          <p class="founder-coming-soon">Facebook, YouTube, and personal site coming soon.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ── OPEN SOURCE (the one dark section) ── -->
 <section class="opensource">
   <div class="container">
-    <div class="os-card fade-up">
+    <div class="os-inner fade-up">
+      <p class="eyebrow">Radical transparency</p>
+      <h2>The whole thing is on GitHub.</h2>
+      <p class="os-lede">FocusLock runs as root on your machine. You should be able to read every line it executes — daemon, IPC protocol, session signing, all of it. Audit it. Fork it. Make it better.</p>
+
       <div class="os-terminal">
         <span class="term-dim">$ </span><span class="term-cmd">git clone https://github.com/Relevant47/Focus-lock</span><br/>
         <span class="term-dim">$ </span><span class="term-cmd">cat daemon-win/FocusLock.Daemon/Worker.cs</span><br/>
         <span class="term-dim"># Every line that runs as SYSTEM is right here.</span>
       </div>
-      <h2>Radical transparency.</h2>
-      <p>FocusLock runs as root on your machine. You should be able to read every line it executes. The full source is on GitHub — daemon, IPC protocol, session signing, all of it. Audit it. Fork it. Make it better.</p>
+
       <div class="os-stats-row">
         <div class="os-stat"><div class="num">100%</div><div class="lbl">open source</div></div>
         <div class="os-stat"><div class="num">0</div><div class="lbl">telemetry</div></div>
         <div class="os-stat"><div class="num" id="gh-stars">—</div><div class="lbl">GitHub stars</div></div>
       </div>
-      <p class="os-star-line" id="gh-star-line">Fetching star count...</p>
-      <a href="https://github.com/Relevant47/Focus-lock" target="_blank" class="btn-gh">
+
+      <p class="os-star-line" id="gh-star-line">Every line of the daemon that runs as root is public. Audit it yourself.</p>
+
+      <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener" class="btn-gh-dark">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
         View source on GitHub
       </a>
@@ -1462,61 +1760,30 @@
   </div>
 </section>
 
-<!-- FAQ -->
-<section id="faq" style="padding:100px 0; border-top:1px solid var(--border);">
+<!-- ── FAQ ── -->
+<section class="faq-section" id="faq">
   <div class="container">
-    <p class="section-eyebrow">FAQ</p>
-    <h2 class="section-title">Common questions</h2>
-    <div style="max-width:680px;margin:48px auto 0;">
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Windows says "Windows protected your PC" — is it safe?<span class="faq-arrow">▼</span></button><div class="faq-a">Yes, completely safe. This warning appears because FocusLock doesn't have a paid code-signing certificate yet (they cost hundreds of dollars per year). Click "More info" then "Run anyway" to install. The full source code is on GitHub — you can read every line before running it. Many legitimate open-source apps show this warning for the same reason.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it really free? What's the catch?<span class="faq-arrow">▼</span></button><div class="faq-a">No catch. No ads, no tracking, no premium tier, no upsell. It's a personal project released under GPL-3.0. The source code is fully public. Use it, fork it, do whatever you want with it.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Does it work on every browser?<span class="faq-arrow">▼</span></button><div class="faq-a">Yes — Chrome, Firefox, Safari, Edge, Brave, Arc, Opera, Tor, and anything else that uses DNS. FocusLock edits the OS hosts file directly, not individual browsers. No extension required. No per-browser setup.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Can I bypass it by restarting my computer?<span class="faq-arrow">▼</span></button><div class="faq-a">No. The daemon registers as a Windows Service (or launchd LaunchDaemon on macOS) and starts at boot priority — before your desktop loads. Blocks are applied before you open a browser.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it safe for something that runs as root/SYSTEM?<span class="faq-arrow">▼</span></button><div class="faq-a">The full source is on GitHub and auditable by anyone. Session state is HMAC-signed with a key only the daemon holds. The daemon does exactly three things: edit the hosts file, kill blocked processes, and listen on a local IPC socket. Nothing else.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">What's Friend Lock exactly?<span class="faq-arrow">▼</span></button><div class="faq-a">Before starting a session, you generate a random token and send it to a trusted person. FocusLock stores only the SHA-256 hash of that token — you can't recover the original. Only the person with the plaintext token can unlock the session early. It's accountability made cryptographic.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How do I contribute?<span class="faq-arrow">▼</span></button><div class="faq-a">Open an issue or PR on GitHub. The codebase has a Windows daemon in C# (.NET 8), a macOS daemon in Swift, and a Tauri + React frontend. ARCHITECTURE.md covers the full IPC protocol and session state format before you dive in.</div></div>
+    <div class="section-head fade-up">
+      <p class="eyebrow">FAQ</p>
+      <h2 class="section-title">Common questions</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Windows says "Windows protected your PC" — is it safe?<span class="faq-arrow">+</span></button><div class="faq-a">Yes, completely safe. This warning appears because FocusLock doesn't have a paid code-signing certificate yet (they cost hundreds of dollars per year). Click "More info" then "Run anyway" to install. The full source code is on GitHub — you can read every line before running it. Many legitimate open-source apps show this warning for the same reason.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it really free? What's the catch?<span class="faq-arrow">+</span></button><div class="faq-a">No catch. No ads, no tracking, no premium tier, no upsell. It's a personal project released under GPL-3.0. The source code is fully public. Use it, fork it, do whatever you want with it.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Does it work on every browser?<span class="faq-arrow">+</span></button><div class="faq-a">Yes — Chrome, Firefox, Safari, Edge, Brave, Arc, Opera, Tor, and anything else that uses DNS. FocusLock edits the OS hosts file directly, not individual browsers. No extension required. No per-browser setup.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Can I bypass it by restarting my computer?<span class="faq-arrow">+</span></button><div class="faq-a">No. The daemon registers as a Windows Service (or launchd LaunchDaemon on macOS) and starts at boot priority — before your desktop loads. Blocks are applied before you open a browser.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it safe for something that runs as root/SYSTEM?<span class="faq-arrow">+</span></button><div class="faq-a">The full source is on GitHub and auditable by anyone. Session state is HMAC-signed with a key only the daemon holds. The daemon does exactly three things: edit the hosts file, kill blocked processes, and listen on a local IPC socket. Nothing else.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">What's Friend Lock exactly?<span class="faq-arrow">+</span></button><div class="faq-a">Before starting a session, you generate a random token and send it to a trusted person. FocusLock stores only the SHA-256 hash of that token — you can't recover the original. Only the person with the plaintext token can unlock the session early. It's accountability made cryptographic.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How do I contribute?<span class="faq-arrow">+</span></button><div class="faq-a">Open an issue or PR on GitHub. The codebase has a Windows daemon in C# (.NET 8), a macOS daemon in Swift, and a Tauri + React frontend. ARCHITECTURE.md covers the full IPC protocol and session state format before you dive in.</div></div>
     </div>
   </div>
 </section>
 
-<!-- NEWSLETTER -->
-<section id="newsletter" style="padding:80px 0;border-top:1px solid var(--border);background:var(--card);">
-  <div class="container">
-    <div style="max-width:520px;margin:0 auto;text-align:center;">
-      <p style="font-size:.75rem;font-weight:600;color:#a5b4fc;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;">Stay in the loop</p>
-      <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;letter-spacing:-.03em;margin-bottom:12px;">Get notified when we ship something new</h2>
-      <p style="color:var(--muted);font-size:.9375rem;line-height:1.75;margin-bottom:32px;">FocusLock is just the beginning. Drop your email and we'll let you know when the next project launches — no spam, no marketing, just a short note when something real ships.</p>
-
-      <div id="nl-form">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
-          <input id="nl-email" type="email" placeholder="your@email.com"
-            style="flex:1;min-width:220px;max-width:300px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 16px;color:var(--text);font-family:inherit;font-size:.9rem;outline:none;transition:border-color .2s;"
-            onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border2)'"
-            onkeydown="if(event.key==='Enter')submitNewsletter()" />
-          <button onclick="submitNewsletter()" id="nl-btn"
-            style="padding:12px 24px;background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .2s;">
-            Notify me
-          </button>
-        </div>
-        <p id="nl-error" style="color:#f87171;font-size:.8rem;margin-top:10px;display:none;"></p>
-      </div>
-
-      <div id="nl-success" style="display:none;padding:20px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:var(--radius-sm);">
-        <p style="color:#4ade80;font-weight:700;margin-bottom:4px;">You're in! ✓</p>
-        <p style="color:var(--muted);font-size:.875rem;">We'll be in touch when something new launches.</p>
-      </div>
-
-      <p style="margin-top:16px;font-size:.78rem;color:var(--dim);">No account needed. Unsubscribe any time.</p>
-    </div>
-  </div>
-</section>
-
-<!-- DONATE -->
+<!-- ── DONATE ── -->
 <section class="donate-section" id="donate">
   <div class="container">
     <div class="donate-card fade-up">
-
-      <h2 class="donate-title">Support FocusLock</h2>
+      <h2 class="donate-title">Support the project</h2>
       <p class="donate-body">
         FocusLock is <strong>free forever</strong> — no ads, no subscriptions, no catch.
         It's built and maintained by one person in their spare time.
@@ -1531,134 +1798,126 @@
   </div>
 </section>
 
-<!-- FINAL CTA -->
-<section class="cta-final">
+<!-- ── NEWSLETTER ── -->
+<section class="newsletter-section" id="newsletter">
   <div class="container">
-    <h2>Your next focus session<br/>starts now.</h2>
-    <p>Free forever. Open source. No strings attached.</p>
+    <div class="nl-inner fade-up">
+      <p class="eyebrow">Stay in the loop</p>
+      <h2>Get notified when we ship something new</h2>
+      <p>FocusLock is just the beginning. Drop your email and we'll let you know when the next project launches — no spam, no marketing, just a short note when something real ships.</p>
+
+      <div id="nl-form">
+        <div class="nl-form-row">
+          <input id="nl-email" class="nl-input" type="email" placeholder="your@email.com"
+            onkeydown="if(event.key==='Enter')submitNewsletter()" />
+          <button onclick="submitNewsletter()" id="nl-btn" class="nl-btn">Notify me</button>
+        </div>
+        <p id="nl-error" class="nl-error"></p>
+      </div>
+
+      <div id="nl-success" class="nl-success">
+        <p class="nl-success-title">You're in. ✓</p>
+        <p class="nl-success-msg">We'll be in touch when something new launches.</p>
+      </div>
+
+      <p class="nl-fineprint">No account needed. Unsubscribe any time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FINAL CTA ── -->
+<section class="cta-final">
+  <div class="container cta-final-inner">
+    <h2>Your next focus session<br/><span class="accent">starts now.</span></h2>
+    <p class="lede">Free forever. Open source. No strings attached.</p>
     <div class="hero-ctas">
-      <a href="#" data-dl="win" class="btn-win" id="cta-btn-primary">
-        <svg id="cta-icon-primary" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M3,12V6.75L9,5.43V11.91L3,12M20,3V11.75L11,11.91V5.21L20,3M3,13L9,13.09V19.9L3,18.75V13M20,13.25V22L11,20.09V13.09L20,13.25Z"/></svg> Download for Windows
+      <a href="#" data-dl="win" class="btn btn-primary" id="cta-btn-primary">
+        <svg id="cta-icon-primary" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M3,12V6.75L9,5.43V11.91L3,12M20,3V11.75L11,11.91V5.21L20,3M3,13L9,13.09V19.9L3,18.75V13M20,13.25V22L11,20.09V13.09L20,13.25Z"/></svg>
+        Download for Windows
       </a>
-      <a href="#" data-dl="mac" class="btn-mac" id="cta-btn-secondary">
-        <svg id="cta-icon-secondary" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.78,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z"/></svg> Download for macOS
+      <a href="#" data-dl="mac" class="btn btn-outline" id="cta-btn-secondary">
+        <svg id="cta-icon-secondary" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.78,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z"/></svg>
+        Download for macOS
       </a>
     </div>
     <p class="cta-footnote">Built by one person. No VC funding. No monetisation plan. No subscription hiding around the corner. Just a tool that works.</p>
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- ── FOOTER (dark) ── -->
 <footer>
   <div class="container">
-    <div class="footer-inner">
-      <div>
+    <div class="footer-grid">
+      <div class="footer-brand">
         <a href="/" class="footer-logo">
           <div class="footer-logo-icon">
-          <svg width="16" height="16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs><marker id="arr-ft" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><polyline points="1,1 4,2.5 1,4" stroke="white" stroke-width="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
-            <g transform="translate(50,50)">
-              <line x1="-76" y1="-76" x2="-18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
-              <line x1="76" y1="-76" x2="18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
-              <line x1="76" y1="76" x2="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
-              <line x1="-76" y1="76" x2="-18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
-              <circle cx="0" cy="0" r="5" fill="white"/>
-            </g>
-          </svg>
-        </div>
+            <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs><marker id="arr-ft" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><polyline points="1,1 4,2.5 1,4" stroke="white" stroke-width="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+              <g transform="translate(50,50)">
+                <line x1="-76" y1="-76" x2="-18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
+                <line x1="76" y1="-76" x2="18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
+                <line x1="76" y1="76" x2="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
+                <line x1="-76" y1="76" x2="-18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-ft)"/>
+                <circle cx="0" cy="0" r="5" fill="white"/>
+              </g>
+            </svg>
+          </div>
           <span class="footer-logo-text">FocusLock</span>
         </a>
-        <p class="footer-tagline">Free forever. Open source forever.</p>
+        <p class="footer-tagline">Free forever. Open source forever. Built so you can finally finish what matters.</p>
+        <div class="footer-socials">
+          <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener" class="footer-social" aria-label="GitHub">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          </a>
+          <a href="https://www.instagram.com/oscarpetrikas/" target="_blank" rel="noopener" class="footer-social" aria-label="Instagram">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          </a>
+          <a href="https://www.tiktok.com/@petrikasoscar" target="_blank" rel="noopener" class="footer-social" aria-label="TikTok">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/></svg>
+          </a>
+          <a href="https://ko-fi.com/oscarpetrikas" target="_blank" rel="noopener" class="footer-social" aria-label="Ko-fi">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.881 8.948c-.773-4.085-4.859-4.591-4.859-4.591H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.918zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
+          </a>
+        </div>
       </div>
-      <div class="footer-links">
-        <a href="https://github.com/Relevant47/Focus-lock" target="_blank">GitHub</a>
-        <a href="https://github.com/Relevant47/Focus-lock/issues" target="_blank">Issues</a>
-        <a href="/privacy.html">Privacy</a>
-        <a href="/terms.html">Terms</a>
+      <div class="footer-col">
+        <h4>Get started</h4>
+        <ul>
+          <li><a href="#" data-dl="win">Download for Windows</a></li>
+          <li><a href="#" data-dl="mac">Download for macOS</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#features">Features</a></li>
+        </ul>
       </div>
-      <div class="footer-right">
-        <div style="font-size:.78rem;color:var(--dim)">GPL-3.0 License</div>
-        <div style="font-size:.72rem;color:var(--dim);margin-top:4px">© 2026 FocusLock</div>
+      <div class="footer-col">
+        <h4>Do more</h4>
+        <ul>
+          <li><a href="#science">Focus science</a></li>
+          <li><a href="#compare">Compare alternatives</a></li>
+          <li><a href="#reviews">Reviews</a></li>
+          <li><a href="#newsletter">Newsletter</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener">GitHub source</a></li>
+          <li><a href="https://github.com/Relevant47/Focus-lock/issues" target="_blank" rel="noopener">Report a bug</a></li>
+          <li><a href="#story">Our story</a></li>
+          <li><a href="#donate">Support on Ko-fi</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-bottom-left">© 2026 FocusLock · Built by Oscar Petrikas</div>
+      <div class="footer-bottom-right">
+        <a href="/privacy.html" style="color:inherit;text-decoration:none;margin-right:18px;">Privacy</a>
+        <a href="/terms.html" style="color:inherit;text-decoration:none;margin-right:18px;">Terms</a>
+        GPL-3.0 License
       </div>
     </div>
   </div>
 </footer>
-
-<style>
-  .faq-item { border-bottom: 1px solid var(--border); }
-  .faq-item:first-child { border-top: 1px solid var(--border); }
-  .faq-q { width:100%;text-align:left;background:none;border:none;padding:20px 0;display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--text);font-size:.9375rem;font-weight:600;font-family:inherit;gap:16px; }
-  .faq-arrow { transition:transform .25s;color:var(--dim);flex-shrink:0;font-size:.8rem; }
-  .faq-item.open .faq-arrow { transform:rotate(180deg); }
-  .faq-a { font-size:.875rem;color:var(--muted);line-height:1.8;max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease; }
-  .faq-item.open .faq-a { max-height:320px;padding-bottom:20px; }
-
-  /* ── Donate ── */
-  .donate-section { padding:100px 0; }
-  .donate-card {
-    max-width:580px; margin:0 auto;
-    background:var(--card); border:1px solid var(--border2);
-    border-radius:20px; padding:48px 40px; text-align:center;
-    position:relative; overflow:hidden;
-  }
-  .donate-card::before {
-    content:''; position:absolute; inset:0;
-    background:radial-gradient(ellipse at 50% 0%, rgba(99,102,241,.12) 0%, transparent 70%);
-    pointer-events:none;
-  }
-  .donate-emoji { font-size:2.5rem; display:block; margin-bottom:20px; }
-  .donate-title { font-size:1.5rem; font-weight:800; margin-bottom:12px; }
-  .donate-body { font-size:.9375rem; color:var(--muted); line-height:1.8; max-width:420px; margin:0 auto 32px; }
-  .donate-body strong { color:var(--text); font-weight:600; }
-  .btn-kofi {
-    display:inline-flex; align-items:center; gap:10px;
-    background:#FF5E5B; color:#fff;
-    padding:14px 28px; border-radius:var(--radius);
-    font-size:.9375rem; font-weight:700;
-    text-decoration:none; transition:all .2s;
-    box-shadow:0 0 28px rgba(255,94,91,.3);
-  }
-  .btn-kofi:hover { opacity:.92; transform:translateY(-2px); box-shadow:0 6px 36px rgba(255,94,91,.45); }
-  .donate-note { margin-top:16px; font-size:.78rem; color:var(--dim); }
-
-  /* ── Download Modal ── */
-  .dl-overlay {
-    display:none; position:fixed; inset:0; z-index:1000;
-    background:rgba(0,0,0,.7); backdrop-filter:blur(6px);
-    -webkit-backdrop-filter:blur(6px);
-    align-items:center; justify-content:center;
-  }
-  .dl-overlay.open { display:flex; }
-  .dl-modal {
-    background:var(--card); border:1px solid var(--border2);
-    border-radius:18px; padding:36px; max-width:460px; width:calc(100% - 40px);
-    box-shadow:0 24px 80px rgba(0,0,0,.65);
-    animation:dlIn .2s ease;
-  }
-  @keyframes dlIn { from { opacity:0; transform:translateY(14px) scale(.97); } to { opacity:1; transform:none; } }
-  .dl-modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .dl-modal-title { font-size:1.1rem; font-weight:700; }
-  .dl-modal-close { background:none; border:none; color:var(--dim); cursor:pointer; font-size:1.2rem; line-height:1; padding:6px; transition:color .2s; }
-  .dl-modal-close:hover { color:var(--text); }
-  .dl-modal-sub { font-size:.85rem; color:var(--muted); margin-bottom:22px; }
-  .dl-arch-list { display:flex; flex-direction:column; gap:10px; }
-  .dl-arch-btn {
-    display:flex; align-items:center; gap:14px;
-    background:var(--card2); border:1px solid var(--border2);
-    border-radius:var(--radius); padding:16px 18px;
-    cursor:pointer; text-align:left; transition:all .15s; width:100%; color:var(--text); font-family:inherit;
-  }
-  .dl-arch-btn:hover:not(:disabled) { border-color:var(--indigo); background:rgba(99,102,241,.08); transform:translateY(-1px); }
-  .dl-arch-btn:disabled { opacity:.55; cursor:not-allowed; }
-  .dl-arch-btn.recommended { border-color:rgba(99,102,241,.5); }
-  .dl-arch-icon { font-size:1.5rem; flex-shrink:0; }
-  .dl-arch-name { font-size:.9rem; font-weight:600; }
-  .dl-arch-desc { font-size:.78rem; color:var(--muted); margin-top:3px; }
-  .dl-badge { font-size:.6rem; font-weight:700; background:var(--indigo); color:#fff; padding:2px 7px; border-radius:4px; text-transform:uppercase; letter-spacing:.05em; margin-left:8px; vertical-align:middle; }
-  .dl-modal-status { margin-top:18px; font-size:.84rem; text-align:center; color:var(--muted); display:none; }
-  .dl-modal-status.show { display:block; }
-  .dl-modal-status.error { color:var(--red); }
-</style>
 
 <!-- ── Windows download modal ── -->
 <div class="dl-overlay" id="dl-overlay">
@@ -1724,55 +1983,40 @@
   }
   const os = detectOS();
   if (os === 'mac') {
-    // Swap primary/secondary in hero
-    const p = document.getElementById('hero-btn-primary');
-    const s = document.getElementById('hero-btn-secondary');
-    p.innerHTML = MAC_SVG + ' Download for macOS';
-    p.dataset.dl = 'mac';
-    p.classList.remove('btn-win'); p.classList.add('btn-mac', 'primary');
-    s.innerHTML = WIN_SVG + ' Download for Windows';
-    s.dataset.dl = 'win';
-    s.classList.remove('btn-mac'); s.classList.add('btn-win', 'secondary');
-    // Nav
-    document.getElementById('nav-dl-text').textContent = 'Download for Mac';
-    document.getElementById('nav-dl').dataset.dl = 'mac';
-    document.getElementById('mobile-dl').dataset.dl = 'mac';
-    // CTA
-    const cp = document.getElementById('cta-btn-primary');
-    const cs = document.getElementById('cta-btn-secondary');
-    cp.innerHTML = MAC_SVG + ' Download for macOS';
-    cp.dataset.dl = 'mac';
-    cp.classList.remove('btn-win'); cp.classList.add('btn-mac','primary');
-    cs.innerHTML = WIN_SVG + ' Download for Windows';
-    cs.dataset.dl = 'win';
-    cs.classList.remove('btn-mac'); cs.classList.add('btn-win','secondary');
+    const setBtn = (id, label, dl, primary) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = (dl === 'mac' ? MAC_SVG : WIN_SVG) + ' ' + label;
+      el.dataset.dl = dl;
+      el.classList.remove('btn-primary', 'btn-outline');
+      el.classList.add(primary ? 'btn-primary' : 'btn-outline');
+    };
+    setBtn('hero-btn-primary',   'Download for macOS',   'mac', true);
+    setBtn('hero-btn-secondary', 'Download for Windows', 'win', false);
+    setBtn('cta-btn-primary',    'Download for macOS',   'mac', true);
+    setBtn('cta-btn-secondary',  'Download for Windows', 'win', false);
+
+    const navDlText = document.getElementById('nav-dl-text');
+    const navDl = document.getElementById('nav-dl');
+    if (navDlText) navDlText.textContent = 'Download for Mac';
+    if (navDl) navDl.dataset.dl = 'mac';
+    const mobileDl = document.getElementById('mobile-dl');
+    if (mobileDl) mobileDl.dataset.dl = 'mac';
   }
 
-  // ── Floating site logos ──
-  const floaters = document.getElementById('floaters');
-  const icons = ['📺','🎮','🐦','👾','📱','🎵','🏀','🎬','📰','🌐'];
-  for (let i = 0; i < 12; i++) {
-    const el = document.createElement('div');
-    el.className = 'floater';
-    el.textContent = icons[i % icons.length];
-    el.style.left = Math.random() * 100 + '%';
-    el.style.animationDuration = (18 + Math.random() * 20) + 's';
-    el.style.animationDelay = (Math.random() * 20) + 's';
-    el.style.fontSize = (1.2 + Math.random() * 1.2) + 'rem';
-    floaters.appendChild(el);
+  // ── Cycling "who it's for" ──
+  const cycling = document.getElementById('who-cycling');
+  if (cycling) {
+    const items = cycling.querySelectorAll('span');
+    let idx = 0;
+    setInterval(() => {
+      idx++;
+      if (idx >= items.length - 1) idx = 0;
+      cycling.style.transform = `translateY(-${idx * 1.35}em)`;
+    }, 2800);
   }
 
-  // ── Cycling use cases ──
-  const cycling = document.getElementById('use-cycling');
-  const items = cycling.querySelectorAll('span');
-  let idx = 0;
-  setInterval(() => {
-    idx++;
-    if (idx >= items.length - 1) idx = 0;
-    cycling.style.transform = `translateY(-${idx * 1.3}em)`;
-  }, 2600);
-
-  // ── Intersection Observer ──
+  // ── Intersection Observer for fade-up ──
   const observer = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (e.isIntersecting) {
@@ -1789,14 +2033,14 @@
     .then(data => {
       const stars = data.stargazers_count;
       if (typeof stars === 'number') {
-        document.getElementById('gh-stars').textContent = stars.toLocaleString();
-        document.getElementById('gh-star-line').innerHTML =
+        const starsEl = document.getElementById('gh-stars');
+        if (starsEl) starsEl.textContent = stars.toLocaleString();
+        const lineEl = document.getElementById('gh-star-line');
+        if (lineEl) lineEl.innerHTML =
           `<strong>★ ${stars.toLocaleString()} people</strong> trust FocusLock enough to star it on GitHub.`;
       }
     })
-    .catch(() => {
-      document.getElementById('gh-star-line').textContent = 'Every line of the daemon that runs as root is public. Audit it yourself.';
-    });
+    .catch(() => { /* silent */ });
 
   // ── Reviews: load from database ──
   async function loadReviews() {
@@ -1815,12 +2059,12 @@
           ${r.role ? `<div class="review-role">${r.role}</div>` : ''}
         </div>
       `).join('');
-      track.innerHTML = html + html; // duplicate for seamless loop
+      track.innerHTML = html + html;
 
       document.getElementById('reviews-live-wrap').style.display = 'block';
       document.getElementById('reviews-empty').style.display = 'none';
     } catch (e) {
-      // silently fail — empty state stays visible
+      /* silent */
     }
   }
   loadReviews();
@@ -1832,13 +2076,13 @@
     star.addEventListener('mouseover', () => {
       const val = +star.dataset.val;
       document.querySelectorAll('.star').forEach(s => {
-        s.style.color = +s.dataset.val <= val ? '#f59e0b' : 'var(--border2)';
+        s.style.color = +s.dataset.val <= val ? '#f59e0b' : '#d4d2cc';
       });
       document.getElementById('star-label').textContent = starLabels[val];
     });
     star.addEventListener('mouseout', () => {
       document.querySelectorAll('.star').forEach(s => {
-        s.style.color = +s.dataset.val <= selectedStars ? '#f59e0b' : 'var(--border2)';
+        s.style.color = +s.dataset.val <= selectedStars ? '#f59e0b' : '#d4d2cc';
       });
       document.getElementById('star-label').textContent = selectedStars ? starLabels[selectedStars] : 'Click to rate';
     });
@@ -1883,7 +2127,7 @@
 
       document.getElementById('review-form-wrap').style.display = 'none';
       const successEl = document.getElementById('review-success');
-      document.getElementById('review-success-msg').textContent = data.message;
+      document.getElementById('review-success-msg').textContent = data.message || 'Thank you!';
       successEl.style.display = 'block';
 
       if (data.approved) loadReviews();
@@ -1944,53 +2188,16 @@
     const open = el.classList.toggle('open');
     btn.classList.toggle('open', open);
     btn.innerHTML = open
-      ? 'Read less <span class="btn-arrow" style="transform:rotate(180deg)">▼</span>'
+      ? 'Read less <span class="btn-arrow">▼</span>'
       : 'Read more <span class="btn-arrow">▼</span>';
   }
 
-  // ── FAQ ──
+  // ── FAQ accordion ──
   function toggleFaq(btn) {
     const item = btn.parentElement;
     const isOpen = item.classList.contains('open');
     document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
     if (!isOpen) item.classList.add('open');
-  }
-
-  // ── Engage section: newsletter ──
-  async function engageSubscribe() {
-    const email = document.getElementById('engage-email').value.trim();
-    const btn = document.getElementById('engage-btn');
-    const errEl = document.getElementById('engage-err');
-    errEl.style.display = 'none';
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errEl.textContent = 'Please enter a valid email address.';
-      errEl.style.display = 'block';
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'Subscribing...';
-    try {
-      const resp = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        errEl.textContent = data.error || 'Something went wrong. Please try again.';
-        errEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Subscribe';
-        return;
-      }
-      document.getElementById('engage-form').style.display = 'none';
-      document.getElementById('engage-ok').style.display = 'block';
-    } catch {
-      errEl.textContent = 'Network error. Please try again.';
-      errEl.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Subscribe';
-    }
   }
 
   // ── Animate mockup timer ──
@@ -2082,5 +2289,6 @@
     else if (btn.dataset.dl === 'mac') triggerMacDownload(btn);
   });
 </script>
+
 </body>
 </html>
