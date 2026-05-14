@@ -370,38 +370,60 @@
       padding: var(--section-pad) 0;
       background: #fff;
     }
-    .persona-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 22px;
-      margin-bottom: 72px;
-    }
-    .persona-card {
+    .persona-list {
+      display: flex;
+      flex-direction: column;
       background: #fff;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 32px 28px;
-      transition: transform .25s, box-shadow .25s, border-color .25s;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      max-width: 880px;
+      margin: 0 auto 72px;
     }
-    .persona-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--accent-tint);
-      box-shadow: var(--shadow-md);
+    .persona-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 24px;
+      align-items: center;
+      padding: 26px 32px;
+      border-bottom: 1px solid var(--border);
+      transition: background .25s, padding-left .25s;
+      position: relative;
     }
-    .persona-icon {
-      width: 52px; height: 52px;
+    .persona-row:last-child { border-bottom: 0; }
+    .persona-row::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--accent);
+      transform: scaleY(0);
+      transform-origin: center;
+      transition: transform .25s;
+    }
+    .persona-row:hover {
       background: var(--accent-soft);
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.7rem; margin-bottom: 18px;
+      padding-left: 38px;
     }
-    .persona-card h3 {
-      font-size: 1.1rem; font-weight: 700;
-      letter-spacing: -.01em; margin-bottom: 10px;
+    .persona-row:hover::before { transform: scaleY(1); }
+    .persona-icon {
+      width: 64px; height: 64px;
+      background: var(--accent-soft);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.85rem;
+      margin: 0;
+      flex-shrink: 0;
+    }
+    .persona-row h3 {
+      font-size: 1.15rem; font-weight: 700;
+      letter-spacing: -.01em; margin-bottom: 4px;
       color: var(--text);
     }
-    .persona-card p {
-      font-size: .9rem; color: var(--muted); line-height: 1.7;
+    .persona-row p {
+      font-size: .95rem; color: var(--muted); line-height: 1.6;
+      margin: 0;
     }
     .who-tagline-wrap {
       text-align: center; max-width: 740px; margin: 0 auto;
@@ -1126,7 +1148,6 @@
       .steps { grid-template-columns: 1fr; }
       .step-arrow { display: none; }
       .features-grid { grid-template-columns: repeat(2, 1fr); }
-      .persona-grid { grid-template-columns: repeat(2, 1fr); }
       .science-grid { grid-template-columns: 1fr; }
       .story-grid { grid-template-columns: 1fr; gap: 48px; }
       .founder-side { max-width: 420px; margin: 0 auto; }
@@ -1136,7 +1157,13 @@
       :root { --section-pad: 72px; }
       .hero { padding: 60px 0 56px; }
       .features-grid { grid-template-columns: 1fr; }
-      .persona-grid { grid-template-columns: 1fr; }
+      .persona-row {
+        grid-template-columns: 52px 1fr;
+        gap: 18px;
+        padding: 22px 22px;
+      }
+      .persona-row:hover { padding-left: 28px; }
+      .persona-icon { width: 48px; height: 48px; font-size: 1.5rem; }
       .mockup-side { display: none; }
       .mockup-main { padding: 28px 20px; }
       .stats-grid { grid-template-columns: 1fr 1fr; gap: 28px 16px; }
@@ -1401,36 +1428,48 @@
       <h2 class="section-title">Distraction doesn't discriminate.</h2>
       <p class="section-sub">Whoever you are, wherever you're starting from — if you've ever looked up and wondered where the last three hours went, FocusLock was built for you.</p>
     </div>
-    <div class="persona-grid">
-      <div class="persona-card fade-up">
+    <div class="persona-list fade-up">
+      <div class="persona-row">
         <div class="persona-icon">🎓</div>
-        <h3>Students</h3>
-        <p>From high-school essays to senior theses — finish what you started without opening TikTok for the eighth time today.</p>
+        <div>
+          <h3>Students</h3>
+          <p>From high-school essays to senior theses — finish what you started without opening TikTok for the eighth time today.</p>
+        </div>
       </div>
-      <div class="persona-card fade-up" style="transition-delay:.05s">
+      <div class="persona-row">
         <div class="persona-icon">🚀</div>
-        <h3>Entrepreneurs</h3>
-        <p>Ship the product. Then ship the next thing. Without the scroll detour eating your whole afternoon.</p>
+        <div>
+          <h3>Entrepreneurs</h3>
+          <p>Ship the product. Then ship the next thing. Without the scroll detour eating your whole afternoon.</p>
+        </div>
       </div>
-      <div class="persona-card fade-up" style="transition-delay:.1s">
+      <div class="persona-row">
         <div class="persona-icon">💻</div>
-        <h3>Freelancers &amp; remote workers</h3>
-        <p>Bill more hours by actually using them. Be in the meeting, not in the seventeenth open tab.</p>
+        <div>
+          <h3>Freelancers &amp; remote workers</h3>
+          <p>Bill more hours by actually using them. Be in the meeting, not in the seventeenth open tab.</p>
+        </div>
       </div>
-      <div class="persona-card fade-up" style="transition-delay:.15s">
+      <div class="persona-row">
         <div class="persona-icon">👨‍👩‍👧</div>
-        <h3>Parents</h3>
-        <p>Set healthy screen boundaries for your kids — and yourself — without paying another monthly subscription.</p>
+        <div>
+          <h3>Parents</h3>
+          <p>Set healthy screen boundaries for your kids — and yourself — without paying another monthly subscription.</p>
+        </div>
       </div>
-      <div class="persona-card fade-up" style="transition-delay:.2s">
+      <div class="persona-row">
         <div class="persona-icon">🧠</div>
-        <h3>People with ADHD</h3>
-        <p>Remove the exit ramps. The focus was always there — the distractions were the problem.</p>
+        <div>
+          <h3>People with ADHD</h3>
+          <p>Remove the exit ramps. The focus was always there — the distractions were the problem.</p>
+        </div>
       </div>
-      <div class="persona-card fade-up" style="transition-delay:.25s">
+      <div class="persona-row">
         <div class="persona-icon">📚</div>
-        <h3>Homeschoolers &amp; self-learners</h3>
-        <p>Stay on task without a teacher watching. Built by someone who's lived exactly that.</p>
+        <div>
+          <h3>Homeschoolers &amp; self-learners</h3>
+          <p>Stay on task without a teacher watching. Built by someone who's lived exactly that.</p>
+        </div>
       </div>
     </div>
     <div class="who-tagline-wrap fade-up">
