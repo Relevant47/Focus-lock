@@ -143,6 +143,10 @@
     }
     .mobile-menu a:last-child { border-bottom: none; }
     .mobile-menu a:hover { color: var(--text); }
+    .mobile-desktop-only {
+      display: block; padding: 14px 24px;
+      color: var(--dim); font-size: .85rem; font-style: italic;
+    }
 
     /* ── HERO ── */
     .hero {
@@ -910,7 +914,7 @@
       .founder-card { padding: 32px 24px; }
       .story-founder-note { padding-left: 20px; }
       .nav-links { display: none; }
-      .nav-dl-btn span { display: none; }
+      .nav-dl-btn { display: none; }
       .hamburger { display: flex; }
       .mockup-side { display: none; }
       .steps { grid-template-columns: 1fr; }
@@ -982,7 +986,7 @@
     <a href="#newsletter">Newsletter</a>
     <a href="#faq">FAQ</a>
     <a href="https://github.com/Relevant47/Focus-lock" target="_blank">GitHub</a>
-    <a href="#" data-dl="win" id="mobile-dl">Download Free</a>
+    <span class="mobile-desktop-only">Download available on Windows &amp; macOS only</span>
   </div>
 </nav>
 
