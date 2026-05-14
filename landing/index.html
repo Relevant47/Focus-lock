@@ -368,19 +368,55 @@
     /* ── WHO IT'S FOR ── */
     .who {
       padding: var(--section-pad) 0;
-      background: #fff; text-align: center;
+      background: #fff;
+    }
+    .persona-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      margin-bottom: 72px;
+    }
+    .persona-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      transition: transform .25s, box-shadow .25s, border-color .25s;
+    }
+    .persona-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent-tint);
+      box-shadow: var(--shadow-md);
+    }
+    .persona-icon {
+      width: 52px; height: 52px;
+      background: var(--accent-soft);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.7rem; margin-bottom: 18px;
+    }
+    .persona-card h3 {
+      font-size: 1.1rem; font-weight: 700;
+      letter-spacing: -.01em; margin-bottom: 10px;
+      color: var(--text);
+    }
+    .persona-card p {
+      font-size: .9rem; color: var(--muted); line-height: 1.7;
+    }
+    .who-tagline-wrap {
+      text-align: center; max-width: 740px; margin: 0 auto;
     }
     .who-prefix {
       font-family: var(--display);
-      font-size: clamp(1.6rem, 3vw, 2.4rem);
-      font-weight: 700; color: var(--text);
-      letter-spacing: -.02em; line-height: 1.15;
-      margin-bottom: 12px;
+      font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+      font-weight: 600; color: var(--text);
+      letter-spacing: -.015em; line-height: 1.2;
+      margin-bottom: 6px;
     }
     .who-cycling-wrap {
       font-family: var(--display);
-      font-size: clamp(1.6rem, 3vw, 2.4rem);
-      font-weight: 800; letter-spacing: -.02em;
+      font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+      font-weight: 800; letter-spacing: -.015em;
       height: 1.35em; overflow: hidden;
       font-style: italic;
     }
@@ -1090,6 +1126,7 @@
       .steps { grid-template-columns: 1fr; }
       .step-arrow { display: none; }
       .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .persona-grid { grid-template-columns: repeat(2, 1fr); }
       .science-grid { grid-template-columns: 1fr; }
       .story-grid { grid-template-columns: 1fr; gap: 48px; }
       .founder-side { max-width: 420px; margin: 0 auto; }
@@ -1099,6 +1136,7 @@
       :root { --section-pad: 72px; }
       .hero { padding: 60px 0 56px; }
       .features-grid { grid-template-columns: 1fr; }
+      .persona-grid { grid-template-columns: 1fr; }
       .mockup-side { display: none; }
       .mockup-main { padding: 28px 20px; }
       .stats-grid { grid-template-columns: 1fr 1fr; gap: 28px 16px; }
@@ -1356,19 +1394,57 @@
 </section>
 
 <!-- ── WHO IT'S FOR ── -->
-<section class="who">
+<section class="who" id="who-its-for">
   <div class="container">
-    <p class="eyebrow">Built for everyone</p>
-    <p class="who-prefix">Distraction doesn't discriminate.<br/>FocusLock is for people who want to</p>
-    <div class="who-cycling-wrap">
-      <div class="who-cycling" id="who-cycling">
-        <span>finally finish their thesis.</span>
-        <span>stop losing nights to YouTube.</span>
-        <span>actually ship their side project.</span>
-        <span>sleep before 2am.</span>
-        <span>prove they can do hard things.</span>
-        <span>build the discipline they always wanted.</span>
-        <span>finally finish their thesis.</span>
+    <div class="section-head fade-up">
+      <p class="eyebrow">Built for everyone</p>
+      <h2 class="section-title">Distraction doesn't discriminate.</h2>
+      <p class="section-sub">Whoever you are, wherever you're starting from — if you've ever looked up and wondered where the last three hours went, FocusLock was built for you.</p>
+    </div>
+    <div class="persona-grid">
+      <div class="persona-card fade-up">
+        <div class="persona-icon">🎓</div>
+        <h3>Students</h3>
+        <p>From high-school essays to senior theses — finish what you started without opening TikTok for the eighth time today.</p>
+      </div>
+      <div class="persona-card fade-up" style="transition-delay:.05s">
+        <div class="persona-icon">🚀</div>
+        <h3>Entrepreneurs</h3>
+        <p>Ship the product. Then ship the next thing. Without the scroll detour eating your whole afternoon.</p>
+      </div>
+      <div class="persona-card fade-up" style="transition-delay:.1s">
+        <div class="persona-icon">💻</div>
+        <h3>Freelancers &amp; remote workers</h3>
+        <p>Bill more hours by actually using them. Be in the meeting, not in the seventeenth open tab.</p>
+      </div>
+      <div class="persona-card fade-up" style="transition-delay:.15s">
+        <div class="persona-icon">👨‍👩‍👧</div>
+        <h3>Parents</h3>
+        <p>Set healthy screen boundaries for your kids — and yourself — without paying another monthly subscription.</p>
+      </div>
+      <div class="persona-card fade-up" style="transition-delay:.2s">
+        <div class="persona-icon">🧠</div>
+        <h3>People with ADHD</h3>
+        <p>Remove the exit ramps. The focus was always there — the distractions were the problem.</p>
+      </div>
+      <div class="persona-card fade-up" style="transition-delay:.25s">
+        <div class="persona-icon">📚</div>
+        <h3>Homeschoolers &amp; self-learners</h3>
+        <p>Stay on task without a teacher watching. Built by someone who's lived exactly that.</p>
+      </div>
+    </div>
+    <div class="who-tagline-wrap fade-up">
+      <p class="who-prefix">FocusLock is for people who want to</p>
+      <div class="who-cycling-wrap">
+        <div class="who-cycling" id="who-cycling">
+          <span>finally finish their thesis.</span>
+          <span>stop losing nights to YouTube.</span>
+          <span>actually ship their side project.</span>
+          <span>sleep before 2am.</span>
+          <span>prove they can do hard things.</span>
+          <span>build the discipline they always wanted.</span>
+          <span>finally finish their thesis.</span>
+        </div>
       </div>
     </div>
   </div>
