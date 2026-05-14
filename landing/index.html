@@ -62,9 +62,10 @@
     }
     .nav-inner {
       display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      grid-template-columns: auto 1fr auto;
       align-items: center;
       height: 68px;
+      gap: 16px;
     }
     .nav-logo {
       display: flex; align-items: center; gap: 10px;
@@ -81,6 +82,7 @@
     .nav-logo-text { font-weight: 800; font-size: 1rem; color: var(--text); letter-spacing: -.01em; }
     .nav-links {
       display: flex; align-items: center; gap: 28px;
+      justify-self: center;
     }
     .nav-links a {
       color: var(--muted); text-decoration: none;
@@ -88,7 +90,7 @@
       transition: color .2s;
     }
     .nav-links a:hover { color: var(--text); }
-    .nav-right { display: flex; align-items: center; gap: 12px; justify-self: end; }
+    .nav-right { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
     .nav-gh {
       display: flex; align-items: center; gap: 6px;
       padding: 7px 14px;
@@ -101,7 +103,7 @@
     .nav-gh:hover { border-color: var(--dim); color: var(--text); background: var(--card); }
     .nav-dl-btn {
       display: inline-flex; align-items: center; gap: 7px;
-      padding: 8px 18px;
+      padding: 8px 18px; white-space: nowrap;
       background: linear-gradient(135deg, var(--indigo), var(--violet));
       color: #fff; text-decoration: none;
       font-size: .85rem; font-weight: 600;
