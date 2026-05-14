@@ -168,6 +168,12 @@ jobs:
             --entitlements daemon-mac/entitlements.plist \
             daemon-mac/.build/release/FocusLockDaemon
 
+      - name: Set up SDK root for cross-compilation
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: |
+          echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+          echo "MACOSX_DEPLOYMENT_TARGET=10.13" >> $GITHUB_ENV
+
       - name: Build Tauri app (macOS)
         uses: tauri-apps/tauri-action@v0
         with:

@@ -41,6 +41,11 @@ jobs:
           cache-dependency-path: ui/package-lock.json
       - run: npm ci
         working-directory: ui
+      - name: Create placeholder daemon resources
+        run: |
+          New-Item -Path ui/src-tauri/resources -ItemType Directory -Force | Out-Null
+          New-Item -Path ui/src-tauri/resources/FocusLockDaemon.exe -ItemType File | Out-Null
+          New-Item -Path ui/src-tauri/resources/install-service.ps1 -ItemType File | Out-Null
       - run: cargo check --target x86_64-pc-windows-msvc
         working-directory: ui/src-tauri
 
