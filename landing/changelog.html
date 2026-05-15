@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Changelog — FocusLock</title>
+  <meta name="description" content="What's new in FocusLock — app releases and website updates." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0a0a0f;
+      --bg-alt:       #0f0f17;
+      --card:         #16161f;
+      --text:         #f1f1f3;
+      --text-soft:    #c8c8d0;
+      --muted:        #8b8b9a;
+      --dim:          #5a5a6a;
+      --border:       #20202e;
+      --accent:       #6C63FF;
+      --accent-soft:  rgba(108,99,255,.12);
+      --accent-tint:  rgba(108,99,255,.22);
+      --green:        #22c55e;
+      --display:      'Fraunces', Georgia, serif;
+      --sans:         'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.7;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .wrap { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+    .top-nav {
+      padding: 28px 0 0;
+    }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--muted); font-size: .875rem; font-weight: 500;
+    }
+    .back-link:hover { color: var(--text); text-decoration: none; }
+    .back-link svg { width: 14px; height: 14px; }
+
+    .page-head {
+      padding: 56px 0 40px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: .75rem; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 16px;
+    }
+    h1 {
+      font-family: var(--display);
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      font-weight: 800; letter-spacing: -.025em;
+      line-height: 1.05; margin-bottom: 18px;
+    }
+    .lede {
+      color: var(--muted);
+      font-size: 1.0625rem;
+      max-width: 540px; margin: 0 auto;
+    }
+
+    .filter-row {
+      display: flex; justify-content: center; gap: 8px;
+      margin: 36px 0 56px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text-soft);
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-family: var(--sans);
+      font-size: .85rem; font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .filter-btn:hover { border-color: var(--accent-tint); color: var(--text); }
+    .filter-btn.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .timeline {
+      padding-bottom: 80px;
+    }
+    .entry {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 36px;
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .entry:first-child { border-top: 0; padding-top: 0; }
+    .entry.hidden { display: none; }
+
+    .entry-meta {
+      padding-top: 4px;
+    }
+    .entry-date {
+      font-size: .82rem; color: var(--muted);
+      letter-spacing: .02em;
+      margin-bottom: 8px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: .68rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+    .badge.app {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--accent-tint);
+    }
+    .badge.web {
+      background: rgba(34,197,94,.10);
+      color: var(--green);
+      border: 1px solid rgba(34,197,94,.25);
+    }
+    .version-tag {
+      display: block;
+      font-family: var(--display);
+      font-size: 1.4rem; font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.01em;
+      margin-top: 6px;
+    }
+
+    .entry-body h2 {
+      font-family: var(--display);
+      font-size: 1.35rem; font-weight: 700;
+      letter-spacing: -.015em;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .entry-body ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .entry-body li {
+      position: relative;
+      padding-left: 22px;
+      margin-bottom: 8px;
+      color: var(--text-soft);
+      font-size: .95rem;
+      line-height: 1.65;
+    }
+    .entry-body li::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 12px;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: .7;
+    }
+    .entry-body li strong {
+      color: var(--text); font-weight: 600;
+    }
+
+    .footer-note {
+      max-width: 780px; margin: 0 auto;
+      padding: 36px 24px 60px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    .footer-note a { color: var(--text-soft); }
+
+    @media (max-width: 640px) {
+      .entry {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 28px 0;
+      }
+      .entry-meta { padding-top: 0; }
+      .version-tag { display: inline-block; margin-top: 0; margin-left: 12px; vertical-align: middle; }
+      h1 { font-size: 2rem; }
+      .lede { font-size: .98rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap top-nav">
+  <a href="/" class="back-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back to FocusLock
+  </a>
+</div>
+
+<header class="page-head">
+  <div class="wrap">
+    <p class="eyebrow">Changelog</p>
+    <h1>What's new</h1>
+    <p class="lede">A running log of every meaningful change to the FocusLock app and website. Newest first.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="filter-row">
+    <button class="filter-btn active" data-filter="all">Everything</button>
+    <button class="filter-btn" data-filter="app">App only</button>
+    <button class="filter-btn" data-filter="web">Website only</button>
+  </div>
+
+  <div class="timeline" id="timeline">
+
+    <!-- ───── 2026-05-15 ───── -->
+    <article class="entry" data-type="web">
+      <div class="entry-meta">
+        <div class="entry-date">May 15, 2026</div>
+        <span class="badge web">Website</span>
+      </div>
+      <div class="entry-body">
+        <h2>Changelog page added</h2>
+        <ul>
+          <li>You're looking at it. New <code>/changelog.html</code> for tracking app releases and site updates in one place.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-14 ───── -->
+    <article class="entry" data-type="web">
+      <div class="entry-meta">
+        <div class="entry-date">May 14, 2026</div>
+        <span class="badge web">Website</span>
+      </div>
+      <div class="entry-body">
+        <h2>Site redesign — Freedom-style layout, dark palette</h2>
+        <ul>
+          <li>Refreshed the entire landing page: new Fraunces serif headlines, redesigned hero, hand-drawn step arrows, and a cleaner section rhythm.</li>
+          <li>Added a <strong>"Built for everyone"</strong> section showing who FocusLock is for — students, entrepreneurs, freelancers, parents, people with ADHD, and self-learners.</li>
+          <li>Added a <strong>Ko-fi donation</strong> section and Donate button in the nav.</li>
+          <li>Mobile nav now hides the download button and shows a desktop-only notice (FocusLock is a desktop app).</li>
+          <li>Final dark color palette applied across all components.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 14, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.9</span>
+      </div>
+      <div class="entry-body">
+        <h2>Daemon install reliability</h2>
+        <ul>
+          <li>Fixed an issue where the privileged daemon failed to install on first launch on some Windows setups (resolved by using the current executable path instead of the Tauri resource directory).</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-13 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 13, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.8</span>
+      </div>
+      <div class="entry-body">
+        <h2>Windows daemon packaging fix</h2>
+        <ul>
+          <li>Fixed daemon installation on the new Windows package layout — the daemon binary is now staged correctly before the Tauri build.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="entry" data-type="web">
+      <div class="entry-meta">
+        <div class="entry-date">May 13, 2026</div>
+        <span class="badge web">Website</span>
+      </div>
+      <div class="entry-body">
+        <h2>Better downloads, hosting move</h2>
+        <ul>
+          <li>Download buttons now serve the installer directly instead of redirecting to GitHub — you stay on the site.</li>
+          <li>Added a Windows architecture picker modal (x64 / ARM64) so you don't have to guess.</li>
+          <li>Replaced the platform emojis with proper Windows and Apple SVG logos on download buttons.</li>
+          <li>Migrated hosting from Netlify to Vercel.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-12 ───── -->
+    <article class="entry" data-type="web">
+      <div class="entry-meta">
+        <div class="entry-date">May 12, 2026</div>
+        <span class="badge web">Website</span>
+      </div>
+      <div class="entry-body">
+        <h2>Reviews, newsletter, story</h2>
+        <ul>
+          <li>Added a live <strong>review system</strong> — leave a review right on the site, with AI moderation to keep things constructive.</li>
+          <li>Added an inline <strong>newsletter signup</strong> (Beehiiv-powered) for occasional updates about new features.</li>
+          <li>Added an <strong>"Our Story"</strong> section and a founder card so you know who built FocusLock and why.</li>
+          <li>Security hardening: stricter response headers, rate limiting on form endpoints, input sanitization.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 12, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.6</span>
+      </div>
+      <div class="entry-body">
+        <h2>New app icon</h2>
+        <ul>
+          <li>Replaced the app icon with a new converging-arrows design that matches the site branding.</li>
+          <li>CI/build improvements — macOS builds are now always unsigned (we no longer ship a signed/unsigned split), and all platform jobs run independently so one failure doesn't block the others.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-11 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 11, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.0</span>
+      </div>
+      <div class="entry-body">
+        <h2>Initial release</h2>
+        <ul>
+          <li>FocusLock launches for macOS and Windows — free and open source under GPL-3.0.</li>
+          <li><strong>OS-level DNS blocking</strong> — every browser, no extension required.</li>
+          <li><strong>App blocking</strong> by process name with a 2-second kill loop.</li>
+          <li><strong>Friend Lock</strong> — generate a token, send it to a friend; only they can end the session early. SHA-256 hashed; you can't retrieve the original.</li>
+          <li><strong>Hardcore Mode</strong> — cryptographically committed at session start; nothing ends it early.</li>
+          <li><strong>Pomodoro engine</strong> with configurable work/break intervals.</li>
+          <li><strong>Scheduled sessions</strong> via cron syntax — the daemon handles them even if the app is closed.</li>
+          <li><strong>Focus analytics</strong> — streaks, weekly bar charts, focus score, 52-week heatmap.</li>
+          <li><strong>Motivational intercept</strong> — your own message replaces blocked-site error pages.</li>
+          <li>Daemon runs as SYSTEM/root and starts before the desktop loads — closing or uninstalling the app doesn't stop active blocks.</li>
+        </ul>
+      </div>
+    </article>
+
+  </div>
+</div>
+
+<div class="footer-note">
+  Spotted something missing or broken?
+  <a href="https://github.com/Relevant47/Focus-lock/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>
+  &nbsp;·&nbsp;
+  <a href="/">Back to home</a>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.filter-btn');
+  const entries = document.querySelectorAll('.entry');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+      entries.forEach(e => {
+        const show = filter === 'all' || e.dataset.type === filter;
+        e.classList.toggle('hidden', !show);
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
