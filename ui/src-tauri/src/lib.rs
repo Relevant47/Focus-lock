@@ -143,6 +143,23 @@ async fn check_for_updates(app: tauri::AppHandle) -> Result<bool, String> {
     }
 }
 
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    match updater.check().await {
+        Ok(Some(update)) => {
+            update
+                .download_and_install(|_, _| {}, || {})
+                .await
+                .map_err(|e| e.to_string())?;
+            // download_and_install replaces the binary; restart to load it
+            app.restart();
+        }
+        Ok(None) => Err("No update available".to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
 // ── Tray helpers ──────────────────────────────────────────────────────────────
 
 fn make_tray_icon() -> tauri::image::Image<'static> {
@@ -304,6 +321,18 @@ pub fn run() {
                 }
             });
 
+            // ── Auto-check for updates on launch ─────────────────────────────
+            let updater_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                // Wait for the app to finish initializing before hitting the network
+                tokio::time::sleep(Duration::from_secs(8)).await;
+                if let Ok(updater) = updater_handle.updater() {
+                    if let Ok(Some(update)) = updater.check().await {
+                        let _ = updater_handle.emit("update-available", update.version.clone());
+                    }
+                }
+            });
+
             // ── Daemon status polling ────────────────────────────────────────
             let poll_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -334,7 +363,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![ipc_request, check_for_updates, install_daemon])
+        .invoke_handler(tauri::generate_handler![ipc_request, check_for_updates, install_update, install_daemon])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

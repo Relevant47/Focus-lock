@@ -4,6 +4,7 @@ import { useDaemon } from './stores/daemon';
 import { applyTheme, getTheme } from './stores/theme';
 import Nav from './components/Nav';
 import Onboarding, { useOnboarding } from './components/Onboarding';
+import UpdateBanner from './components/UpdateBanner';
 import Dashboard from './pages/Dashboard';
 import BlockLists from './pages/BlockLists';
 import Profiles from './pages/Profiles';
@@ -38,6 +39,7 @@ export default function App() {
           </main>
         </div>
         {showOnboarding && <Onboarding onDone={complete} />}
+        <UpdateBanner />
       </div>
     </BrowserRouter>
   );
