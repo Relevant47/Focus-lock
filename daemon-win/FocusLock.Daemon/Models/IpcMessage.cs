@@ -24,6 +24,14 @@ public sealed class StartSessionPayload
     public PomodoroConfig? PomodoroConfig { get; set; }
     public string? UnlockToken { get; set; }
     public string? MotivationalMessage { get; set; }
+    public string? Intention { get; set; }
+}
+
+public sealed class RecordBlockAttemptPayload
+{
+    public string? Domain { get; set; }
+    public string? Process { get; set; }
+    public string? Label { get; set; }
 }
 
 public sealed class StopSessionPayload

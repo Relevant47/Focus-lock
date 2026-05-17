@@ -34,4 +34,5 @@ public sealed class SessionLog
     public bool Completed { get; set; }
     public int BlockAttempts { get; set; }
     public int FocusScore { get; set; }
+    public string? Intention { get; set; }
 }

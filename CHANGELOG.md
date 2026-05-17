@@ -2,6 +2,27 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.11] — 2026-05-18
+
+### Added
+- **Visual redesign** across every screen — new Linear/Raycast-style design system with Inter font, animated aurora background, film grain, and dramatic gradient typography
+- **Command palette** (⌘K / Ctrl+K) — fuzzy-searchable command runner for sessions, navigation, theme toggle, and data export
+- **Achievement system** — 9 unlockable achievements (First Block, Iron Will, Streak Warrior, Century, Marathon, Early Bird, Night Owl, Accountability, Consistent) with unlock toast and a full grid on Analytics
+- **Focus Intentions** — pre-session prompt asking "what will you focus on?", persisted into the session log and shown on the active Dashboard
+- **Daily focus goal** — configurable in Settings (30 min – 8 h), tracked on the Dashboard + sidebar progress bar, with a confetti burst on first hit each day
+- **Smart Block Suggestions** — one-click pills with favicons for the most-blocked sites, grouped by Social / Entertainment / Gaming / News
+- **Intercept page redesign** — daemon-served block page rebuilt to match the new design system, with a "what were you trying to do?" input that logs the attempt label
+- **Onboarding flow rewrite** — four steps: welcome, pick distractions, set daily goal, try a 5-minute session
+- **Sidebar redesign** — section-grouped nav, daily progress widget at the bottom, more dramatic active-route glow
+
+### Changed
+- Active session view becomes a Pomodoro-aware hero screen with a thick gradient ring, cycle dots, and color shift between work/break/hardcore states
+- Session state and logs gain an `intention` field (not signed, like `motivationalMessage`)
+- Intercept page now accepts `POST /record-attempt` to log distraction labels
+
+### Removed
+- All references to paid tiers, Lemon Squeezy, and trial periods — FocusLock is free, forever
+
 ## [1.0.0] — 2025
 
 ### Added
@@ -24,7 +45,6 @@ All notable changes to FocusLock will be documented here.
 - OS notifications for session start/end and Pomodoro phase changes
 - Light mode / dark mode with persistent preference
 - Micro-animations on session state transitions
-- 14-day free trial with Lemon Squeezy license activation
 - Auto-updater via Cloudflare Worker + GitHub Releases
 - Binary hash verification on daemon startup
 - Service self-repair watchdog (Windows)

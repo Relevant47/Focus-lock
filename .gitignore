@@ -11,6 +11,11 @@ daemon-win/FocusLock.Daemon/obj/
 daemon-win/FocusLock.Daemon/publish/
 daemon-mac/.build/
 
+# Daemon binary copied into the Tauri bundle at build time
+ui/src-tauri/resources/FocusLockDaemon.exe
+ui/src-tauri/resources/FocusLockDaemon.pdb
+ui/src-tauri/resources/*.dll
+
 # Installer outputs
 installer/windows/*.msi
 installer/windows/daemon/

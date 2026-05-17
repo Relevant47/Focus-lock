@@ -8,7 +8,7 @@ let hostsSvc     = HostsService()
 let processKill  = ProcessKillService(session: sessionSvc)
 let scheduleSvc  = ScheduleService(profiles: profileSvc, session: sessionSvc)
 let ipcSvc       = IpcSocketService(session: sessionSvc, profiles: profileSvc)
-let interceptSvc = InterceptHttpService(session: sessionSvc)
+let interceptSvc = InterceptHttpService(session: sessionSvc, profiles: profileSvc)
 
 // Re-apply hosts file if a session was recovered from disk
 if sessionSvc.isActive, let active = sessionSvc.active {

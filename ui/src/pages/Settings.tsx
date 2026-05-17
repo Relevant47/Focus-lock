@@ -1,26 +1,44 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useDaemon } from '../stores/daemon';
 import { getTheme, setTheme, type Theme } from '../stores/theme';
+import { getDailyGoal, setDailyGoal } from '../lib/goal';
+import { Page, PageHeader, Toggle, Pill } from '../components/ui';
+import { Icon } from '../components/Icons';
+import { cn } from '../lib/cn';
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+// ── Section primitive ────────────────────────────────────────────────────────
+function Section({
+  title, hint, danger, children,
+}: { title: string; hint?: string; danger?: boolean; children: React.ReactNode }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
-      <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">{title}</h2>
+    <div className={cn(
+      'card p-5 space-y-4',
+      danger && 'border-danger/30 bg-gradient-to-br from-danger/5 to-transparent',
+    )}>
+      <div>
+        <h2 className={cn(
+          'text-[11px] uppercase tracking-[0.18em] font-semibold',
+          danger ? 'text-danger' : 'text-dim',
+        )}>{title}</h2>
+        {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
+      </div>
       {children}
     </div>
   );
 }
 
-function Row({ label, sub, children }: { label: string; sub?: string; children?: React.ReactNode }) {
+function Row({
+  label, sub, children,
+}: { label: string; sub?: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <div>
-        <p className="text-sm text-gray-200">{label}</p>
-        {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+      <div className="min-w-0">
+        <p className="text-sm text-text">{label}</p>
+        {sub && <p className="text-xs text-muted mt-0.5">{sub}</p>}
       </div>
-      {children && <div className="shrink-0">{children}</div>}
+      {children && <div className="shrink-0 flex items-center">{children}</div>}
     </div>
   );
 }
@@ -29,17 +47,13 @@ function useCooldownTimer(isoString: string | null | undefined) {
   if (!isoString) return null;
   const until = new Date(isoString).getTime();
   const diff = Math.max(0, until - Date.now());
-  return {
-    h: Math.floor(diff / 3600000),
-    m: Math.floor((diff % 3600000) / 60000),
-    elapsed: diff === 0,
-    diff,
-  };
+  return { h: Math.floor(diff / 3600000), m: Math.floor((diff % 3600000) / 60000), elapsed: diff === 0, diff };
 }
 
 export default function Settings() {
   const { connected, status, requestDisableHardcore } = useDaemon();
   const [theme, setThemeState] = useState<Theme>(getTheme());
+  const [goalMinutes, setGoalMinutesState] = useState(getDailyGoal());
   const [token, setToken] = useState('');
   const [tokenVisible, setTokenVisible] = useState(false);
   const [tokenCopied, setTokenCopied] = useState(false);
@@ -51,10 +65,7 @@ export default function Settings() {
   const cooldown = useCooldownTimer(status?.hardcoreCooldownUntil);
 
   useEffect(() => {
-    const unlisten = listen<string>('update-available', (e) => {
-      setUpdateVersion(e.payload);
-      setUpdateStatus('available');
-    });
+    const unlisten = listen<string>('update-available', e => { setUpdateVersion(e.payload); setUpdateStatus('available'); });
     return () => { unlisten.then(fn => fn()); };
   }, []);
 
@@ -62,8 +73,7 @@ export default function Settings() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
     const arr = crypto.getRandomValues(new Uint8Array(32));
     setToken(Array.from(arr, b => chars[b % chars.length]).join(''));
-    setTokenVisible(true);
-    setTokenCopied(false);
+    setTokenVisible(true); setTokenCopied(false);
   }
 
   async function copyToken() {
@@ -73,11 +83,10 @@ export default function Settings() {
   }
 
   async function handleRequestDisableHardcore() {
-    setHardcoreError('');
-    setHardcoreSuccess('');
+    setHardcoreError(''); setHardcoreSuccess('');
     try {
       await requestDisableHardcore();
-      setHardcoreSuccess('24-hour cooldown started. You can disable Hardcore Mode after it elapses.');
+      setHardcoreSuccess('24-hour cooldown started.');
     } catch (e) {
       setHardcoreError(e instanceof Error ? e.message : 'Failed');
     }
@@ -93,139 +102,165 @@ export default function Settings() {
     }
   }
 
-  return (
-    <div className="p-6 space-y-5">
-      <div>
-        <h1 className="text-xl font-bold">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Configure FocusLock behaviour</p>
-      </div>
+  function saveGoal(v: number) {
+    setGoalMinutesState(v);
+    setDailyGoal(v);
+  }
 
-      {/* Friend Lock */}
-      <Section title="Friend Lock">
-        <p className="text-xs text-gray-500 leading-relaxed">
-          Generate a random token before starting a session, then send it to a friend.
-          Only that token can stop the session early — FocusLock stores only a SHA-256 hash.
-        </p>
-        {status?.hasFriendLock ? (
-          <div className="bg-orange-900/20 border border-orange-800/40 rounded-lg px-4 py-3">
-            <p className="text-sm text-orange-300 font-medium">Friend lock is active on the current session</p>
-            <p className="text-xs text-orange-500 mt-1">Ask your friend for the token to stop early.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <button onClick={generateToken} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors">
-                Generate token
-              </button>
-              {token && (
-                <button onClick={copyToken} className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
-                  {tokenCopied ? '✓ Copied' : 'Copy'}
-                </button>
-              )}
+  return (
+    <Page className="p-8">
+      <div className="max-w-2xl mx-auto">
+        <PageHeader title="Settings" sub="Configure FocusLock behaviour" />
+
+        <div className="space-y-5">
+          {/* Daily goal */}
+          <Section title="Daily focus goal" hint="Your streak only counts on days you hit this goal.">
+            <div className="flex items-baseline gap-3 mb-2">
+              <span className="text-3xl font-bold tracking-tighter2 tnum text-accent">
+                {Math.floor(goalMinutes / 60)}<span className="text-base text-muted">h</span>
+                {goalMinutes % 60 > 0 && <span className="ml-1">{goalMinutes % 60}<span className="text-base text-muted">m</span></span>}
+              </span>
+              <span className="text-xs text-muted">per day</span>
             </div>
-            {token && (
-              <div className="space-y-2">
-                <div className="relative">
-                  <input
-                    type={tokenVisible ? 'text' : 'password'} value={token} readOnly
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono text-gray-300 focus:outline-none pr-20"
-                  />
-                  <button onClick={() => setTokenVisible(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-300 transition-colors">
-                    {tokenVisible ? 'Hide' : 'Show'}
+            <input
+              type="range" min={30} max={480} step={15}
+              value={goalMinutes}
+              onChange={e => saveGoal(Number(e.target.value))}
+              className="w-full"
+            />
+            <div className="flex justify-between text-[10px] text-faint mt-1">
+              <span>30m</span><span>2h</span><span>4h</span><span>8h</span>
+            </div>
+          </Section>
+
+          {/* Appearance */}
+          <Section title="Appearance">
+            <Row label="Theme" sub="Dark by default; light mode preserved for legacy">
+              <div className="flex bg-bg/60 rounded-lg p-0.5 gap-0.5 border border-border">
+                {(['dark', 'light'] as Theme[]).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => { setTheme(t); setThemeState(t); }}
+                    className={cn(
+                      'px-3 py-1 text-xs rounded-md capitalize transition-all',
+                      theme === t ? 'bg-accent text-white' : 'text-muted hover:text-text',
+                    )}
+                  >
+                    {t === 'dark' ? 'Dark' : 'Light'}
                   </button>
+                ))}
+              </div>
+            </Row>
+          </Section>
+
+          {/* Friend Lock */}
+          <Section title="Friend lock" hint="Generate a random token before starting a session, then send it to a friend. Only that token can end the session early — FocusLock stores only its SHA-256 hash.">
+            {status?.hasFriendLock ? (
+              <div className="bg-warn/10 border border-warn/30 rounded-lg px-4 py-3">
+                <p className="text-sm text-warn font-medium">Friend lock active on the current session</p>
+                <p className="text-xs text-warn/80 mt-1">Ask your friend for the token to stop early.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <button onClick={generateToken} className="btn-primary px-4 py-2 text-sm">Generate token</button>
+                  {token && (
+                    <button onClick={copyToken} className="btn-ghost px-4 py-2 text-sm">
+                      {tokenCopied ? <><Icon.Check size={13} /> Copied</> : 'Copy'}
+                    </button>
+                  )}
                 </div>
-                <p className="text-xs text-amber-500">⚠ Copy and send to a friend before starting your session. Not retrievable afterward.</p>
+                {token && (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        type={tokenVisible ? 'text' : 'password'} value={token} readOnly
+                        className="input-base w-full px-3 py-2 text-sm font-mono pr-20"
+                      />
+                      <button onClick={() => setTokenVisible(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted hover:text-text transition-colors">
+                        {tokenVisible ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    <p className="text-xs text-warn">⚠ Copy and send before starting your session. Not retrievable afterward.</p>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
-      </Section>
+          </Section>
 
-      {/* Hardcore Mode */}
-      <Section title="Hardcore Mode">
-        <p className="text-xs text-gray-500 leading-relaxed">
-          Hardcore Mode sessions cannot be stopped early under any circumstances.
-          To disable it on future sessions, a 24-hour cooling-off period is required.
-        </p>
-        {cooldown && !cooldown.elapsed ? (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 space-y-2">
-            <p className="text-sm text-gray-300 font-medium">Cooldown in progress — {cooldown.h}h {cooldown.m}m remaining</p>
-            <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${Math.max(0, 100 - (cooldown.diff / 86400000) * 100)}%` }} />
-            </div>
-          </div>
-        ) : cooldown?.elapsed ? (
-          <div className="bg-green-900/20 border border-green-800/40 rounded-lg px-4 py-3">
-            <p className="text-sm text-green-300 font-medium">Cooldown complete — Hardcore Mode is now optional per session</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {hardcoreError && <p className="text-xs text-red-400">{hardcoreError}</p>}
-            {hardcoreSuccess && <p className="text-xs text-green-400">{hardcoreSuccess}</p>}
-            <button onClick={handleRequestDisableHardcore} className="px-4 py-2 bg-orange-900/40 hover:bg-orange-900/60 border border-orange-800/50 rounded-lg text-sm text-orange-300 font-medium transition-colors">
-              Request 24-hour cooldown to disable Hardcore
-            </button>
-          </div>
-        )}
-      </Section>
-
-      {/* Appearance */}
-      <Section title="Appearance">
-        <Row label="Theme" sub="Dark or light interface">
-          <div className="flex bg-gray-800 rounded-lg p-0.5 gap-0.5">
-            {(['dark', 'light'] as Theme[]).map(t => (
-              <button key={t} onClick={() => { setTheme(t); setThemeState(t); }}
-                className={`px-3 py-1 text-xs rounded-md capitalize transition-colors ${theme === t ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-                {t === 'dark' ? '🌙 Dark' : '☀ Light'}
+          {/* Updates */}
+          <Section title="Updates">
+            <Row label="FocusLock" sub={`v${status?.version ?? '1.0.0'} · Free and open source`}>
+              <a href="https://github.com/Relevant47/focus-lock/releases" target="_blank" rel="noreferrer" className="text-xs text-muted hover:text-accent transition-colors">GitHub →</a>
+            </Row>
+            {updateStatus === 'available' ? (
+              <div className="bg-accent/10 border border-accent/30 rounded-lg px-4 py-3">
+                <p className="text-sm text-accent font-medium">Update available — v{updateVersion}</p>
+                <p className="text-xs text-muted mt-1">Restart FocusLock to install.</p>
+              </div>
+            ) : updateStatus === 'none' ? (
+              <p className="text-xs text-success flex items-center gap-1.5"><Icon.Check size={12} /> You're on the latest version</p>
+            ) : (
+              <button onClick={handleCheckUpdates} disabled={updateStatus === 'checking'} className="btn-ghost px-4 py-2 text-sm">
+                {updateStatus === 'checking' ? 'Checking…' : 'Check for updates'}
               </button>
-            ))}
-          </div>
-        </Row>
-      </Section>
+            )}
+          </Section>
 
-      {/* Updates */}
-      <Section title="Updates">
-        <Row label="FocusLock" sub="v1.0.0 · Free and open source">
-          <a href="https://github.com/Relevant47/focus-lock/releases" target="_blank" rel="noreferrer"
-            className="text-xs text-gray-500 hover:text-indigo-400 transition-colors">GitHub →</a>
-        </Row>
-        {updateStatus === 'available' ? (
-          <div className="bg-indigo-900/20 border border-indigo-800/40 rounded-lg px-4 py-3">
-            <p className="text-sm text-indigo-300 font-medium">Update available — v{updateVersion}</p>
-            <p className="text-xs text-indigo-500 mt-1">Restart FocusLock to install.</p>
-          </div>
-        ) : updateStatus === 'none' ? (
-          <p className="text-xs text-green-500">✓ You're on the latest version</p>
-        ) : (
-          <button onClick={handleCheckUpdates} disabled={updateStatus === 'checking'}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 rounded-lg text-sm transition-colors">
-            {updateStatus === 'checking' ? 'Checking…' : 'Check for updates'}
-          </button>
-        )}
-      </Section>
+          {/* Daemon */}
+          <Section title="Daemon">
+            <Row label="Connection" sub={connected ? `Daemon v${status?.version ?? '…'} connected` : 'Daemon not running'}>
+              <Pill tone={connected ? 'success' : 'danger'}>
+                <span className={cn('w-1.5 h-1.5 rounded-full', connected ? 'bg-success' : 'bg-danger')} />
+                {connected ? 'Online' : 'Offline'}
+              </Pill>
+            </Row>
+            {!connected && (
+              <div className="rounded-lg bg-bg/40 border border-border px-3 py-2.5 text-xs text-muted font-mono">
+                sc start FocusLockDaemon
+              </div>
+            )}
+          </Section>
 
-      {/* Daemon */}
-      <Section title="Daemon">
-        <Row label="Connection" sub={connected ? `Daemon v${status?.version ?? '…'} connected` : 'Daemon not running'}>
-          <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${connected ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`} />
-            {connected ? 'Online' : 'Offline'}
-          </span>
-        </Row>
-        {!connected && <div className="bg-gray-800/50 rounded-lg px-3 py-2.5 text-xs text-gray-500 font-mono">sc start FocusLockDaemon</div>}
-      </Section>
+          {/* About */}
+          <Section title="About">
+            <Row label="License" sub="GNU General Public License v3.0 — free forever" />
+            <Row label="Source" sub="github.com/Relevant47/focus-lock">
+              <a href="https://github.com/Relevant47/focus-lock" target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">View →</a>
+            </Row>
+            <Row label="Built by" sub="Oscar Petrikas" />
+          </Section>
 
-      {/* About */}
-      <Section title="About">
-        <Row label="FocusLock" sub="Free, open-source website and app blocker">
-          <span className="text-xs text-gray-600">v1.0.0</span>
-        </Row>
-        <Row label="License" sub="GNU General Public License v3.0" />
-        <Row label="Source" sub="github.com/Relevant47/focus-lock">
-          <a href="https://github.com/Relevant47/focus-lock" target="_blank" rel="noreferrer"
-            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">View →</a>
-        </Row>
-      </Section>
-    </div>
+          {/* Danger zone */}
+          <Section title="Danger zone" danger hint="These actions affect Hardcore-mode behaviour. Hardcore sessions cannot be stopped early — even by uninstalling FocusLock.">
+            {cooldown && !cooldown.elapsed ? (
+              <div className="bg-bg/60 border border-border rounded-lg px-4 py-3 space-y-2">
+                <p className="text-sm text-text font-medium">Cooldown — {cooldown.h}h {cooldown.m}m remaining</p>
+                <div className="h-1.5 bg-border rounded-full overflow-hidden">
+                  <div className="h-full bg-warn rounded-full transition-all" style={{ width: `${Math.max(0, 100 - (cooldown.diff / 86_400_000) * 100)}%` }} />
+                </div>
+              </div>
+            ) : cooldown?.elapsed ? (
+              <div className="bg-success/10 border border-success/30 rounded-lg px-4 py-3">
+                <p className="text-sm text-success font-medium">Cooldown complete — Hardcore Mode is now optional per session</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {hardcoreError && <p className="text-xs text-danger">{hardcoreError}</p>}
+                {hardcoreSuccess && <p className="text-xs text-success">{hardcoreSuccess}</p>}
+                <button onClick={handleRequestDisableHardcore} className="btn-danger px-4 py-2 text-sm">
+                  Request 24-hour cooldown to disable Hardcore
+                </button>
+              </div>
+            )}
+            <div className="pt-3 border-t border-danger/20">
+              <Row label="Uninstall protection" sub="Uninstall is blocked while any session is active. Cannot be disabled.">
+                <Toggle on={true} onChange={() => {}} disabled danger />
+              </Row>
+            </div>
+          </Section>
+        </div>
+      </div>
+    </Page>
   );
 }

@@ -134,6 +134,11 @@ final class IpcSocketService {
         case "save_schedule": return handleSaveSchedule(req)
         case "delete_schedule": return handleDeleteSchedule(req)
         case "record_block_attempt":
+            if let payload: RecordBlockAttemptPayload = decode(req.payload),
+               let label = payload.label?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !label.isEmpty {
+                fputs("[intercept] Block attempt label: \(label)\n", stderr)
+            }
             sessionSvc.incrementBlockAttempt()
             return .ok()
         default:

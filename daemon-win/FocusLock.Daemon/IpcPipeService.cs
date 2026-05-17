@@ -122,7 +122,7 @@ public sealed class IpcPipeService : BackgroundService
                 "get_schedules"            => IpcResponse.Schedules(_profiles.GetSchedules()),
                 "save_schedule"            => HandleSaveSchedule(req),
                 "delete_schedule"          => HandleDeleteSchedule(req),
-                "record_block_attempt"     => HandleRecordBlockAttempt(),
+                "record_block_attempt"     => HandleRecordBlockAttempt(req),
                 _ => IpcResponse.Error($"Unknown request type: {req.Type}"),
             };
         }
@@ -201,8 +201,12 @@ public sealed class IpcPipeService : BackgroundService
         return ok ? IpcResponse.Ok() : IpcResponse.Error(err);
     }
 
-    private IpcResponse HandleRecordBlockAttempt()
+    private IpcResponse HandleRecordBlockAttempt(IpcRequest req)
     {
+        var payload = Deserialize<RecordBlockAttemptPayload>(req.Payload);
+        var label = payload?.Label;
+        if (!string.IsNullOrWhiteSpace(label))
+            _log.LogInformation("Block attempt logged with label: {Label}", label);
         _session.IncrementBlockAttempt();
         return IpcResponse.Ok();
     }

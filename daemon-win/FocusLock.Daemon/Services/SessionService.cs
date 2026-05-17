@@ -200,6 +200,7 @@ public sealed class SessionService
                     ? null
                     : ComputeTokenHash(payload.UnlockToken),
                 MotivationalMessage = payload.MotivationalMessage,
+                Intention = string.IsNullOrWhiteSpace(payload.Intention) ? null : payload.Intention.Trim(),
             };
             _active.Signature = Sign(_active);
             _blockAttempts = 0;
@@ -302,6 +303,7 @@ public sealed class SessionService
             Completed = completed,
             BlockAttempts = _blockAttempts,
             FocusScore = CalculateScore(completed),
+            Intention = _active.Intention,
         };
         AppendLog(log);
 

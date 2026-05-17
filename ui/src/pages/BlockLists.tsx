@@ -1,16 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDaemon } from '../stores/daemon';
 import { CATEGORY_DOMAINS, type StartSessionPayload } from '../types';
+import { SUGGESTED_SITES, faviconUrl, type SuggestedSite } from '../lib/suggestedSites';
+import { Page, PageHeader, SectionHeader } from '../components/ui';
+import { Icon } from '../components/Icons';
+import { cn } from '../lib/cn';
 
 const CATEGORIES = [
-  { id: 'social_media', label: 'Social Media', desc: 'Instagram, TikTok, Twitter/X, Reddit, Facebook…', icon: '📱' },
-  { id: 'streaming',   label: 'Streaming & Video', desc: 'YouTube, Netflix, Twitch, Spotify, Disney+…', icon: '🎬' },
-  { id: 'gaming',      label: 'Gaming', desc: 'Steam, Epic Games, Battle.net, Xbox, itch.io…', icon: '🎮' },
-  { id: 'news',        label: 'News & Doom-scrolling', desc: 'CNN, BBC, HackerNews, NYT, Reddit news…', icon: '📰' },
-  { id: 'adult',       label: 'Adult Content', desc: 'Broad adult content blocklist', icon: '🔞' },
+  { id: 'social_media', label: 'Social Media',       desc: 'Instagram, TikTok, Twitter/X, Reddit, Facebook',  Icon: Icon.Profile },
+  { id: 'streaming',    label: 'Streaming & Video',  desc: 'YouTube, Netflix, Twitch, Spotify, Disney+',      Icon: Icon.Play },
+  { id: 'gaming',       label: 'Gaming',             desc: 'Steam, Epic Games, Battle.net, Xbox, itch.io',    Icon: Icon.Target },
+  { id: 'news',         label: 'News & Doom-scroll', desc: 'CNN, BBC, HackerNews, NYT, Reddit news',          Icon: Icon.Chart },
+  { id: 'adult',        label: 'Adult Content',      desc: 'Broad adult content blocklist',                   Icon: Icon.ShieldChk },
 ] as const;
 
 type CategoryId = typeof CATEGORIES[number]['id'];
+
+const FIRST_BLOCKLIST_KEY = 'focuslock_first_blocklist';
+
+const SUGGESTED_GROUPED: Record<SuggestedSite['category'], SuggestedSite[]> = (() => {
+  const groups: Record<string, SuggestedSite[]> = {};
+  for (const s of SUGGESTED_SITES) { (groups[s.category] ??= []).push(s); }
+  return groups as Record<SuggestedSite['category'], SuggestedSite[]>;
+})();
 
 export default function BlockLists() {
   const { connected, status, startSession } = useDaemon();
@@ -23,6 +35,21 @@ export default function BlockLists() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  // Pull in first-blocklist if this is right after onboarding
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FIRST_BLOCKLIST_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw) as string[];
+        if (Array.isArray(arr) && arr.length > 0 && customDomains.length === 0) {
+          setCustomDomains(arr.join('\n'));
+        }
+        localStorage.removeItem(FIRST_BLOCKLIST_KEY);
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function toggleCat(id: CategoryId) {
     setSelectedCats(prev => {
       const next = new Set(prev);
@@ -31,27 +58,35 @@ export default function BlockLists() {
     });
   }
 
+  function addSuggested(site: SuggestedSite) {
+    const lines = new Set(customDomains.split('\n').map(s => s.trim()).filter(Boolean));
+    if (lines.has(site.domain)) lines.delete(site.domain);
+    else lines.add(site.domain);
+    setCustomDomains(Array.from(lines).join('\n'));
+  }
+
+  function isSuggestedActive(site: SuggestedSite) {
+    return customDomains.split('\n').map(s => s.trim()).includes(site.domain);
+  }
+
   const domainCount = Array.from(selectedCats).reduce(
     (acc, cat) => acc + (CATEGORY_DOMAINS[cat]?.length ?? 0), 0
   ) + customDomains.split('\n').filter(Boolean).length;
 
   async function handleQuickBlock() {
     if (status?.sessionActive) return;
-    setBusy(true);
-    setError('');
+    setBusy(true); setError('');
     try {
       const blockedDomains = [
         ...Array.from(selectedCats).flatMap(c => CATEGORY_DOMAINS[c] ?? []),
         ...customDomains.split('\n').map(s => s.trim()).filter(Boolean),
       ];
       const payload: StartSessionPayload = {
-        profileId: null,
-        durationMinutes: duration,
+        profileId: null, durationMinutes: duration,
         blockedDomains,
         blockedProcesses: customProcesses.split('\n').map(s => s.trim()).filter(Boolean),
         allowlistedDomains: allowlist.split('\n').map(s => s.trim()).filter(Boolean),
-        hardcoreMode: false,
-        pomodoroConfig: null,
+        hardcoreMode: false, pomodoroConfig: null,
       };
       await startSession(payload);
     } catch (e) {
@@ -62,114 +97,160 @@ export default function BlockLists() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-bold">Block Lists</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Configure what to block — start a quick session without creating a profile</p>
-      </div>
+    <Page className="p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <PageHeader title="Block Lists" sub="Configure what to block — start a quick session without creating a profile." />
 
-      {/* Category packs */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Category Packs</h2>
-        <div className="grid grid-cols-1 gap-2">
-          {CATEGORIES.map(cat => {
-            const active = selectedCats.has(cat.id);
-            return (
-              <button
-                key={cat.id}
-                onClick={() => toggleCat(cat.id)}
-                className={`flex items-center gap-4 px-4 py-3 rounded-xl border text-left transition-all ${
-                  active
-                    ? 'bg-indigo-950/50 border-indigo-700 ring-1 ring-indigo-700/40'
-                    : 'bg-gray-900 border-gray-800 hover:border-gray-700'
-                }`}
-              >
-                <span className="text-2xl w-8 text-center">{cat.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${active ? 'text-indigo-300' : 'text-gray-200'}`}>{cat.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">{cat.desc}</p>
+        {/* Suggested */}
+        <div className="card p-5">
+          <SectionHeader title="Suggested sites" hint="One-click adds to custom domains below." />
+          <div className="space-y-3">
+            {(['Social', 'Entertainment', 'Gaming', 'News'] as const).map(group => {
+              const items = SUGGESTED_GROUPED[group];
+              if (!items?.length) return null;
+              return (
+                <div key={group}>
+                  <p className="text-[10px] uppercase tracking-wider text-faint font-semibold mb-1.5">{group}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map(site => {
+                      const on = isSuggestedActive(site);
+                      return (
+                        <button
+                          key={site.domain}
+                          onClick={() => addSuggested(site)}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-[12px] font-medium transition-all',
+                            on
+                              ? 'bg-accent/15 border-accent/50 text-text'
+                              : 'bg-surface2 border-border text-muted hover:border-borderhi hover:text-text',
+                          )}
+                        >
+                          <img
+                            src={faviconUrl(site.domain, 32)}
+                            alt=""
+                            width={12} height={12}
+                            className="rounded-[3px]"
+                            onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
+                          />
+                          {site.label}
+                          {on && <Icon.Check size={10} className="text-accent" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                  active ? 'bg-indigo-600 border-indigo-600' : 'border-gray-600'
-                }`}>
-                  {active && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Custom rules */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Custom Rules</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1.5">Custom blocked domains</label>
-            <textarea
-              value={customDomains}
-              onChange={e => setCustomDomains(e.target.value)}
-              rows={4}
-              placeholder={"example.com\nnews.example.org\n*.example.net"}
-              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-indigo-500 resize-none transition-colors"
-            />
-            <p className="text-xs text-gray-600 mt-1">Supports *.example.com wildcards</p>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1.5">Blocked processes</label>
-            <textarea
-              value={customProcesses}
-              onChange={e => setCustomProcesses(e.target.value)}
-              rows={4}
-              placeholder={"steam.exe\ndiscord.exe\nslack.exe"}
-              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-indigo-500 resize-none transition-colors"
-            />
+              );
+            })}
           </div>
         </div>
-        <div>
-          <label className="block text-sm text-gray-400 mb-1.5">Allowlist — always accessible</label>
-          <textarea
-            value={allowlist}
-            onChange={e => setAllowlist(e.target.value)}
-            rows={2}
-            placeholder={"docs.google.com\ngithub.com/myorg"}
-            className="w-full bg-gray-900 border border-emerald-900/50 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-emerald-500 resize-none transition-colors"
-          />
-          <p className="text-xs text-gray-600 mt-1">Exceptions — these stay accessible even if their parent domain is blocked</p>
-        </div>
-      </div>
 
-      {/* Quick block footer */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-200">Quick Block Session</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {domainCount > 0 ? `${domainCount} domains selected` : 'Select categories or add custom rules above'}
-          </p>
+        {/* Category packs */}
+        <div className="card p-5">
+          <SectionHeader title="Category packs" />
+          <div className="space-y-2">
+            {CATEGORIES.map(cat => {
+              const active = selectedCats.has(cat.id);
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => toggleCat(cat.id)}
+                  className={cn(
+                    'w-full flex items-center gap-4 px-4 py-3 rounded-lg border text-left transition-all',
+                    active
+                      ? 'bg-accent/10 border-accent/50'
+                      : 'bg-bg/30 border-border hover:border-borderhi',
+                  )}
+                >
+                  <span className={cn(
+                    'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                    active ? 'bg-accent/20 text-accent' : 'bg-surface2 text-muted',
+                  )}>
+                    <cat.Icon size={16} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn('text-sm font-medium', active ? 'text-text' : 'text-text')}>{cat.label}</p>
+                    <p className="text-xs text-faint mt-0.5 truncate">{cat.desc}</p>
+                  </div>
+                  <div className={cn(
+                    'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors',
+                    active ? 'bg-accent border-accent' : 'border-border',
+                  )}>
+                    {active && <Icon.Check size={12} className="text-white" />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+
+        {/* Custom rules */}
+        <div className="card p-5 space-y-4">
+          <SectionHeader title="Custom rules" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-muted mb-1.5">Custom blocked domains</label>
+              <textarea
+                value={customDomains}
+                onChange={e => setCustomDomains(e.target.value)}
+                rows={4}
+                placeholder={"example.com\nnews.example.org\n*.example.net"}
+                className="input-base w-full px-3 py-2 text-sm font-mono resize-none"
+              />
+              <p className="text-[11px] text-faint mt-1">Supports *.example.com wildcards</p>
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1.5">Blocked processes</label>
+              <textarea
+                value={customProcesses}
+                onChange={e => setCustomProcesses(e.target.value)}
+                rows={4}
+                placeholder={"steam.exe\ndiscord.exe\nslack.exe"}
+                className="input-base w-full px-3 py-2 text-sm font-mono resize-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1.5">Allowlist — always accessible</label>
+            <textarea
+              value={allowlist}
+              onChange={e => setAllowlist(e.target.value)}
+              rows={2}
+              placeholder={"docs.google.com\ngithub.com/myorg"}
+              className="input-base w-full px-3 py-2 text-sm font-mono resize-none border-success/30 focus:border-success"
+            />
+            <p className="text-[11px] text-faint mt-1">Exceptions stay accessible even when their parent domain is blocked.</p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="card p-4 flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Quick block session</p>
+            <p className="text-xs text-muted mt-0.5">
+              {domainCount > 0 ? `${domainCount} domains selected` : 'Pick a category, suggested site, or add custom rules above.'}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-500">Duration</label>
             <select
-              value={duration}
-              onChange={e => setDuration(Number(e.target.value))}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-indigo-500"
+              value={duration} onChange={e => setDuration(Number(e.target.value))}
+              className="input-base px-2 py-1.5 text-sm"
             >
               {[15, 25, 30, 45, 60, 90, 120].map(m => (
                 <option key={m} value={m}>{m < 60 ? `${m}m` : `${m / 60}h`}</option>
               ))}
             </select>
+            {error && <p className="text-xs text-danger">{error}</p>}
+            <button
+              onClick={handleQuickBlock}
+              disabled={busy || !connected || status?.sessionActive || domainCount === 0}
+              className="btn-primary px-4 py-2 text-sm flex items-center gap-1.5"
+            >
+              <Icon.Play size={12} />
+              {status?.sessionActive ? 'Session active' : busy ? 'Starting…' : 'Quick Block'}
+            </button>
           </div>
-          {error && <p className="text-xs text-red-400">{error}</p>}
-          <button
-            onClick={handleQuickBlock}
-            disabled={busy || !connected || status?.sessionActive || domainCount === 0}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
-          >
-            {status?.sessionActive ? 'Session active' : busy ? 'Starting…' : 'Start Quick Block'}
-          </button>
         </div>
       </div>
-    </div>
+    </Page>
   );
 }

@@ -24,8 +24,10 @@ public sealed class SessionState
     public PomodoroConfig? PomodoroConfig { get; set; }
     public string? UnlockTokenHash { get; set; }
     public string? MotivationalMessage { get; set; }
+    // Intention is NOT signed — it's user-supplied text, not a security boundary.
+    public string? Intention { get; set; }
 
-    // HMAC-SHA256 of all fields above (excluding Signature itself)
+    // HMAC-SHA256 of all fields above (excluding Signature, MotivationalMessage, Intention)
     public string Signature { get; set; } = string.Empty;
 
     // Derived — not stored

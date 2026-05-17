@@ -71,10 +71,12 @@ swift run
 
 ## Configuration
 
-Before shipping, fill in these placeholders:
+The repository ships under `github.com/Relevant47/focus-lock` — those URLs throughout
+`landing/`, `ui/src/pages/Settings.tsx`, and the update server are real and need no
+replacement. If you fork this repo under a different account, do a project-wide
+find-and-replace on `Relevant47` to point links at your fork.
 
-### `landing/index.html` + `ui/src/pages/Settings.tsx`
-Replace every instance of `Relevant47` with your actual GitHub username.
+Before shipping a build, supply these secrets:
 
 ### `ui/src-tauri/tauri.conf.json`
 ```json
@@ -235,7 +237,6 @@ vercel landing/
 
 ## Launch checklist
 
-- [ ] Replace `Relevant47` everywhere with your GitHub username
 - [ ] Run `node scripts/generate-icons.mjs` to create icon assets
 - [ ] Run `npm run tauri signer generate` to create updater keypair
 - [ ] Add updater public key to `tauri.conf.json`
@@ -249,7 +250,6 @@ vercel landing/
 - [ ] Set up support email
 - [ ] Push `v1.0.0` tag to trigger first release build
 - [ ] Test the full install flow on a clean VM
-- [ ] Publish Lemon Squeezy product page
 - [ ] Launch
 
 ---

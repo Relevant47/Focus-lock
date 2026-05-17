@@ -23,7 +23,9 @@ export interface SessionState {
   blockedProcesses: string[];  // exe name or full path
   allowlistedDomains: string[];
   pomodoroConfig: PomodoroConfig | null;
-  signature: string; // HMAC-SHA256 of everything above
+  motivationalMessage?: string | null;
+  intention?: string | null;   // user's "what will you focus on?" — not signed
+  signature: string; // HMAC-SHA256 of everything above (excluding motivationalMessage + intention)
 }
 
 // ── Focus Profile ─────────────────────────────────────────────────────────────
@@ -70,6 +72,7 @@ export interface SessionLog {
   completed: boolean;
   blockAttempts: number;
   focusScore: number;
+  intention?: string | null;  // optional — what the user said they'd focus on
 }
 
 // ── IPC Messages ─────────────────────────────────────────────────────────────
@@ -89,7 +92,7 @@ export type IpcRequest =
   | { type: "save_schedule"; payload: ScheduledSession }
   | { type: "delete_schedule"; payload: { id: string } }
   | { type: "request_disable_hardcore" }
-  | { type: "record_block_attempt"; payload: { domain: string | null; process: string | null } };
+  | { type: "record_block_attempt"; payload: { domain: string | null; process: string | null; label?: string | null } };
 
 export interface StartSessionPayload {
   profileId: string | null;
@@ -101,6 +104,7 @@ export interface StartSessionPayload {
   pomodoroConfig: PomodoroConfig | null;
   unlockToken?: string;
   motivationalMessage?: string;
+  intention?: string;  // "what will you focus on?" prompt answer
 }
 
 export type IpcSkipBreak = { type: "skip_break" };

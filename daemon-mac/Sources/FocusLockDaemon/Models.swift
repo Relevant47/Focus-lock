@@ -22,6 +22,8 @@ struct SessionState: Codable {
     var pomodoroConfig: PomodoroConfig?
     var unlockTokenHash: String?
     var motivationalMessage: String?
+    // Intention is NOT signed — user-supplied text, not a security boundary.
+    var intention: String?
     var signature: String = ""
 
     var isActive: Bool { Date() < endTime }
@@ -59,6 +61,7 @@ struct SessionLog: Codable {
     var completed: Bool
     var blockAttempts: Int
     var focusScore: Int
+    var intention: String?
 }
 
 // ── IPC message types ─────────────────────────────────────────────────────────
@@ -78,6 +81,13 @@ struct StartSessionPayload: Codable {
     var pomodoroConfig: PomodoroConfig?
     var unlockToken: String?
     var motivationalMessage: String?
+    var intention: String?
+}
+
+struct RecordBlockAttemptPayload: Codable {
+    var domain: String?
+    var process: String?
+    var label: String?
 }
 
 struct StopSessionPayload: Codable {

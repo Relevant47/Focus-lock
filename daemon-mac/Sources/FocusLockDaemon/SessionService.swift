@@ -165,6 +165,7 @@ final class SessionService {
         lock.withLock {
             guard !(_active?.isActive ?? false) else { return ("Session already active", false) }
 
+            let trimmedIntention = payload.intention?.trimmingCharacters(in: .whitespacesAndNewlines)
             var state = SessionState(
                 profileId: payload.profileId,
                 startTime: Date(),
@@ -175,7 +176,8 @@ final class SessionService {
                 allowlistedDomains: payload.allowlistedDomains,
                 pomodoroConfig: payload.pomodoroConfig,
                 unlockTokenHash: payload.unlockToken.map { hashToken($0) },
-                motivationalMessage: payload.motivationalMessage
+                motivationalMessage: payload.motivationalMessage,
+                intention: (trimmedIntention?.isEmpty == false) ? trimmedIntention : nil
             )
             state.signature = sign(state, key: _signingKey)
             _active = state
@@ -240,7 +242,8 @@ final class SessionService {
             endTime: Date(),
             completed: completed,
             blockAttempts: _blockAttempts,
-            focusScore: calculateScore(completed: completed)
+            focusScore: calculateScore(completed: completed),
+            intention: active.intention
         )
         appendLog(log)
         _active = nil
