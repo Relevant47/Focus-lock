@@ -376,19 +376,35 @@ public sealed class SessionService
         if (File.Exists(KeyPath))
         {
             _signingKey = File.ReadAllBytes(KeyPath);
+            return;
         }
-        else
+
+        _signingKey = RandomNumberGenerator.GetBytes(32);
+        File.WriteAllBytes(KeyPath, _signingKey);
+
+        // Restrict access to SYSTEM and the local Administrators group.
+        // Including Administrators lets diagnostic runs (e.g. running the daemon
+        // as an elevated user for troubleshooting) still read the key — without
+        // it, the daemon locks itself out of any non-SYSTEM mode.
+        try
         {
-            _signingKey = RandomNumberGenerator.GetBytes(32);
-            File.WriteAllBytes(KeyPath, _signingKey);
-            // Restrict to SYSTEM only
             var info = new System.Security.AccessControl.FileSecurity();
             info.SetAccessRuleProtection(true, false);
             info.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
-                "SYSTEM",
+                new System.Security.Principal.SecurityIdentifier(
+                    System.Security.Principal.WellKnownSidType.LocalSystemSid, null),
+                System.Security.AccessControl.FileSystemRights.FullControl,
+                System.Security.AccessControl.AccessControlType.Allow));
+            info.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
+                new System.Security.Principal.SecurityIdentifier(
+                    System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null),
                 System.Security.AccessControl.FileSystemRights.FullControl,
                 System.Security.AccessControl.AccessControlType.Allow));
             new FileInfo(KeyPath).SetAccessControl(info);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not restrict daemon.key ACL — file is still readable by the creating process");
         }
     }
 

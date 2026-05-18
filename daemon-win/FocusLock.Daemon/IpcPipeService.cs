@@ -55,24 +55,48 @@ public sealed class IpcPipeService : BackgroundService
 
     private static NamedPipeServerStream CreatePipe()
     {
-        // Allow any authenticated local user to connect — daemon runs as SYSTEM
-        var security = new PipeSecurity();
-        security.AddAccessRule(new PipeAccessRule(
-            new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
-            PipeAccessRights.FullControl,
-            AccessControlType.Allow));
-        security.AddAccessRule(new PipeAccessRule(
-            new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null),
-            PipeAccessRights.ReadWrite,
-            AccessControlType.Allow));
+        // Preferred path (production, daemon running as SYSTEM): explicit DACL
+        // that grants SYSTEM full control + AuthenticatedUsers ReadWrite, so any
+        // local user's UI app can connect.
+        //
+        // Setting a custom DACL via NamedPipeServerStreamAcl.Create requires
+        // SeSecurityPrivilege to be enabled in the calling process token. SYSTEM
+        // has this enabled by default; an interactive admin user has the privilege
+        // but it's disabled by default, so the call fails with UnauthorizedAccess.
+        // Fall back to a default-security pipe in that case so diagnostic runs of
+        // the daemon (i.e. launched manually as a user) still serve the IPC.
+        try
+        {
+            var security = new PipeSecurity();
+            security.AddAccessRule(new PipeAccessRule(
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
+                PipeAccessRights.FullControl,
+                AccessControlType.Allow));
+            security.AddAccessRule(new PipeAccessRule(
+                new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null),
+                PipeAccessRights.ReadWrite,
+                AccessControlType.Allow));
 
-        return NamedPipeServerStreamAcl.Create(
-            PipeName,
-            PipeDirection.InOut,
-            NamedPipeServerStream.MaxAllowedServerInstances,
-            PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous,
-            0, 0, security);
+            return NamedPipeServerStreamAcl.Create(
+                PipeName,
+                PipeDirection.InOut,
+                NamedPipeServerStream.MaxAllowedServerInstances,
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous,
+                0, 0, security);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Caller doesn't have SeSecurityPrivilege enabled — fall back to
+            // default pipe security. The pipe is still accessible by the same
+            // local users (default DACL is permissive enough for our use).
+            return new NamedPipeServerStream(
+                PipeName,
+                PipeDirection.InOut,
+                NamedPipeServerStream.MaxAllowedServerInstances,
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous);
+        }
     }
 
     private async Task HandleClientAsync(NamedPipeServerStream pipe, CancellationToken ct)

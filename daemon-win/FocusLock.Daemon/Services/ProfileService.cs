@@ -1,4 +1,4 @@
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Text.Json;
 using FocusLock.Daemon.Models;
 
@@ -25,7 +25,7 @@ public sealed class ProfileService
     {
         _log = log;
         Directory.CreateDirectory(Path.GetDirectoryName(DbPath)!);
-        _connStr = $"Data Source={DbPath};Version=3;";
+        _connStr = $"Data Source={DbPath}";
         Initialize();
     }
 
@@ -120,16 +120,16 @@ public sealed class ProfileService
         cmd.ExecuteNonQuery();
     }
 
-    private static void Exec(SQLiteConnection conn, string sql)
+    private static void Exec(SqliteConnection conn, string sql)
     {
         using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.ExecuteNonQuery();
     }
 
-    private SQLiteConnection Open()
+    private SqliteConnection Open()
     {
-        var conn = new SQLiteConnection(_connStr);
+        var conn = new SqliteConnection(_connStr);
         conn.Open();
         return conn;
     }
