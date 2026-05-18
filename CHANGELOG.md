@@ -2,6 +2,12 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.13] — 2026-05-18
+
+### Fixed
+- **Auto-update now actually works.** Earlier releases shipped without signature files, so Tauri's updater silently rejected every install. Rotated the updater key pair and uploaded the new private key to CI, so releases from v1.0.13 onward are properly signed and verified end-to-end.
+- System-tray icon now shows the converge brand mark instead of a solid indigo square.
+
 ## [1.0.12] — 2026-05-18
 
 ### Fixed
