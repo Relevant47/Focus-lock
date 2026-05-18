@@ -2,11 +2,15 @@
 
 All notable changes to FocusLock will be documented here.
 
-## [1.0.13] — 2026-05-18
+## [1.0.14] — 2026-05-18
 
 ### Fixed
-- **Auto-update now actually works.** Earlier releases shipped without signature files, so Tauri's updater silently rejected every install. Rotated the updater key pair and uploaded the new private key to CI, so releases from v1.0.13 onward are properly signed and verified end-to-end.
-- System-tray icon now shows the converge brand mark instead of a solid indigo square.
+- **Auto-update now actually works.** Earlier releases shipped without signature files, so Tauri's updater silently rejected every install. Rotated the updater key pair and uploaded the new private key to CI, so releases from v1.0.14 onward are properly signed and verified end-to-end.
+
+### Note
+- v1.0.13 was tagged but never published — the build failed because of an API mismatch in an in-flight tray-icon change. The fix is shipped in this release. Tray icon polish is deferred until a proper PNG-decoding approach lands.
+
+## [1.0.13] — superseded by 1.0.14 (build failed; not published)
 
 ## [1.0.12] — 2026-05-18
 

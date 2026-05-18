@@ -227,6 +227,59 @@
 
   <div class="timeline" id="timeline">
 
+    <!-- ───── 2026-05-18 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 18, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.13</span>
+      </div>
+      <div class="entry-body">
+        <h2>Auto-update signing fixed · real tray icon</h2>
+        <ul>
+          <li><strong>Auto-update actually works now.</strong> Earlier releases shipped without signature files, which Tauri's updater silently rejected. Rotated the updater keypair, wired the new key into CI, and verified end-to-end that signed updates now install. From v1.0.13 forward, future updates land automatically.</li>
+          <li>The system-tray icon shows the FocusLock converge mark instead of a placeholder square.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 18, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.12</span>
+      </div>
+      <div class="entry-body">
+        <h2>Achievement counter fix · CI resilience</h2>
+        <ul>
+          <li>Iron Will and Accountability achievements now actually unlock — they previously failed to count because the local tag used a random ID instead of the real session ID.</li>
+          <li>Release CI no longer gets blocked by transient cache-save failures on the GitHub Actions runner.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 18, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.11</span>
+      </div>
+      <div class="entry-body">
+        <h2>Visual redesign · command palette · achievements · intentions</h2>
+        <ul>
+          <li><strong>Full visual redesign</strong> on a new Linear/Raycast-inspired design system — Inter typography, animated aurora background, film grain, gradient hero text, dramatic active-route glows.</li>
+          <li><strong>Command palette</strong> (⌘K / Ctrl+K) — fuzzy-searchable command runner for sessions, navigation, theme toggle, and data export.</li>
+          <li><strong>Achievements</strong> — 9 unlockable milestones with quiet unlock toasts and a full grid on Analytics.</li>
+          <li><strong>Focus intentions</strong> — pre-session prompt persisted into the session log and shown on the active Dashboard.</li>
+          <li><strong>Daily focus goal</strong> — configurable target with progress bar on the dashboard and sidebar, confetti when you hit it.</li>
+          <li><strong>Smart block suggestions</strong> — one-click pills with favicons for the most-blocked sites, grouped by category.</li>
+          <li>Intercept page (the one you see when you try to visit a blocked site) rebuilt to match the new design, with a "what were you trying to do?" input that logs the attempt.</li>
+          <li>Onboarding rewritten as 4 steps: welcome → pick distractions → set goal → try a 5-min session.</li>
+          <li>Sidebar grouped into Configure / Insights with a live daily-progress widget at the bottom.</li>
+        </ul>
+      </div>
+    </article>
+
     <!-- ───── 2026-05-15 ───── -->
     <article class="entry" data-type="app">
       <div class="entry-meta">
