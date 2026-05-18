@@ -2,6 +2,12 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.12] — 2026-05-18
+
+### Fixed
+- Iron Will and Accountability achievements now actually unlock — they previously failed to count because the local tag used a random UUID instead of the real daemon-assigned session ID
+- Release workflow no longer fails when the Rust cache save step has transient issues (cache failures no longer block publishing)
+
 ## [1.0.11] — 2026-05-18
 
 ### Added

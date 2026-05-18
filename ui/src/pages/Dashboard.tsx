@@ -10,7 +10,6 @@ import Confetti from '../components/Confetti';
 import { fmtClock, fmtDate } from '../lib/fmt';
 import { cn } from '../lib/cn';
 import { getDailyGoal, minutesToday, shouldCelebrate } from '../lib/goal';
-import { rememberSessionStart } from '../lib/achievements';
 
 // ── Hero session ring ────────────────────────────────────────────────────────
 function SessionRing({
@@ -137,10 +136,6 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [confettiTrigger, setConfettiTrigger] = useState(0);
 
-  // Pre-warm the achievement counters with the pending session's tags.
-  // The actual sessionId only exists after the daemon starts the session, so we
-  // tag the in-flight payload instead and remember it once status.session arrives.
-
   const goal = getDailyGoal();
   const mins = minutesToday(logs);
 
@@ -190,10 +185,8 @@ export default function Dashboard() {
         ...pendingPayload,
         intention: intention ?? undefined,
       };
-      rememberSessionStart(crypto.randomUUID(), {
-        hardcore: payload.hardcoreMode,
-        friendLock: !!payload.unlockToken,
-      });
+      // Tagging with the real sessionId happens in App.tsx once the daemon
+      // confirms the session start (status.session.sessionId becomes available).
       await startSession(payload);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to start session');

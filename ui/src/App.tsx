@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AnimatePresence } from 'framer-motion';
 import { useDaemon } from './stores/daemon';
 import { applyTheme, getTheme } from './stores/theme';
-import { evaluate, type Achievement } from './lib/achievements';
+import { evaluate, rememberSessionStart, type Achievement } from './lib/achievements';
 import Nav from './components/Nav';
 import Onboarding, { useOnboarding } from './components/Onboarding';
 import UpdateBanner from './components/UpdateBanner';
@@ -62,6 +62,17 @@ export default function App() {
     if (newly.length > 0) setAchievementQueue(q => [...q, ...newly]);
     prevSessionActive.current = !!status?.sessionActive;
   }, [status, logs]);
+
+  // Tag the session with hardcore/friend-lock flags using the *real* sessionId
+  // the daemon assigned. This is what the achievement evaluator reads later when
+  // the session ends to count Iron Will / Accountability progress.
+  useEffect(() => {
+    if (!status?.session) return;
+    rememberSessionStart(status.session.sessionId, {
+      hardcore: status.session.hardcoreMode,
+      friendLock: status.hasFriendLock,
+    });
+  }, [status?.session?.sessionId]);
 
   function dismissAchievement(id: string) {
     setAchievementQueue(q => q.filter(a => a.id !== id));
