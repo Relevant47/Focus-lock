@@ -2,6 +2,16 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.20] — 2026-05-19
+
+### Fixed
+- **Three daemon bugs that broke fresh installs.** v1.0.19's published daemon crashed silently before serving its IPC pipe, leaving the app in a permanent "Daemon not running" state. All fixed:
+  - Switched the daemon's SQLite library from `System.Data.SQLite` (incompatible with `PublishSingleFile=true` — caused `ArgumentNullException` during connection init) to `Microsoft.Data.Sqlite`.
+  - Loosened the ACL on `C:\ProgramData\FocusLock\daemon.key` to include local Administrators, and wrapped ACL setting in try/catch.
+  - Made `IpcPipeService.CreatePipe()` resilient to missing `SeSecurityPrivilege` — falls back to default pipe security if the custom DACL set fails.
+
+From v1.0.20 onward, the daemon works on a fresh install with zero manual intervention.
+
 ## [1.0.15] — 2026-05-18
 
 ### Fixed
