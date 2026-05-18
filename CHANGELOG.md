@@ -2,13 +2,15 @@
 
 All notable changes to FocusLock will be documented here.
 
-## [1.0.14] — 2026-05-18
+## [1.0.15] — 2026-05-18
 
 ### Fixed
-- **Auto-update now actually works.** Earlier releases shipped without signature files, so Tauri's updater silently rejected every install. Rotated the updater key pair and uploaded the new private key to CI, so releases from v1.0.14 onward are properly signed and verified end-to-end.
+- Re-attempt of v1.0.14's auto-update signing fix. v1.0.14 published but ended up without `.sig` files because the GitHub Secret wasn't reaching CI on that run. This release re-pushes with the secret confirmed in place plus a CI debug step that prints whether the signing key is loaded.
+
+## [1.0.14] — 2026-05-18
 
 ### Note
-- v1.0.13 was tagged but never published — the build failed because of an API mismatch in an in-flight tray-icon change. The fix is shipped in this release. Tray icon polish is deferred until a proper PNG-decoding approach lands.
+- Published, but `.sig` files were missing — signing key didn't reach the workflow. Superseded by 1.0.15.
 
 ## [1.0.13] — superseded by 1.0.14 (build failed; not published)
 
