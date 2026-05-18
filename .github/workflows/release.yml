@@ -80,26 +80,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path "ui/src-tauri/resources" | Out-Null
           Copy-Item "daemon-win/FocusLock.Daemon/publish/FocusLockDaemon.exe" "ui/src-tauri/resources/FocusLockDaemon.exe"
 
-      - name: Debug — is the signing key reaching CI?
-        shell: bash
-        env:
-          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          PWD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          # Always emit ::warning:: so the result shows up in the annotations API.
-          # Length-only diagnostic — never logs the key itself.
-          if [ -z "$KEY" ]; then
-            echo "::warning::DEBUG KEY-STATE: KEY is EMPTY"
-          else
-            HEAD=$(printf '%s' "$KEY" | head -c 12)
-            echo "::warning::DEBUG KEY-STATE: KEY set (${#KEY} chars, prefix=$HEAD)"
-          fi
-          if [ -z "$PWD" ]; then
-            echo "::warning::DEBUG PWD-STATE: PASSWORD is empty/unset"
-          else
-            echo "::warning::DEBUG PWD-STATE: PASSWORD set (${#PWD} chars)"
-          fi
-
       - name: Build Tauri app (Windows)
         uses: tauri-apps/tauri-action@v0
         with:
