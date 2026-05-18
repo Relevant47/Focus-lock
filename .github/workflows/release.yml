@@ -86,15 +86,18 @@ jobs:
           KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           PWD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
+          # Always emit ::warning:: so the result shows up in the annotations API.
+          # Length-only diagnostic — never logs the key itself.
           if [ -z "$KEY" ]; then
-            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is EMPTY in CI — secret is missing or not named correctly"
+            echo "::warning::DEBUG KEY-STATE: KEY is EMPTY"
           else
-            echo "TAURI_SIGNING_PRIVATE_KEY is set (${#KEY} characters)"
+            HEAD=$(printf '%s' "$KEY" | head -c 12)
+            echo "::warning::DEBUG KEY-STATE: KEY set (${#KEY} chars, prefix=$HEAD)"
           fi
           if [ -z "$PWD" ]; then
-            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD is empty/unset"
+            echo "::warning::DEBUG PWD-STATE: PASSWORD is empty/unset"
           else
-            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD is set (${#PWD} characters)"
+            echo "::warning::DEBUG PWD-STATE: PASSWORD set (${#PWD} chars)"
           fi
 
       - name: Build Tauri app (Windows)
