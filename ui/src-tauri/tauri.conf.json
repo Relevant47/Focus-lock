@@ -50,7 +50,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNFMTk2MzEzMTRGNUQyNjQKUldSazB2VVVFMk1aUHBrdHZ0Qk9QZk5wWVhWL0xINDRFcDZ1RWtsUFhaOWVzRzFVblpMQ2VNY3UK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY4NDVFMjdBRTNENUJBRUUKUldUdXV0WGpldUpGK0lZWTQvUlpRaFFZd2NnZVpjNzdFRG5mVXlRa0hwVC9KbVVVUUR0eGFCZnIK",
       "endpoints": [
         "https://focuslock-updates.oscarpetrikas.workers.dev/{{target}}/{{arch}}/{{current_version}}"
       ],

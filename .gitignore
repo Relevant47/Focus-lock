@@ -25,8 +25,10 @@ installer/macos/pkg-root/
 
 # Keys — NEVER commit these
 *.key
+*.key.old
 updater.key
 updater.key.pub
+updater.key.pub.old
 *.pfx
 *.p12
 *.pem

@@ -163,10 +163,13 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
 // ── Tray helpers ──────────────────────────────────────────────────────────────
 
 fn make_tray_icon() -> tauri::image::Image<'static> {
-    const SIZE: u32 = 32;
-    // Solid indigo square — replace with a proper icon asset for production
-    let rgba: Vec<u8> = (0..SIZE * SIZE).flat_map(|_| [99u8, 102u8, 241u8, 255u8]).collect();
-    tauri::image::Image::new_owned(rgba, SIZE, SIZE)
+    // Bake the bundled converge-style icon into the binary at compile time.
+    // Falls back to a solid indigo square if the PNG fails to decode for any reason.
+    const ICON_BYTES: &[u8] = include_bytes!("../icons/32x32.png");
+    tauri::image::Image::from_bytes(ICON_BYTES).unwrap_or_else(|_| {
+        let rgba: Vec<u8> = (0..32u32 * 32).flat_map(|_| [99u8, 102u8, 241u8, 255u8]).collect();
+        tauri::image::Image::new_owned(rgba, 32, 32)
+    })
 }
 
 fn session_label(status: &Value) -> String {
