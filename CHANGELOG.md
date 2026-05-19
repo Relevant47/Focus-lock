@@ -2,10 +2,15 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.22] — 2026-05-19
+
+### Fixed
+- **Fourth daemon bug:** v1.0.20/v1.0.21 swapped `System.Data.SQLite` → `Microsoft.Data.Sqlite` but the new package's native `e_sqlite3.dll` couldn't be loaded from the single-file bundle, causing the daemon to die with `DllNotFoundException` immediately at startup. Fixed by adding `<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>` to the daemon's csproj so native libraries are extracted to a temp directory at runtime.
+
 ## [1.0.21] — 2026-05-19
 
 ### Note
-- Same code as 1.0.20 — re-tagged because the v1.0.20 Windows build hung on a stuck GitHub Actions runner and never published. v1.0.21 carries the actual fixes.
+- Same code as 1.0.20 — re-tagged because the v1.0.20 Windows build hung on a stuck GitHub Actions runner and never published. v1.0.21 carries the actual fixes (which themselves had a deeper bug — see 1.0.22).
 
 ## [1.0.20] — superseded by 1.0.21 (CI runner hung; never published)
 

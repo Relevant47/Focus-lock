@@ -11,6 +11,10 @@
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- Required for Microsoft.Data.Sqlite's native e_sqlite3.dll to extract
+         at runtime when bundled in a single-file deployment. Without this the
+         daemon crashes at startup with DllNotFoundException. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
