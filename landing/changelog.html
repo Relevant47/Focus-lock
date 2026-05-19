@@ -227,6 +227,57 @@
 
   <div class="timeline" id="timeline">
 
+    <!-- ───── 2026-05-19 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 19, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.24</span>
+      </div>
+      <div class="entry-body">
+        <h2>Installer now elevates itself — no more right-click</h2>
+        <ul>
+          <li>The Windows installer used to silently fail to register the background daemon if you double-clicked it normally — you had to remember to right-click and pick <em>Run as administrator</em>. From v1.0.24 the installer triggers the UAC prompt itself on launch, so any user can double-click and just click <em>Yes</em> on the dialog. The daemon registers and starts automatically.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 19, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.23</span>
+      </div>
+      <div class="entry-body">
+        <h2>Auto-update actually works now (it didn't before)</h2>
+        <ul>
+          <li>Every release from v1.0.18 through v1.0.22 had a one-character typo in the public key baked into the app. Releases were signed correctly by the matching private key, but the installed app verified against a corrupted pubkey — so every "Update available" notification you ever saw failed silently behind the scenes. Fixed: the pubkey in the config now matches the key the releases are signed with. <strong>If you're on v1.0.18-v1.0.22, you need to download v1.0.23 (or later) once manually — but every future auto-update will install for real.</strong></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 19, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.20 → v1.0.22</span>
+      </div>
+      <div class="entry-body">
+        <h2>Daemon reliability — four bugs fixed</h2>
+        <ul>
+          <li>The background daemon (the part that enforces blocks at the OS level) had four separate bugs that combined to break the connection between the app and the daemon on fresh installs:
+            <ul>
+              <li>The SQLite library used for storing focus profiles wasn't compatible with single-file deployment — daemon crashed instantly at startup.</li>
+              <li>The daemon's signing key file had a permission setting so strict that the daemon couldn't read its own key on subsequent runs.</li>
+              <li>The IPC pipe (how the app talks to the daemon) required an OS privilege that wasn't always available — pipe was never created.</li>
+              <li>After fixing the first three by switching SQLite libraries, the new library's native code couldn't be loaded from a single-file bundle — another instant crash.</li>
+            </ul>
+          </li>
+          <li>All four are now resolved. The daemon connects reliably on a fresh v1.0.22+ install.</li>
+        </ul>
+      </div>
+    </article>
+
     <!-- ───── 2026-05-18 ───── -->
     <article class="entry" data-type="app">
       <div class="entry-meta">
