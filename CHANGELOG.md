@@ -2,7 +2,12 @@
 
 All notable changes to FocusLock will be documented here.
 
-## [1.0.20] — 2026-05-19
+## [1.0.21] — 2026-05-19
+
+### Note
+- Same code as 1.0.20 — re-tagged because the v1.0.20 Windows build hung on a stuck GitHub Actions runner and never published. v1.0.21 carries the actual fixes.
+
+## [1.0.20] — superseded by 1.0.21 (CI runner hung; never published)
 
 ### Fixed
 - **Three daemon bugs that broke fresh installs.** v1.0.19's published daemon crashed silently before serving its IPC pipe, leaving the app in a permanent "Daemon not running" state. All fixed:
@@ -10,7 +15,7 @@ All notable changes to FocusLock will be documented here.
   - Loosened the ACL on `C:\ProgramData\FocusLock\daemon.key` to include local Administrators, and wrapped ACL setting in try/catch.
   - Made `IpcPipeService.CreatePipe()` resilient to missing `SeSecurityPrivilege` — falls back to default pipe security if the custom DACL set fails.
 
-From v1.0.20 onward, the daemon works on a fresh install with zero manual intervention.
+From v1.0.21 onward, the daemon works on a fresh install with zero manual intervention.
 
 ## [1.0.15] — 2026-05-18
 
