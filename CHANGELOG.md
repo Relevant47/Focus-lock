@@ -2,6 +2,11 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.23] — 2026-05-19
+
+### Fixed
+- **THE auto-update bug.** Every single release from v1.0.18 onward had a one-character typo in the `pubkey` field of `tauri.conf.json`. Releases were correctly signed with the matching private key, but every installed app verified against the wrong pubkey — so every "Update available" prompt failed with `"signature was created with a different key than the one provided"`. v1.0.23 fixes the pubkey to exactly match `updater.key.pub`. **One last fresh install is required to escape this — every install v1.0.18-v1.0.22 has the corrupted pubkey baked in. From v1.0.23 onward, auto-update will actually work.**
+
 ## [1.0.22] — 2026-05-19
 
 ### Fixed
