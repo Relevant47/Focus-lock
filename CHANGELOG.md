@@ -2,6 +2,11 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.24] — 2026-05-19
+
+### Fixed
+- **Installer now auto-requests admin elevation.** The Windows installer was failing to register the daemon service for users who double-clicked the .exe (the `sc.exe create` step in the NSIS post-install hook needs admin, which the installer wasn't requesting). Set `installMode: "perMachine"` in the Tauri NSIS config so the installer triggers the Windows UAC prompt on launch instead of silently failing the service registration. Now any user can double-click the installer, click "Yes" on the UAC dialog, and the daemon registers + starts automatically — no more right-click → Run as administrator.
+
 ## [1.0.23] — 2026-05-19
 
 ### Fixed
