@@ -302,18 +302,80 @@
     .traffic { width: 12px; height: 12px; border-radius: 50%; }
     .mockup-body { display: flex; min-height: 360px; }
     .mockup-side {
-      width: 168px; background: #0d0d14;
+      width: 180px;
+      background: linear-gradient(180deg, #14141e 0%, #0d0d14 100%);
       border-right: 1px solid rgba(255,255,255,.05);
-      padding: 18px 10px; display: flex; flex-direction: column; gap: 2px;
+      padding: 16px 10px 14px; display: flex; flex-direction: column; gap: 2px;
       flex-shrink: 0;
     }
-    .mock-brand { font-size: .72rem; font-weight: 800; color: #fff; margin-bottom: 16px; padding: 0 8px; letter-spacing: -.01em; }
+    .mock-brand-row { display: flex; align-items: center; gap: 7px; padding: 0 8px; margin-bottom: 14px; }
+    .mock-brand-mark {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 5px;
+      background: linear-gradient(135deg, rgba(139,92,246,.25), rgba(108,99,255,.15));
+      border: 1px solid rgba(139,92,246,.4);
+      color: #a78bfa;
+    }
+    .mock-brand-text {
+      font-size: .78rem; font-weight: 800; letter-spacing: -.02em;
+      background: linear-gradient(180deg, #ffffff 0%, #a78bfa 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .mock-section-label {
+      font-size: .56rem; font-weight: 700; color: #5a5a6a;
+      letter-spacing: .18em; text-transform: uppercase;
+      padding: 0 10px; margin: 10px 0 4px;
+    }
     .mock-nav-item {
       display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px; border-radius: 8px;
-      font-size: .74rem; color: #6a6a85;
+      padding: 7px 10px; border-radius: 6px;
+      font-size: .72rem; color: #6a6a85; font-weight: 500;
     }
-    .mock-nav-item.active { background: rgba(108,99,255,.18); color: #c4bdff; font-weight: 600; }
+    .mock-nav-item.active {
+      background: linear-gradient(90deg, rgba(108,99,255,.20), rgba(139,92,246,.05) 70%, transparent);
+      color: #fff; font-weight: 600;
+      box-shadow: inset 0 0 0 1px rgba(108,99,255,.18);
+      position: relative;
+    }
+    .mock-nav-item.active::before {
+      content:''; position: absolute; left: 0; top: 6px; bottom: 6px;
+      width: 2px; background: linear-gradient(180deg, #8b5cf6, #6C63FF);
+      border-radius: 2px; box-shadow: 0 0 8px rgba(108,99,255,.6);
+    }
+    .mock-nav-item.active svg { color: #c4bdff; }
+    .mock-goal {
+      margin-top: auto;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 8px;
+      background: rgba(0,0,0,.25);
+    }
+    .mock-goal-row {
+      display: flex; justify-content: space-between;
+      font-size: .56rem; color: #8a8aa0; font-weight: 600;
+      letter-spacing: .04em; margin-bottom: 6px;
+    }
+    .mock-goal-row span:first-child { text-transform: uppercase; letter-spacing: .16em; color: #5a5a6a; }
+    .mock-goal-bar { height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; }
+    .mock-goal-fill {
+      width: 85%; height: 100%;
+      background: linear-gradient(90deg, #6C63FF, #8b5cf6);
+      border-radius: 2px;
+    }
+    .mock-cmdk {
+      display: flex; align-items: center; gap: 4px;
+      padding: 6px 8px 2px; font-size: .55rem; color: #4a4a5a;
+    }
+    .mock-cmdk kbd {
+      font-family: inherit;
+      padding: 1px 4px;
+      font-size: .55rem;
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 3px;
+      color: #6a6a85;
+    }
     .mockup-main {
       flex: 1; padding: 32px 32px;
       display: flex; flex-direction: column;
@@ -336,11 +398,27 @@
     .mock-stat { text-align: center; }
     .mock-stat-val { font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em; }
     .mock-stat-lbl { font-size: .62rem; color: #6a6a85; margin-top: 3px; text-transform: uppercase; letter-spacing: .1em; }
-    .mock-blocked-bar {
-      display: inline-flex; gap: 8px; align-items: center;
-      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.18);
-      border-radius: 999px; padding: 7px 16px;
-      font-size: .74rem; color: #fca5a5;
+    .mock-cycle-dots {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .62rem; color: #6a6a85;
+    }
+    .mock-cycle-dots .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,.12);
+    }
+    .mock-cycle-dots .dot.on { background: #6C63FF; box-shadow: 0 0 6px rgba(108,99,255,.7); }
+    .mock-cycle-text {
+      margin-left: 10px; text-transform: uppercase;
+      letter-spacing: .12em; font-weight: 600; color: #6a6a85;
+    }
+    .mock-session-label {
+      max-width: 320px; text-align: center;
+    }
+    .mock-session-label {
+      font-size: .78rem !important; font-weight: 500 !important;
+      color: #d1d1e0 !important; font-style: italic;
+      text-transform: none !important; letter-spacing: 0 !important;
+      line-height: 1.5;
     }
 
     /* ── STATS BAR ── */
@@ -1352,15 +1430,59 @@
         </div>
         <div class="mockup-body">
           <div class="mockup-side">
-            <div class="mock-brand">🔒 FocusLock</div>
-            <div class="mock-nav-item active">⏱ Dashboard</div>
-            <div class="mock-nav-item">🚫 Block Lists</div>
-            <div class="mock-nav-item">📋 Profiles</div>
-            <div class="mock-nav-item">📅 Schedules</div>
-            <div class="mock-nav-item">📊 Analytics</div>
+            <div class="mock-brand-row">
+              <span class="mock-brand-mark">
+                <svg width="14" height="14" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">
+                  <line x1="12" y1="12" x2="50" y2="50"/>
+                  <line x1="88" y1="12" x2="50" y2="50"/>
+                  <line x1="12" y1="88" x2="50" y2="50"/>
+                  <line x1="88" y1="88" x2="50" y2="50"/>
+                  <circle cx="50" cy="50" r="8" fill="currentColor" stroke="none"/>
+                </svg>
+              </span>
+              <span class="mock-brand-text">FocusLock</span>
+            </div>
+            <div class="mock-nav-item active">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
+                <rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>
+              </svg>
+              Dashboard
+            </div>
+            <div class="mock-section-label">Configure</div>
+            <div class="mock-nav-item">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>
+              </svg>
+              Block Lists
+            </div>
+            <div class="mock-nav-item">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5M8 17h3"/>
+              </svg>
+              Profiles
+            </div>
+            <div class="mock-nav-item">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
+              </svg>
+              Schedules
+            </div>
+            <div class="mock-section-label">Insights</div>
+            <div class="mock-nav-item">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>
+              </svg>
+              Analytics
+            </div>
+            <div class="mock-goal">
+              <div class="mock-goal-row"><span>Today</span><span>1h 42m / 2h</span></div>
+              <div class="mock-goal-bar"><div class="mock-goal-fill"></div></div>
+            </div>
+            <div class="mock-cmdk"><kbd>⌘</kbd><kbd>K</kbd> command palette</div>
           </div>
           <div class="mockup-main">
-            <div class="mock-session-label">Deep Work · Active Session</div>
+            <div class="mock-session-label">Deep Work · "Finish the launch trailer."</div>
             <div class="mock-ring">
               <svg width="140" height="140" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/>
@@ -1368,8 +1490,8 @@
                   stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="66"/>
                 <defs>
                   <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#6C63FF"/>
-                    <stop offset="100%" stop-color="#a78bfa"/>
+                    <stop offset="0%" stop-color="#8b5cf6"/>
+                    <stop offset="100%" stop-color="#6C63FF"/>
                   </linearGradient>
                 </defs>
               </svg>
@@ -1378,22 +1500,28 @@
                 <span class="mock-phase">Focus</span>
               </div>
             </div>
+            <div class="mock-cycle-dots">
+              <span class="dot on"></span><span class="dot on"></span><span class="dot"></span><span class="dot"></span>
+              <span class="mock-cycle-text">Cycle 2 / 4</span>
+            </div>
             <div class="mock-stats">
               <div class="mock-stat">
-                <div class="mock-stat-val" style="color:#fb923c">7d 🔥</div>
+                <div class="mock-stat-val" style="color:#fb923c">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:2px">
+                    <path d="M12 22c4.5 0 7-3 7-7 0-3-2-5-3-7 0-2 1-4 1-4s-3 1-5 5c-1 2-3 3-3 6 0 4 2 7 3 7z"/>
+                  </svg>
+                  7d
+                </div>
                 <div class="mock-stat-lbl">streak</div>
               </div>
               <div class="mock-stat">
                 <div class="mock-stat-val" style="color:#a78bfa">94</div>
-                <div class="mock-stat-lbl">score</div>
+                <div class="mock-stat-lbl">last score</div>
               </div>
               <div class="mock-stat">
                 <div class="mock-stat-val" style="color:#fca5a5">3</div>
-                <div class="mock-stat-lbl">blocked</div>
+                <div class="mock-stat-lbl">blocks</div>
               </div>
-            </div>
-            <div class="mock-blocked-bar">
-              🚫 Blocked: youtube.com, reddit.com, twitter.com
             </div>
           </div>
         </div>
