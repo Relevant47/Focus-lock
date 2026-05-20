@@ -2,6 +2,14 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.26] — 2026-05-21
+
+### Changed
+- **Renamed "Parent controls" → "Settings lock".** The 1.0.25 feature has always been a single-device anti-self-bypass PIN — you lock your own settings so you can't disable FocusLock when willpower fails. Calling it "Parent controls" implied a parent-on-one-device-controlling-a-child-on-another setup that doesn't actually exist (yet). The label was misleading, so it's now "Settings lock" with copy that's honest about the use case: stopping you from disabling FocusLock in a moment of weakness. No behavior changes — same PIN, same recovery key, same audit log.
+
+### Coming soon
+- **Cross-device family controls** (the actual parental controls). A future major release will add a real parent-device → child-device feature: parent logs in on their machine and can hard-lock specific apps on the child's machine at any time, with cloud sync and child-side anti-bypass. This is a multi-week build, separate from this release.
+
 ## [1.0.25] — 2026-05-20
 
 ### Added

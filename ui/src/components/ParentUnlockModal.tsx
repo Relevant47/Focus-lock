@@ -98,12 +98,12 @@ export default function ParentUnlockModal() {
               <div className="flex items-center gap-2 text-warn">
                 <Icon.Lock size={14} />
                 <h2 className="text-[11px] uppercase tracking-[0.18em] font-semibold">
-                  {mode === 'pin' ? 'Parent PIN required' : 'Enter recovery key'}
+                  {mode === 'pin' ? 'Settings locked — PIN required' : 'Enter recovery key'}
                 </h2>
               </div>
               <p className="text-sm text-muted">
                 {mode === 'pin'
-                  ? `Enter the parent PIN to perform this action. The unlock lasts ${graceMinutes} minutes.`
+                  ? `Enter your PIN to perform this action. The unlock lasts ${graceMinutes} minutes.`
                   : `Enter the 16-character recovery key you saved when setting up the PIN. Verifying clears the PIN entirely.`}
               </p>
             </div>
@@ -114,7 +114,7 @@ export default function ParentUnlockModal() {
                   ref={inputRef} type="password" inputMode="numeric" autoComplete="off"
                   value={pin} onChange={(e) => setPin(e.target.value)}
                   disabled={submitting || rateLimited}
-                  placeholder="Parent PIN"
+                  placeholder="PIN"
                   className="input-base w-full px-3 py-2 text-sm"
                 />
                 {error && <p className="text-xs text-danger">{error}</p>}

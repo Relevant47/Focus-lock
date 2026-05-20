@@ -129,20 +129,20 @@ export default function Settings() {
         const key = await setParentPin(parentPin);
         if (key) {
           setRevealedKey(key);
-          setParentSuccess('Parent PIN set. Save your recovery key below — it will not be shown again.');
+          setParentSuccess('PIN set. Save your recovery key below — it will not be shown again.');
         } else {
-          setParentSuccess('Parent PIN set. Sensitive actions now require it.');
+          setParentSuccess('PIN set. Sensitive actions now require it.');
         }
         resetParentForm(); setParentMode('idle');
       } else if (parentMode === 'change') {
         if (parentPin.length < 4) throw new Error('New PIN must be at least 4 characters');
         if (parentPin !== parentPinConfirm) throw new Error('New PINs do not match');
         await changeParentPin(parentOldPin, parentPin);
-        setParentSuccess('Parent PIN updated. (Your recovery key still works.)');
+        setParentSuccess('PIN updated. (Your recovery key still works.)');
         resetParentForm(); setParentMode('idle');
       } else if (parentMode === 'clear') {
         await clearParentPin(parentOldPin);
-        setParentSuccess('Parent PIN removed.');
+        setParentSuccess('PIN removed.');
         resetParentForm(); setParentMode('idle');
       } else if (parentMode === 'regenerate') {
         const key = await regenerateRecoveryKey(parentOldPin);
@@ -283,17 +283,17 @@ export default function Settings() {
             )}
           </Section>
 
-          {/* Parental controls */}
+          {/* Settings lock (formerly "Parent controls" — renamed in 1.0.26 to stop conflicting with the upcoming cross-device family-controls feature) */}
           <Section
-            title="Parent controls"
+            title="Settings lock"
             hint={parentEnabled
-              ? `A PIN protects sensitive actions (editing profiles, schedules, stopping sessions, disabling Hardcore). Each successful PIN entry unlocks for ${parentGraceMinutes} minutes.`
-              : `Set a parent PIN to require it for sensitive actions: editing profiles or schedules, stopping a session early, or disabling Hardcore Mode.`}
+              ? `A PIN protects sensitive actions (editing profiles, schedules, stopping sessions, disabling Hardcore) so you can't disable FocusLock in a moment of weakness. Each successful PIN entry unlocks for ${parentGraceMinutes} minutes.`
+              : `Set a PIN to lock sensitive actions behind it — editing profiles or schedules, stopping a session early, or disabling Hardcore Mode. The point is to stop you from disabling FocusLock when willpower fails.`}
           >
             {parentMode === 'idle' && (
               <div className="space-y-3">
                 <Row
-                  label={parentEnabled ? 'Parent PIN configured' : 'No parent PIN set'}
+                  label={parentEnabled ? 'Settings lock active' : 'No PIN set'}
                   sub={parentEnabled
                     ? 'Sensitive commands are gated. Recovery via 16-char key.'
                     : 'Anyone with access to FocusLock can change settings.'}
@@ -313,7 +313,7 @@ export default function Settings() {
                       <div>
                         <p className="text-xs uppercase tracking-[0.18em] text-warn font-semibold">Recovery key — save this now</p>
                         <p className="text-xs text-muted mt-1">
-                          This is the only time the key will be shown. Store it in a password manager or write it down. Anyone with this key can clear the parent PIN.
+                          This is the only time the key will be shown. Store it in a password manager or write it down. Anyone with this key can clear the PIN.
                         </p>
                       </div>
                     </div>
@@ -337,7 +337,7 @@ export default function Settings() {
                 <div className="flex gap-2 pt-1">
                   {!parentEnabled && (
                     <button onClick={() => { resetParentForm(); setParentMode('setup'); }} className="btn-primary px-4 py-2 text-sm">
-                      Set up parent PIN
+                      Set up settings lock
                     </button>
                   )}
                   {parentEnabled && (
