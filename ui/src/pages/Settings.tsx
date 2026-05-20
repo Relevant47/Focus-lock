@@ -43,6 +43,26 @@ function Row({
   );
 }
 
+const AUDIT_EVENT_LABEL: Record<string, { label: string; tone: 'success' | 'warn' | 'danger' | 'neutral' }> = {
+  pin_set:                  { label: 'PIN configured',         tone: 'success' },
+  pin_changed:              { label: 'PIN changed',            tone: 'success' },
+  pin_cleared:              { label: 'PIN removed',            tone: 'warn'    },
+  pin_verify_success:       { label: 'Unlock — success',       tone: 'success' },
+  pin_verify_fail:          { label: 'Unlock — wrong PIN',     tone: 'danger'  },
+  pin_verify_rate_limited:  { label: 'Unlock — rate limited',  tone: 'warn'    },
+  gate_blocked:             { label: 'Command blocked',        tone: 'danger'  },
+  gate_allowed:             { label: 'Command allowed',        tone: 'neutral' },
+};
+
+function formatAuditTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return iso;
+  }
+}
+
 function useCooldownTimer(isoString: string | null | undefined) {
   if (!isoString) return null;
   const until = new Date(isoString).getTime();
@@ -51,7 +71,7 @@ function useCooldownTimer(isoString: string | null | undefined) {
 }
 
 export default function Settings() {
-  const { connected, status, requestDisableHardcore } = useDaemon();
+  const { connected, status, requestDisableHardcore, setParentPin, changeParentPin, clearParentPin, loadParentAudit, parentAudit, parentToken, parentTokenExpiresAt, regenerateRecoveryKey } = useDaemon();
   const [theme, setThemeState] = useState<Theme>(getTheme());
   const [goalMinutes, setGoalMinutesState] = useState(getDailyGoal());
   const [token, setToken] = useState('');
@@ -61,6 +81,81 @@ export default function Settings() {
   const [hardcoreSuccess, setHardcoreSuccess] = useState('');
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'none'>('idle');
   const [updateVersion, setUpdateVersion] = useState('');
+
+  // Parental controls form state
+  const [parentMode, setParentMode] = useState<'idle' | 'setup' | 'change' | 'clear' | 'regenerate'>('idle');
+  const [parentPin, setParentPinInput] = useState('');
+  const [parentPinConfirm, setParentPinConfirm] = useState('');
+  const [parentOldPin, setParentOldPin] = useState('');
+  const [parentError, setParentError] = useState('');
+  const [parentSuccess, setParentSuccess] = useState('');
+  const [parentSubmitting, setParentSubmitting] = useState(false);
+
+  // Recovery key reveal — shown ONCE after fresh setup or regeneration.
+  // The plain-text key is held in memory only, never persisted in the UI.
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
+  const [revealedKeyCopied, setRevealedKeyCopied] = useState(false);
+
+  const parentEnabled = !!status?.parentControls?.enabled;
+  const parentGraceMinutes = status?.parentControls?.graceMinutes ?? 5;
+  const parentUnlocked = !!parentToken && !!parentTokenExpiresAt && parentTokenExpiresAt > Date.now();
+
+  // Refresh the audit log whenever the parent unlocks. Read is gated, so this
+  // only succeeds while a valid token is cached in the store.
+  useEffect(() => {
+    if (parentEnabled && parentUnlocked) {
+      loadParentAudit(50).catch(() => { /* not authorized or backend hiccup */ });
+    }
+  }, [parentEnabled, parentUnlocked, loadParentAudit]);
+
+  function resetParentForm() {
+    setParentPinInput(''); setParentPinConfirm(''); setParentOldPin('');
+    setParentError(''); setParentSuccess('');
+  }
+
+  async function copyRevealedKey() {
+    if (!revealedKey) return;
+    await navigator.clipboard.writeText(revealedKey);
+    setRevealedKeyCopied(true);
+    setTimeout(() => setRevealedKeyCopied(false), 2000);
+  }
+
+  async function handleParentSubmit() {
+    setParentError(''); setParentSuccess(''); setParentSubmitting(true);
+    try {
+      if (parentMode === 'setup') {
+        if (parentPin.length < 4) throw new Error('PIN must be at least 4 characters');
+        if (parentPin !== parentPinConfirm) throw new Error('PINs do not match');
+        const key = await setParentPin(parentPin);
+        if (key) {
+          setRevealedKey(key);
+          setParentSuccess('Parent PIN set. Save your recovery key below — it will not be shown again.');
+        } else {
+          setParentSuccess('Parent PIN set. Sensitive actions now require it.');
+        }
+        resetParentForm(); setParentMode('idle');
+      } else if (parentMode === 'change') {
+        if (parentPin.length < 4) throw new Error('New PIN must be at least 4 characters');
+        if (parentPin !== parentPinConfirm) throw new Error('New PINs do not match');
+        await changeParentPin(parentOldPin, parentPin);
+        setParentSuccess('Parent PIN updated. (Your recovery key still works.)');
+        resetParentForm(); setParentMode('idle');
+      } else if (parentMode === 'clear') {
+        await clearParentPin(parentOldPin);
+        setParentSuccess('Parent PIN removed.');
+        resetParentForm(); setParentMode('idle');
+      } else if (parentMode === 'regenerate') {
+        const key = await regenerateRecoveryKey(parentOldPin);
+        setRevealedKey(key);
+        setParentSuccess('New recovery key generated. The old one no longer works.');
+        resetParentForm(); setParentMode('idle');
+      }
+    } catch (e) {
+      setParentError(e instanceof Error ? e.message : 'Failed');
+    } finally {
+      setParentSubmitting(false);
+    }
+  }
 
   const cooldown = useCooldownTimer(status?.hardcoreCooldownUntil);
 
@@ -183,6 +278,192 @@ export default function Settings() {
                     </div>
                     <p className="text-xs text-warn">⚠ Copy and send before starting your session. Not retrievable afterward.</p>
                   </div>
+                )}
+              </div>
+            )}
+          </Section>
+
+          {/* Parental controls */}
+          <Section
+            title="Parent controls"
+            hint={parentEnabled
+              ? `A PIN protects sensitive actions (editing profiles, schedules, stopping sessions, disabling Hardcore). Each successful PIN entry unlocks for ${parentGraceMinutes} minutes.`
+              : `Set a parent PIN to require it for sensitive actions: editing profiles or schedules, stopping a session early, or disabling Hardcore Mode.`}
+          >
+            {parentMode === 'idle' && (
+              <div className="space-y-3">
+                <Row
+                  label={parentEnabled ? 'Parent PIN configured' : 'No parent PIN set'}
+                  sub={parentEnabled
+                    ? 'Sensitive commands are gated. Recovery via 16-char key.'
+                    : 'Anyone with access to FocusLock can change settings.'}
+                >
+                  <Pill tone={parentEnabled ? 'success' : 'neutral'}>
+                    <span className={cn('w-1.5 h-1.5 rounded-full', parentEnabled ? 'bg-success' : 'bg-muted')} />
+                    {parentEnabled ? 'On' : 'Off'}
+                  </Pill>
+                </Row>
+
+                {parentSuccess && <p className="text-xs text-success">{parentSuccess}</p>}
+
+                {revealedKey && (
+                  <div className="rounded-lg border border-warn/40 bg-warn/5 p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <Icon.Lock size={14} className="text-warn shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.18em] text-warn font-semibold">Recovery key — save this now</p>
+                        <p className="text-xs text-muted mt-1">
+                          This is the only time the key will be shown. Store it in a password manager or write it down. Anyone with this key can clear the parent PIN.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="font-mono text-base text-center tracking-widest text-text bg-bg/60 border border-border rounded-md py-3 px-2 select-all">
+                      {revealedKey}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={copyRevealedKey} className="btn-ghost px-3 py-1.5 text-xs">
+                        {revealedKeyCopied ? <><Icon.Check size={12} /> Copied</> : 'Copy'}
+                      </button>
+                      <button
+                        onClick={() => { setRevealedKey(null); setRevealedKeyCopied(false); }}
+                        className="btn-primary px-3 py-1.5 text-xs"
+                      >
+                        I've saved it
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  {!parentEnabled && (
+                    <button onClick={() => { resetParentForm(); setParentMode('setup'); }} className="btn-primary px-4 py-2 text-sm">
+                      Set up parent PIN
+                    </button>
+                  )}
+                  {parentEnabled && (
+                    <>
+                      <button onClick={() => { resetParentForm(); setParentMode('change'); }} className="btn-ghost px-4 py-2 text-sm">
+                        Change PIN
+                      </button>
+                      <button onClick={() => { resetParentForm(); setParentMode('regenerate'); }} className="btn-ghost px-4 py-2 text-sm">
+                        New recovery key
+                      </button>
+                      <button onClick={() => { resetParentForm(); setParentMode('clear'); }} className="btn-ghost px-4 py-2 text-sm">
+                        Remove PIN
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {parentMode !== 'idle' && (
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleParentSubmit(); }}
+                className="space-y-3"
+              >
+                {(parentMode === 'change' || parentMode === 'clear' || parentMode === 'regenerate') && (
+                  <div>
+                    <label className="text-xs text-muted block mb-1">Current PIN</label>
+                    <input
+                      type="password" autoComplete="off"
+                      value={parentOldPin}
+                      onChange={(e) => setParentOldPin(e.target.value)}
+                      className="input-base w-full px-3 py-2 text-sm"
+                      autoFocus
+                    />
+                  </div>
+                )}
+                {(parentMode === 'setup' || parentMode === 'change') && (
+                  <>
+                    <div>
+                      <label className="text-xs text-muted block mb-1">New PIN</label>
+                      <input
+                        type="password" autoComplete="new-password"
+                        value={parentPin}
+                        onChange={(e) => setParentPinInput(e.target.value)}
+                        className="input-base w-full px-3 py-2 text-sm"
+                        autoFocus={parentMode === 'setup'}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted block mb-1">Confirm PIN</label>
+                      <input
+                        type="password" autoComplete="new-password"
+                        value={parentPinConfirm}
+                        onChange={(e) => setParentPinConfirm(e.target.value)}
+                        className="input-base w-full px-3 py-2 text-sm"
+                      />
+                    </div>
+                    {parentMode === 'setup' && (
+                      <p className="text-[11px] text-muted leading-relaxed">
+                        You'll get a 16-character <span className="text-text font-semibold">recovery key</span> after setup. Save it in a password manager or print it — it's the only way to clear the PIN if you forget it.
+                      </p>
+                    )}
+                  </>
+                )}
+                {parentMode === 'regenerate' && (
+                  <p className="text-xs text-warn">
+                    Generating a new recovery key invalidates the previous one. Make sure to save the new key when shown.
+                  </p>
+                )}
+                {parentMode === 'clear' && (
+                  <p className="text-xs text-warn">
+                    Removing the PIN lets anyone change sensitive settings. Confirm by entering your current PIN.
+                  </p>
+                )}
+                {parentError && <p className="text-xs text-danger">{parentError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={parentSubmitting}
+                    className={cn('px-4 py-2 text-sm', parentMode === 'clear' ? 'btn-danger' : 'btn-primary')}
+                  >
+                    {parentSubmitting ? 'Working…'
+                      : parentMode === 'setup' ? 'Set PIN'
+                      : parentMode === 'change' ? 'Update PIN'
+                      : parentMode === 'regenerate' ? 'Generate new key'
+                      : 'Remove PIN'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { resetParentForm(); setParentMode('idle'); }}
+                    className="btn-ghost px-4 py-2 text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Recent activity — visible while the parent is unlocked */}
+            {parentEnabled && parentUnlocked && parentMode === 'idle' && (
+              <div className="pt-3 border-t border-border/50">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[11px] uppercase tracking-[0.18em] text-dim font-semibold">Recent activity</h3>
+                  <button onClick={() => loadParentAudit(50)} className="text-xs text-muted hover:text-text transition-colors">
+                    Refresh
+                  </button>
+                </div>
+                {parentAudit.length === 0 ? (
+                  <p className="text-xs text-faint">No activity recorded yet.</p>
+                ) : (
+                  <ul className="space-y-1.5 max-h-64 overflow-auto pr-1">
+                    {parentAudit.map((entry, i) => {
+                      const meta = AUDIT_EVENT_LABEL[entry.event] ?? { label: entry.event, tone: 'neutral' as const };
+                      return (
+                        <li key={i} className="flex items-center justify-between gap-3 text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Pill tone={meta.tone} className="shrink-0">{meta.label}</Pill>
+                            {entry.command && (
+                              <span className="text-muted font-mono truncate">{entry.command}</span>
+                            )}
+                          </div>
+                          <span className="text-faint shrink-0 tnum">{formatAuditTime(entry.timestamp)}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </div>
             )}

@@ -92,6 +92,11 @@ Every message is a single JSON object terminated by `\n`.
 | `save_schedule` | `ScheduledSession` | `ok` |
 | `delete_schedule` | `{ id }` | `ok` |
 | `record_block_attempt` | `{ domain?, process? }` | `ok` |
+| `set_parent_pin` | `{ pin, oldPin? }` | `ok` / `error` |
+| `verify_parent_pin` | `{ pin }` | `parent_token` / `error` |
+| `change_parent_pin` | `{ oldPin, newPin }` | `ok` / `error` |
+| `clear_parent_pin` | `{ pin }` | `ok` / `error` |
+| `get_parent_audit` | `{ limit?, parentToken? }` | `parent_audit` → `ParentAuditEntry[]` |
 
 ---
 
@@ -160,6 +165,59 @@ session state. Rate-limiting: 10s → 30s → 60s → 5min backoff per failed at
 
 ### Uninstall protection
 Uninstall scripts read `session.json` and abort if `endTime > now`.
+
+---
+
+## Parental Controls
+
+A PIN gates sensitive mutations so a child running FocusLock can't disable enforcement without the parent's authorization. **This is friction, not absolute security** — FocusLock is open source, the daemon runs on the child's machine, and a determined admin user can always uninstall. The model targets impulse-resistance, not airtight enforcement. For stronger lockdown, install FocusLock under a Windows admin account and give the child a standard user.
+
+### Gated commands
+- `save_profile` / `delete_profile`
+- `save_schedule` / `delete_schedule`
+- `request_disable_hardcore`
+- `stop_session` (in addition to any friend-lock token)
+- `get_parent_audit`
+
+When no PIN is configured, the gate is a no-op and all commands behave exactly as before.
+
+### PIN storage
+
+PINs are hashed with PBKDF2-SHA256 (200,000 iterations, 16-byte random salt, 32-byte output).
+
+| Platform | Path |
+|----------|------|
+| Windows  | `%ProgramData%\FocusLock\parent.cred` (SYSTEM + Administrators ACL) |
+| macOS    | `/Library/Application Support/FocusLock/parent.cred` (chmod 600) |
+
+### Grace tokens
+
+A successful `verify_parent_pin` returns a base64url-encoded token valid for 5 minutes:
+
+```
+token = base64url("<expiryUnixSeconds>.<HMAC-SHA256(tokenKey, expiryUnixSeconds)>")
+```
+
+`tokenKey` is a 32-byte random value persisted at `parent.tokenkey` (same ACL as `parent.cred`). The UI caches the token in memory only — never disk — and supplies it as `parentToken` on subsequent gated requests until it expires.
+
+### Rate limiting
+
+Failed PIN attempts follow the same ladder as friend-lock: 0s → 10s → 30s → 60s → 5min. Reset on successful verify.
+
+### Audit log
+
+Append-only JSONL at `parent.audit.jsonl` (same directory and ACL as `parent.cred`). One record per line:
+
+```json
+{ "timestamp": "2026-05-20T03:52:09Z", "event": "gate_blocked", "command": "save_profile", "detail": null }
+```
+
+Event types:
+- `pin_set`, `pin_changed`, `pin_cleared` — PIN configuration changes
+- `pin_verify_success`, `pin_verify_fail`, `pin_verify_rate_limited` — verification attempts
+- `gate_blocked`, `gate_allowed` — every gate decision (the `get_parent_audit` read itself is gated, so reading the log records a `gate_allowed` for `get_parent_audit`)
+
+Read via `get_parent_audit` IPC. The read is gated when a PIN is configured; it is open when no PIN is set (nothing privileged to protect).
 
 ---
 

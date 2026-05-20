@@ -4,21 +4,28 @@ import { listen } from '@tauri-apps/api/event';
 import type {
   DaemonStatus,
   FocusProfile,
+  ParentAuditEntry,
   ScheduledSession,
   SessionLog,
   StartSessionPayload,
 } from '../types';
+import { type DaemonError, withParentGate } from '../lib/parentGate';
 
 interface IpcResponse {
   type: string;
   payload?: unknown;
   message?: string;
+  code?: string;
 }
 
 async function request(type: string, payload?: unknown): Promise<IpcResponse> {
   const msg = payload !== undefined ? { type, payload } : { type };
   const res = await invoke<IpcResponse>('ipc_request', { request: msg });
-  if (res.type === 'error') throw new Error(res.message ?? 'Unknown error');
+  if (res.type === 'error') {
+    const err: DaemonError = new Error(res.message ?? 'Unknown error');
+    err.code = res.code;
+    throw err;
+  }
   return res;
 }
 
@@ -44,6 +51,9 @@ interface State {
   profiles: FocusProfile[];
   schedules: ScheduledSession[];
   logs: SessionLog[];
+  parentToken: string | null;
+  parentTokenExpiresAt: number | null; // epoch ms
+  parentAudit: ParentAuditEntry[];
 }
 
 interface Actions {
@@ -59,6 +69,27 @@ interface Actions {
   saveSchedule(s: ScheduledSession): Promise<void>;
   deleteSchedule(id: string): Promise<void>;
   loadLogs(limit?: number): Promise<void>;
+  // Parental controls
+  /// Returns the freshly-generated recovery key on first setup. Returns null on change
+  /// (existing key is preserved). UI MUST display the key once when present.
+  setParentPin(pin: string, oldPin?: string): Promise<string | null>;
+  verifyParentPin(pin: string): Promise<void>;
+  changeParentPin(oldPin: string, newPin: string): Promise<void>;
+  clearParentPin(pin: string): Promise<void>;
+  expireParentToken(): void;
+  loadParentAudit(limit?: number): Promise<void>;
+  /// Verify a recovery key. On success, clears the PIN entirely.
+  verifyRecoveryKey(key: string): Promise<void>;
+  /// Regenerate the recovery key. Requires current PIN. Returns the new key.
+  regenerateRecoveryKey(pin: string): Promise<string>;
+}
+
+interface ParentTokenPayload { token: string; expiresAt: string }
+
+function activeParentToken(state: State): string | undefined {
+  if (!state.parentToken || !state.parentTokenExpiresAt) return undefined;
+  if (Date.now() >= state.parentTokenExpiresAt) return undefined;
+  return state.parentToken;
 }
 
 export const useDaemon = create<State & Actions>((set, get) => ({
@@ -67,6 +98,9 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   profiles: [],
   schedules: [],
   logs: [],
+  parentToken: null,
+  parentTokenExpiresAt: null,
+  parentAudit: [],
 
   async init() {
     await requestNotificationPermission();
@@ -121,8 +155,13 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   },
 
   async stopSession(token) {
-    const p = token ? { unlockToken: token } : {};
-    await request('stop_session', p);
+    await withParentGate(async () => {
+      const p: Record<string, unknown> = {};
+      if (token) p.unlockToken = token;
+      const pt = activeParentToken(get());
+      if (pt) p.parentToken = pt;
+      await request('stop_session', p);
+    });
   },
 
   async skipBreak() {
@@ -130,7 +169,10 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   },
 
   async requestDisableHardcore() {
-    await request('request_disable_hardcore');
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      await request('request_disable_hardcore', pt ? { parentToken: pt } : undefined);
+    });
   },
 
   async loadProfiles() {
@@ -139,12 +181,18 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   },
 
   async saveProfile(profile) {
-    await request('save_profile', profile);
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      await request('save_profile', pt ? { ...profile, parentToken: pt } : profile);
+    });
     await get().loadProfiles();
   },
 
   async deleteProfile(id) {
-    await request('delete_profile', { id });
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      await request('delete_profile', pt ? { id, parentToken: pt } : { id });
+    });
     await get().loadProfiles();
   },
 
@@ -154,17 +202,86 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   },
 
   async saveSchedule(schedule) {
-    await request('save_schedule', schedule);
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      await request('save_schedule', pt ? { ...schedule, parentToken: pt } : schedule);
+    });
     await get().loadSchedules();
   },
 
   async deleteSchedule(id) {
-    await request('delete_schedule', { id });
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      await request('delete_schedule', pt ? { id, parentToken: pt } : { id });
+    });
     await get().loadSchedules();
   },
 
   async loadLogs(limit = 50) {
     const res = await request('get_logs', { limit }).catch(() => null);
     if (res?.payload) set({ logs: res.payload as SessionLog[] });
+  },
+
+  // ── Parental controls ──────────────────────────────────────────────────────
+
+  async setParentPin(pin, oldPin) {
+    const payload: Record<string, unknown> = { pin };
+    if (oldPin) payload.oldPin = oldPin;
+    const res = await request('set_parent_pin', payload);
+    // On first setup the response is ok_with_recovery_key; on change it's plain ok.
+    if (res.type === 'ok_with_recovery_key') {
+      const p = res.payload as { key: string };
+      return p.key;
+    }
+    return null;
+  },
+
+  async verifyParentPin(pin) {
+    const res = await request('verify_parent_pin', { pin });
+    if (res.type !== 'parent_token' || !res.payload) {
+      throw new Error('Unexpected response from daemon');
+    }
+    const p = res.payload as ParentTokenPayload;
+    set({ parentToken: p.token, parentTokenExpiresAt: new Date(p.expiresAt).getTime() });
+  },
+
+  async changeParentPin(oldPin, newPin) {
+    await request('change_parent_pin', { oldPin, newPin });
+    // Invalidate any cached token from the old PIN
+    set({ parentToken: null, parentTokenExpiresAt: null });
+  },
+
+  async clearParentPin(pin) {
+    await request('clear_parent_pin', { pin });
+    set({ parentToken: null, parentTokenExpiresAt: null });
+  },
+
+  expireParentToken() {
+    set({ parentToken: null, parentTokenExpiresAt: null });
+  },
+
+  async loadParentAudit(limit = 100) {
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      const payload: Record<string, unknown> = { limit };
+      if (pt) payload.parentToken = pt;
+      const res = await request('get_parent_audit', payload);
+      if (res.payload) set({ parentAudit: res.payload as ParentAuditEntry[] });
+    });
+  },
+
+  async verifyRecoveryKey(key) {
+    await request('verify_recovery_key', { key });
+    // PIN cleared on the daemon side; reflect that locally.
+    set({ parentToken: null, parentTokenExpiresAt: null });
+  },
+
+  async regenerateRecoveryKey(pin) {
+    const res = await request('regenerate_recovery_key', { pin });
+    if (res.type !== 'recovery_key' || !res.payload) {
+      throw new Error('Unexpected response from daemon');
+    }
+    const p = res.payload as { key: string };
+    return p.key;
   },
 }));

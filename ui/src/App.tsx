@@ -10,6 +10,7 @@ import UpdateBanner from './components/UpdateBanner';
 import CommandPalette from './components/CommandPalette';
 import AchievementToast from './components/AchievementToast';
 import Aurora from './components/Aurora';
+import ParentUnlockModal from './components/ParentUnlockModal';
 import Dashboard from './pages/Dashboard';
 import BlockLists from './pages/BlockLists';
 import Profiles from './pages/Profiles';
@@ -90,6 +91,7 @@ export default function App() {
         <UpdateBanner />
         <CommandPalette />
         <AchievementToast queue={achievementQueue} onDismiss={dismissAchievement} />
+        <ParentUnlockModal />
       </div>
     </BrowserRouter>
   );

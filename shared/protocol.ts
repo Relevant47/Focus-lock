@@ -85,14 +85,34 @@ export type IpcRequest =
   | { type: "skip_break" }
   | { type: "ping" }
   | { type: "get_profiles" }
-  | { type: "save_profile"; payload: FocusProfile }
-  | { type: "delete_profile"; payload: { id: string } }
+  | { type: "save_profile"; payload: FocusProfile & ParentTokenEnvelope }
+  | { type: "delete_profile"; payload: { id: string } & ParentTokenEnvelope }
   | { type: "get_logs"; payload: { limit: number } }
   | { type: "get_schedules" }
-  | { type: "save_schedule"; payload: ScheduledSession }
-  | { type: "delete_schedule"; payload: { id: string } }
-  | { type: "request_disable_hardcore" }
-  | { type: "record_block_attempt"; payload: { domain: string | null; process: string | null; label?: string | null } };
+  | { type: "save_schedule"; payload: ScheduledSession & ParentTokenEnvelope }
+  | { type: "delete_schedule"; payload: { id: string } & ParentTokenEnvelope }
+  | { type: "request_disable_hardcore"; payload?: ParentTokenEnvelope }
+  | { type: "record_block_attempt"; payload: { domain: string | null; process: string | null; label?: string | null } }
+  | { type: "set_parent_pin"; payload: SetParentPinPayload }
+  | { type: "verify_parent_pin"; payload: { pin: string } }
+  | { type: "change_parent_pin"; payload: { oldPin: string; newPin: string } }
+  | { type: "clear_parent_pin"; payload: { pin: string } }
+  | { type: "verify_recovery_key"; payload: { key: string } }
+  | { type: "regenerate_recovery_key"; payload: { pin: string } & ParentTokenEnvelope }
+  | { type: "get_parent_audit"; payload?: { limit?: number } & ParentTokenEnvelope };
+
+/// Sensitive commands accept an optional grace token from a recent verify_parent_pin.
+/// When a parent PIN is configured, the daemon rejects gated commands without a valid token.
+export interface ParentTokenEnvelope {
+  parentToken?: string;
+}
+
+export interface SetParentPinPayload {
+  /// New PIN (UI enforces min length; daemon does not).
+  pin: string;
+  /// When changing or clearing, prove the old PIN. Required if a PIN is already set.
+  oldPin?: string;
+}
 
 export interface StartSessionPayload {
   profileId: string | null;
@@ -120,7 +140,39 @@ export type IpcResponse =
   | { type: "profiles"; payload: FocusProfile[] }
   | { type: "logs"; payload: SessionLog[] }
   | { type: "schedules"; payload: ScheduledSession[] }
-  | { type: "error"; message: string };
+  | { type: "parent_token"; payload: ParentTokenResponse }
+  | { type: "parent_audit"; payload: ParentAuditEntry[] }
+  | { type: "recovery_key"; payload: { key: string } }
+  | { type: "ok_with_recovery_key"; payload: { key: string } }
+  | { type: "error"; message: string; code?: ErrorCode };
+
+export interface ParentAuditEntry {
+  timestamp: string;  // ISO 8601
+  event: ParentAuditEventType;
+  command?: string | null;
+  detail?: string | null;
+}
+
+export type ParentAuditEventType =
+  | "pin_set"
+  | "pin_changed"
+  | "pin_cleared"
+  | "pin_verify_success"
+  | "pin_verify_fail"
+  | "pin_verify_rate_limited"
+  | "gate_blocked"
+  | "gate_allowed";
+
+export type ErrorCode =
+  | "parent_lock_required"   // gated command attempted without valid parent token
+  | "parent_pin_invalid"     // wrong PIN supplied to verify/change/clear
+  | "parent_rate_limited"    // too many failed PIN attempts
+  | "recovery_key_invalid";  // wrong recovery key supplied
+
+export interface ParentTokenResponse {
+  token: string;
+  expiresAt: string;  // ISO 8601 — UI should re-prompt after this
+}
 
 export interface DaemonStatus {
   version: string;
@@ -136,6 +188,18 @@ export interface DaemonStatus {
   hardcoreCooldownUntil: string | null;
   currentStreak: number;
   lastFocusScore: number | null;
+  parentControls: ParentControlsState;
+}
+
+export interface ParentControlsState {
+  /// True when a parent PIN is configured; gated commands require a valid parentToken.
+  enabled: boolean;
+  /// True when verify_parent_pin is currently rate-limited.
+  rateLimited: boolean;
+  /// Seconds until the next verify attempt is allowed (null when not rate-limited).
+  retryAfterSeconds: number | null;
+  /// Grace tokens are HMAC'd by the daemon and expire after this many minutes.
+  graceMinutes: number;
 }
 
 // ── Built-in category domain lists ───────────────────────────────────────────

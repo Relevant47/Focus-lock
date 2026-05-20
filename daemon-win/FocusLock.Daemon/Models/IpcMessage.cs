@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FocusLock.Daemon.Services;
 
 namespace FocusLock.Daemon.Models;
 
@@ -37,6 +38,60 @@ public sealed class RecordBlockAttemptPayload
 public sealed class StopSessionPayload
 {
     public string? UnlockToken { get; set; }
+    public string? ParentToken { get; set; }
+}
+
+// ── Parental Controls ───────────────────────────────────────────────────────
+
+public sealed class SetParentPinPayload
+{
+    public string Pin { get; set; } = string.Empty;
+    public string? OldPin { get; set; }
+}
+
+public sealed class VerifyRecoveryKeyPayload
+{
+    public string Key { get; set; } = string.Empty;
+}
+
+public sealed class RegenerateRecoveryKeyPayload
+{
+    public string Pin { get; set; } = string.Empty;
+}
+
+public sealed class RecoveryKeyResponsePayload
+{
+    public string Key { get; set; } = string.Empty;
+}
+
+public sealed class VerifyParentPinPayload
+{
+    public string Pin { get; set; } = string.Empty;
+}
+
+public sealed class ChangeParentPinPayload
+{
+    public string OldPin { get; set; } = string.Empty;
+    public string NewPin { get; set; } = string.Empty;
+}
+
+public sealed class ClearParentPinPayload
+{
+    public string Pin { get; set; } = string.Empty;
+}
+
+public sealed class ParentTokenResponsePayload
+{
+    public string Token { get; set; } = string.Empty;
+    public string ExpiresAt { get; set; } = string.Empty;
+}
+
+public sealed class ParentControlsState
+{
+    public bool Enabled { get; set; }
+    public bool RateLimited { get; set; }
+    public double? RetryAfterSeconds { get; set; }
+    public int GraceMinutes { get; set; }
 }
 
 // ── Responses ────────────────────────────────────────────────────────────────
@@ -52,13 +107,22 @@ public sealed class IpcResponse
     [JsonPropertyName("message")]
     public string? Message { get; set; }
 
+    [JsonPropertyName("code")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Code { get; set; }
+
     public static IpcResponse Ok() => new() { Type = "ok" };
     public static IpcResponse Pong() => new() { Type = "pong" };
     public static IpcResponse Error(string msg) => new() { Type = "error", Message = msg };
+    public static IpcResponse Error(string msg, string code) => new() { Type = "error", Message = msg, Code = code };
     public static IpcResponse Status(DaemonStatus s) => new() { Type = "status", Payload = s };
     public static IpcResponse Profiles(IEnumerable<FocusProfile> p) => new() { Type = "profiles", Payload = p };
     public static IpcResponse Logs(IEnumerable<SessionLog> l) => new() { Type = "logs", Payload = l };
     public static IpcResponse Schedules(IEnumerable<ScheduledSession> s) => new() { Type = "schedules", Payload = s };
+    public static IpcResponse ParentToken(ParentTokenResponsePayload p) => new() { Type = "parent_token", Payload = p };
+    public static IpcResponse ParentAudit(IEnumerable<ParentAuditEntry> entries) => new() { Type = "parent_audit", Payload = entries };
+    public static IpcResponse RecoveryKey(string key) => new() { Type = "recovery_key", Payload = new RecoveryKeyResponsePayload { Key = key } };
+    public static IpcResponse OkWithRecoveryKey(string key) => new() { Type = "ok_with_recovery_key", Payload = new RecoveryKeyResponsePayload { Key = key } };
 }
 
 public sealed class DaemonStatus
@@ -76,4 +140,5 @@ public sealed class DaemonStatus
     public string? HardcoreCooldownUntil { get; set; }
     public int CurrentStreak { get; set; }
     public int? LastFocusScore { get; set; }
+    public ParentControlsState ParentControls { get; set; } = new();
 }

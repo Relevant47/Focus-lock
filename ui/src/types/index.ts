@@ -8,6 +8,8 @@ export type {
   StartSessionPayload,
   StopSessionPayload,
   DaemonStatus,
+  ParentAuditEntry,
+  ParentAuditEventType,
 } from '@shared/protocol';
 
 export { CATEGORY_DOMAINS } from '@shared/protocol';

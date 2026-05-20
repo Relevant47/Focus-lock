@@ -92,6 +92,51 @@ struct RecordBlockAttemptPayload: Codable {
 
 struct StopSessionPayload: Codable {
     var unlockToken: String?
+    var parentToken: String?
+}
+
+// ── Parental controls ─────────────────────────────────────────────────────────
+
+struct SetParentPinPayload: Codable {
+    var pin: String
+    var oldPin: String?
+}
+
+struct VerifyRecoveryKeyPayload: Codable {
+    var key: String
+}
+
+struct RegenerateRecoveryKeyPayload: Codable {
+    var pin: String
+}
+
+struct RecoveryKeyResponsePayload: Codable {
+    var key: String
+}
+
+struct VerifyParentPinPayload: Codable {
+    var pin: String
+}
+
+struct ChangeParentPinPayload: Codable {
+    var oldPin: String
+    var newPin: String
+}
+
+struct ClearParentPinPayload: Codable {
+    var pin: String
+}
+
+struct ParentTokenResponsePayload: Codable {
+    var token: String
+    var expiresAt: String
+}
+
+struct ParentControlsState: Codable {
+    var enabled: Bool
+    var rateLimited: Bool
+    var retryAfterSeconds: Double?
+    var graceMinutes: Int
 }
 
 struct DaemonStatus: Codable {
@@ -108,16 +153,19 @@ struct DaemonStatus: Codable {
     var hardcoreCooldownUntil: String?
     var currentStreak: Int
     var lastFocusScore: Int?
+    var parentControls: ParentControlsState = ParentControlsState(enabled: false, rateLimited: false, retryAfterSeconds: nil, graceMinutes: 5)
 }
 
 struct IpcResponse: Codable {
     var type: String
     var payload: AnyCodable?
     var message: String?
+    var code: String?
 
     static func ok() -> IpcResponse { IpcResponse(type: "ok") }
     static func pong() -> IpcResponse { IpcResponse(type: "pong") }
     static func error(_ msg: String) -> IpcResponse { IpcResponse(type: "error", message: msg) }
+    static func error(_ msg: String, code: String) -> IpcResponse { IpcResponse(type: "error", message: msg, code: code) }
     static func status(_ s: DaemonStatus) -> IpcResponse {
         IpcResponse(type: "status", payload: AnyCodable(s))
     }
@@ -130,6 +178,26 @@ struct IpcResponse: Codable {
     static func schedules(_ s: [ScheduledSession]) -> IpcResponse {
         IpcResponse(type: "schedules", payload: AnyCodable(s))
     }
+    static func parentToken(_ p: ParentTokenResponsePayload) -> IpcResponse {
+        IpcResponse(type: "parent_token", payload: AnyCodable(p))
+    }
+    static func parentAudit(_ entries: [ParentAuditEntry]) -> IpcResponse {
+        IpcResponse(type: "parent_audit", payload: AnyCodable(entries))
+    }
+    static func recoveryKey(_ key: String) -> IpcResponse {
+        IpcResponse(type: "recovery_key", payload: AnyCodable(RecoveryKeyResponsePayload(key: key)))
+    }
+    static func okWithRecoveryKey(_ key: String) -> IpcResponse {
+        IpcResponse(type: "ok_with_recovery_key", payload: AnyCodable(RecoveryKeyResponsePayload(key: key)))
+    }
+}
+
+// Wire-level error codes matching the C# daemon and shared/protocol.ts.
+enum ParentErrorCode {
+    static let lockRequired      = "parent_lock_required"
+    static let pinInvalid        = "parent_pin_invalid"
+    static let rateLimited       = "parent_rate_limited"
+    static let recoveryKeyInvalid = "recovery_key_invalid"
 }
 
 // ── AnyCodable helper for heterogeneous payloads ──────────────────────────────

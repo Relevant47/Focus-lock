@@ -13,6 +13,8 @@ builder.Services.AddSingleton<HostsFileService>();
 builder.Services.AddSingleton<ProcessKillService>();
 builder.Services.AddSingleton<ProfileService>();
 builder.Services.AddSingleton<ScheduleService>();
+builder.Services.AddSingleton<ParentAuditService>();
+builder.Services.AddSingleton<ParentService>();
 builder.Services.AddHostedService<DaemonWorker>();
 builder.Services.AddHostedService<IpcPipeService>();
 builder.Services.AddHostedService<InterceptHttpService>();

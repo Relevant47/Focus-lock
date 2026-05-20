@@ -64,11 +64,6 @@ function findAsset(assets: GitHubAsset[], platformKey: string): GitHubAsset | nu
   return assets.find(a => fragments.some(f => a.name.toLowerCase().includes(f.toLowerCase()))) ?? null;
 }
 
-function findSig(assets: GitHubAsset[], assetName: string): string {
-  const sigAsset = assets.find(a => a.name === `${assetName}.sig`);
-  return sigAsset?.browser_download_url ?? '';
-}
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url    = new URL(request.url);

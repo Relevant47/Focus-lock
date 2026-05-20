@@ -4,10 +4,12 @@ fputs("[focuslock] Daemon starting\n", stderr)
 
 let sessionSvc   = SessionService()
 let profileSvc   = ProfileService()
+let auditSvc     = ParentAuditService()
+let parentSvc    = ParentService(audit: auditSvc)
 let hostsSvc     = HostsService()
 let processKill  = ProcessKillService(session: sessionSvc)
 let scheduleSvc  = ScheduleService(profiles: profileSvc, session: sessionSvc)
-let ipcSvc       = IpcSocketService(session: sessionSvc, profiles: profileSvc)
+let ipcSvc       = IpcSocketService(session: sessionSvc, profiles: profileSvc, parent: parentSvc, audit: auditSvc)
 let interceptSvc = InterceptHttpService(session: sessionSvc, profiles: profileSvc)
 
 // Re-apply hosts file if a session was recovered from disk

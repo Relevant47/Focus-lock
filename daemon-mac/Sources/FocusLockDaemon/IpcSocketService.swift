@@ -7,6 +7,8 @@ final class IpcSocketService {
 
     private let sessionSvc: SessionService
     private let profileSvc: ProfileService
+    private let parentSvc: ParentService
+    private let auditSvc: ParentAuditService
     private var serverFd: Int32 = -1
     private var isRunning = false
 
@@ -23,9 +25,11 @@ final class IpcSocketService {
         return d
     }()
 
-    init(session: SessionService, profiles: ProfileService) {
+    init(session: SessionService, profiles: ProfileService, parent: ParentService, audit: ParentAuditService) {
         self.sessionSvc = session
         self.profileSvc = profiles
+        self.parentSvc = parent
+        self.auditSvc = audit
     }
 
     func start() {
@@ -116,23 +120,24 @@ final class IpcSocketService {
 
     private func handle(_ req: IpcRequest) -> IpcResponse {
         switch req.type {
-        case "ping":        return .pong()
-        case "get_status":  return .status(sessionSvc.getStatus())
+        case "ping":          return .pong()
+        case "get_status":    return .status(buildStatus())
         case "start_session": return handleStart(req)
         case "stop_session":  return handleStop(req)
         case "skip_break":
             let (err, ok) = sessionSvc.skipBreak()
             return ok ? .ok() : .error(err)
         case "request_disable_hardcore":
+            if let gate = gateOrNil(req) { return gate }
             let (err, ok) = sessionSvc.requestDisableHardcore()
             return ok ? .ok() : .error(err)
-        case "get_profiles":  return .profiles(profileSvc.getProfiles())
-        case "save_profile":  return handleSaveProfile(req)
-        case "delete_profile": return handleDeleteProfile(req)
-        case "get_logs":      return handleGetLogs(req)
-        case "get_schedules": return .schedules(profileSvc.getSchedules())
-        case "save_schedule": return handleSaveSchedule(req)
-        case "delete_schedule": return handleDeleteSchedule(req)
+        case "get_profiles":     return .profiles(profileSvc.getProfiles())
+        case "save_profile":     return handleSaveProfile(req)
+        case "delete_profile":   return handleDeleteProfile(req)
+        case "get_logs":         return handleGetLogs(req)
+        case "get_schedules":    return .schedules(profileSvc.getSchedules())
+        case "save_schedule":    return handleSaveSchedule(req)
+        case "delete_schedule":  return handleDeleteSchedule(req)
         case "record_block_attempt":
             if let payload: RecordBlockAttemptPayload = decode(req.payload),
                let label = payload.label?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -141,9 +146,50 @@ final class IpcSocketService {
             }
             sessionSvc.incrementBlockAttempt()
             return .ok()
+        case "set_parent_pin":    return handleSetParentPin(req)
+        case "verify_parent_pin": return handleVerifyParentPin(req)
+        case "change_parent_pin": return handleChangeParentPin(req)
+        case "clear_parent_pin":  return handleClearParentPin(req)
+        case "verify_recovery_key":      return handleVerifyRecoveryKey(req)
+        case "regenerate_recovery_key":  return handleRegenerateRecoveryKey(req)
+        case "get_parent_audit":  return handleGetParentAudit(req)
         default:
             return .error("Unknown request type: \(req.type)")
         }
+    }
+
+    // ── Status overlay ───────────────────────────────────────────────────────
+
+    private func buildStatus() -> DaemonStatus {
+        var status = sessionSvc.getStatus()
+        status.parentControls = ParentControlsState(
+            enabled: parentSvc.isEnabled,
+            rateLimited: parentSvc.isRateLimited,
+            retryAfterSeconds: parentSvc.retryAfterSeconds,
+            graceMinutes: parentSvc.graceMinutes
+        )
+        return status
+    }
+
+    // ── Parental gate ────────────────────────────────────────────────────────
+
+    /// Returns nil when the request is allowed, or an error response when blocked.
+    private func gateOrNil(_ req: IpcRequest) -> IpcResponse? {
+        guard parentSvc.isEnabled else { return nil }
+        let token = extractParentToken(req.payload)
+        if parentSvc.isAuthorized(token) {
+            // Token-authorized passage through the gate: audit it. (Implicit
+            // pass when no PIN is configured is not audited — there is no gate.)
+            auditSvc.record(ParentAuditEvents.gateAllowed, command: req.type)
+            return nil
+        }
+        auditSvc.record(ParentAuditEvents.gateBlocked, command: req.type)
+        return .error("Parent PIN required to perform this action", code: ParentErrorCode.lockRequired)
+    }
+
+    private func extractParentToken(_ value: AnyCodable?) -> String? {
+        guard let dict = value?.value as? [String: AnyCodable] else { return nil }
+        return dict["parentToken"]?.value as? String
     }
 
     private func handleStart(_ req: IpcRequest) -> IpcResponse {
@@ -155,12 +201,16 @@ final class IpcSocketService {
     }
 
     private func handleStop(_ req: IpcRequest) -> IpcResponse {
+        // Parental gate: when a parent PIN is set, stopping early requires the parent token,
+        // in addition to any friend-lock token the session already enforces.
+        if let gate = gateOrNil(req) { return gate }
         let payload: StopSessionPayload? = decode(req.payload)
         let (err, ok) = sessionSvc.stopSession(unlockToken: payload?.unlockToken)
         return ok ? .ok() : .error(err)
     }
 
     private func handleSaveProfile(_ req: IpcRequest) -> IpcResponse {
+        if let gate = gateOrNil(req) { return gate }
         guard let profile: FocusProfile = decode(req.payload) else {
             return .error("Invalid payload")
         }
@@ -169,6 +219,7 @@ final class IpcSocketService {
     }
 
     private func handleDeleteProfile(_ req: IpcRequest) -> IpcResponse {
+        if let gate = gateOrNil(req) { return gate }
         guard let id = extractId(req.payload) else { return .error("Missing id") }
         profileSvc.deleteProfile(id: id)
         return .ok()
@@ -181,6 +232,7 @@ final class IpcSocketService {
     }
 
     private func handleSaveSchedule(_ req: IpcRequest) -> IpcResponse {
+        if let gate = gateOrNil(req) { return gate }
         guard let schedule: ScheduledSession = decode(req.payload) else {
             return .error("Invalid payload")
         }
@@ -189,9 +241,94 @@ final class IpcSocketService {
     }
 
     private func handleDeleteSchedule(_ req: IpcRequest) -> IpcResponse {
+        if let gate = gateOrNil(req) { return gate }
         guard let id = extractId(req.payload) else { return .error("Missing id") }
         profileSvc.deleteSchedule(id: id)
         return .ok()
+    }
+
+    // ── Parental control handlers ────────────────────────────────────────────
+
+    private func handleSetParentPin(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: SetParentPinPayload = decode(req.payload), !payload.pin.isEmpty else {
+            return .error("Invalid payload")
+        }
+        let out = parentSvc.setPin(payload.pin, oldPin: payload.oldPin)
+        if !out.success {
+            return out.code.map { .error(out.error, code: $0) } ?? .error(out.error)
+        }
+        // On first setup, return the freshly-generated recovery key one time.
+        // On change, the existing key is preserved and the response is a plain Ok.
+        if let key = out.recoveryKey { return .okWithRecoveryKey(key) }
+        return .ok()
+    }
+
+    private func handleVerifyRecoveryKey(_ req: IpcRequest) -> IpcResponse {
+        // Intentionally ungated — recovery exists precisely for when the parent can't unlock.
+        guard let payload: VerifyRecoveryKeyPayload = decode(req.payload), !payload.key.isEmpty else {
+            return .error("Recovery key required")
+        }
+        let out = parentSvc.verifyRecoveryKey(payload.key)
+        if out.success { return .ok() }
+        return out.code.map { .error(out.error, code: $0) } ?? .error(out.error)
+    }
+
+    private func handleRegenerateRecoveryKey(_ req: IpcRequest) -> IpcResponse {
+        // Requires the current PIN (not a grace token) — the user has to re-prove they know it.
+        guard let payload: RegenerateRecoveryKeyPayload = decode(req.payload), !payload.pin.isEmpty else {
+            return .error("Current PIN required")
+        }
+        let out = parentSvc.regenerateRecoveryKey(pin: payload.pin)
+        if !out.success {
+            return out.code.map { .error(out.error, code: $0) } ?? .error(out.error)
+        }
+        return .recoveryKey(out.recoveryKey ?? "")
+    }
+
+    private func handleVerifyParentPin(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: VerifyParentPinPayload = decode(req.payload), !payload.pin.isEmpty else {
+            return .error("Invalid payload")
+        }
+        let out = parentSvc.verifyPin(payload.pin)
+        if let token = out.token, let expiresAt = out.expiresAt {
+            return .parentToken(ParentTokenResponsePayload(
+                token: token,
+                expiresAt: ISO8601DateFormatter().string(from: expiresAt)
+            ))
+        }
+        return out.code.map { .error(out.error, code: $0) } ?? .error(out.error)
+    }
+
+    private func handleChangeParentPin(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: ChangeParentPinPayload = decode(req.payload), !payload.newPin.isEmpty else {
+            return .error("Invalid payload")
+        }
+        let out = parentSvc.setPin(payload.newPin, oldPin: payload.oldPin)
+        if out.success { return .ok() }
+        return out.code.map { .error(out.error, code: $0) } ?? .error(out.error)
+    }
+
+    private func handleClearParentPin(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: ClearParentPinPayload = decode(req.payload), !payload.pin.isEmpty else {
+            return .error("Invalid payload")
+        }
+        let out = parentSvc.clearPin(payload.pin)
+        if out.success { return .ok() }
+        return out.code.map { .error(out.error, code: $0) } ?? .error(out.error)
+    }
+
+    private func handleGetParentAudit(_ req: IpcRequest) -> IpcResponse {
+        // Gate the audit read when a PIN is configured — otherwise a child could
+        // read their own attempt history without authorization. When no PIN is set
+        // there is nothing privileged to protect, so allow open reads.
+        if let gate = gateOrNil(req) { return gate }
+
+        var limit = 100
+        if let dict = req.payload?.value as? [String: AnyCodable],
+           let l = dict["limit"]?.value as? Int {
+            limit = l
+        }
+        return .parentAudit(auditSvc.recent(limit: limit))
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
