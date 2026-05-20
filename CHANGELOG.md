@@ -2,6 +2,11 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.25] — 2026-05-20
+
+### Added
+- **Parental controls.** Set a 4-digit PIN in Settings → Parent controls to lock down profile editing, block lists, and other settings behind it. Any settings change now prompts for the PIN. A 16-character recovery key is shown once when you set the PIN — save it somewhere safe, because it's the only way to clear the PIN if you forget it. Every PIN action (set, unlock, failed attempt, recovery-key reset) is written to a tamper-evident audit log. The same logic ships in both the Windows C# daemon and the Swift macOS daemon, so the lock holds whether you swap machines or remove the app.
+
 ## [1.0.24] — 2026-05-19
 
 ### Fixed

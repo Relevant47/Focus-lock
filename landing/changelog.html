@@ -227,6 +227,23 @@
 
   <div class="timeline" id="timeline">
 
+    <!-- ───── 2026-05-20 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 20, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.0.25</span>
+      </div>
+      <div class="entry-body">
+        <h2>Parental controls — lock settings behind a PIN</h2>
+        <ul>
+          <li>You can now set a 4-digit PIN in <em>Settings → Parent controls</em> that gates every settings change behind it — profile edits, block list changes, removing a block — all prompt for the PIN before they apply. Useful if you want to set up FocusLock for someone else (a kid, yourself-in-the-past, a study group) and prevent the obvious workaround of just turning it off when willpower fails.</li>
+          <li>A 16-character recovery key is shown once when you set the PIN — save it somewhere safe. It's the only way to clear the PIN if you forget it. Every PIN action (set, unlock, failed attempt, recovery-key reset) goes into a local audit log you can review later.</li>
+          <li>Same logic ships on Windows and macOS, enforced inside the background daemon — so the lock isn't a UI sticker you can bypass by editing a file.</li>
+        </ul>
+      </div>
+    </article>
+
     <!-- ───── 2026-05-19 ───── -->
     <article class="entry" data-type="web">
       <div class="entry-meta">
