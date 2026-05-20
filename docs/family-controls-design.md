@@ -112,7 +112,7 @@ You're already on Cloudflare for the updater worker. Sticking with it means:
 
 **2FA on parent account:** TOTP (Google Authenticator etc.) — Phase 3+. Important because compromised parent account = kid unlocks everything.
 
-**Recovery:** Email-only password reset. A 24h delay on password reset before it takes effect — slows down an attack where a kid gets into parent email briefly. The delay is a known Apple Family Sharing pattern.
+**Recovery:** Email-only password reset, **instant** (no delay). *Trade-off accepted:* a kid who briefly gets parent-email access can reset the password and sign in. The simpler flow won over the 24h Apple-Family-Sharing-style delay — revisit if we see this abused in beta.
 
 ---
 
@@ -254,19 +254,22 @@ After Phase 2.5 ships as 1.1.0:
 
 ---
 
-## Open questions for product decisions
+## Product decisions (locked 2026-05-21)
 
-These need decisions before code starts:
+1. **Pricing — free in beta, paid after Phase 2.5.** ~$5/mo per family for the hosted cloud. Single-device FocusLock stays free forever. Self-hosters (running their own server) stay free forever too.
 
-1. **Free or paid?** Cross-device + cloud sync has real ongoing cost. Options: (a) free with usage limits, (b) paid (e.g. $5/mo per family), (c) free for open-source self-hosters, paid for managed cloud. **Recommendation:** start free in beta; introduce paid after Phase 2.5. The free FocusLock single-device app stays free forever.
+2. **Server code — open-source, same GPL-3.0 repo.** Backend lives under `server/` or `family-server/`. Anyone can audit, anyone can self-host. Consistent with FocusLock's threat model ("friction, not hiding code") and OSS values.
 
-2. **OSS the server?** The current FocusLock is GPL-3.0. Should the cloud backend code be open too? Open = anyone can self-host, can audit, aligns with FocusLock values. Closed = harder for bad actors to find vulnerabilities. **Recommendation:** open-source it. The threat model isn't "hide the code" — it's "make bypass enough friction that a real kid gives up."
+3. **Non-admin child account — mandatory, with auto-setup where possible.** Windows: parent onboarding calls `New-LocalUser` + `Remove-LocalGroupMember -Group Administrators` via elevated PowerShell to create the child account in one UAC prompt. Mac: walk parent through System Settings → Users with screenshots (no clean automation path on Mac since the relevant flows are GUI-only). Hard gate — parent cannot complete onboarding until a non-admin child account exists on the child device.
 
-3. **Are we OK with the "non-admin account is mandatory" gate?** It's a real adoption barrier. Many parents don't know how to set up child accounts. Mitigation: in-app walkthrough that does it for them on Windows (we can call `New-LocalUser` via PowerShell with elevation). On Mac, walk them through System Settings → Users.
+4. **Password recovery — email reset, instant** (no 24h delay). *Trade-off:* if a kid briefly gets parent-email access, they can reset and sign in. Document this as a known limitation in beta. Revisit if abuse pattern emerges.
 
-4. **Account portability:** if a family moves off FocusLock, can they export their settings? GDPR/privacy regulation likely requires yes. Plan: "Export family data" button → JSON dump, "Delete account" button → cascading deletion across D1.
+5. **Mobile parent app — deferred to Phase 3+.** 1.1.0 ships desktop-only: parent controls family from their own laptop. Mobile is a real second product on top of the first — worth doing later, not in v1. Web-responsive parent UI may still happen organically (since the parent UI is React in a Tauri webview — same React code can theoretically also be served from the worker for browser access).
 
-5. **What if the parent forgets their password AND has no email access?** No recovery beyond email reset. We don't hold any backdoor to anyone's account — period. Document this clearly during signup.
+### Still-open operational items (not blockers for Phase 2.1)
+
+- **Account portability:** GDPR-style "Export family data" (JSON) + "Delete account" (cascading D1 deletion). Build into the backend from day one — easier to bolt in early than late.
+- **What if parent forgets password AND has no email access:** No recovery exists. We hold no backdoor. Document clearly during signup.
 
 ---
 
