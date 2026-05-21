@@ -9,6 +9,10 @@ final class IpcSocketService {
     private let profileSvc: ProfileService
     private let parentSvc: ParentService
     private let auditSvc: ParentAuditService
+    private let familySvc: FamilyService
+    private let familyEnforce: FamilyEnforcementService
+    private let cloudSync: CloudSyncService
+    private let envProbe: EnvironmentProbe
     private var serverFd: Int32 = -1
     private var isRunning = false
 
@@ -25,11 +29,18 @@ final class IpcSocketService {
         return d
     }()
 
-    init(session: SessionService, profiles: ProfileService, parent: ParentService, audit: ParentAuditService) {
+    init(session: SessionService, profiles: ProfileService, parent: ParentService,
+         audit: ParentAuditService, family: FamilyService,
+         familyEnforce: FamilyEnforcementService, cloudSync: CloudSyncService,
+         envProbe: EnvironmentProbe) {
         self.sessionSvc = session
         self.profileSvc = profiles
         self.parentSvc = parent
         self.auditSvc = audit
+        self.familySvc = family
+        self.familyEnforce = familyEnforce
+        self.cloudSync = cloudSync
+        self.envProbe = envProbe
     }
 
     func start() {
@@ -153,9 +164,55 @@ final class IpcSocketService {
         case "verify_recovery_key":      return handleVerifyRecoveryKey(req)
         case "regenerate_recovery_key":  return handleRegenerateRecoveryKey(req)
         case "get_parent_audit":  return handleGetParentAudit(req)
+        case "family_redeem_code":         return handleFamilyRedeem(req)
+        case "family_unpair":              return handleFamilyUnpair(req)
+        case "family_get_status":          return .familyStatus(buildFamilyStatus())
+        case "family_check_environment":   return .familyEnvironment(envProbe.probe())
         default:
             return .error("Unknown request type: \(req.type)")
         }
+    }
+
+    // ── Family controls (Phase 2.3) ──────────────────────────────────────────
+
+    private func buildFamilyStatus() -> FamilyStatus {
+        let cfg = familySvc.current
+        let snap = familyEnforce.snapshot()
+        let iso = ISO8601DateFormatter()
+        return FamilyStatus(
+            paired:             cfg != nil,
+            connected:          cloudSync.connected,
+            accountId:          cfg?.accountId,
+            deviceId:           cfg?.deviceId,
+            serverUrl:          cfg?.serverUrl,
+            lastConnectedAt:    cloudSync.lastConnectedAt.map { iso.string(from: $0) },
+            lastDisconnectedAt: cloudSync.lastDisconnectedAt.map { iso.string(from: $0) },
+            lastError:          cloudSync.lastError,
+            activeRuleCount:    snap.count,
+            offlineSeconds:     cloudSync.offlineSeconds,
+            activeRules:        snap
+        )
+    }
+
+    private func handleFamilyRedeem(_ req: IpcRequest) -> IpcResponse {
+        // Pairing is gated behind the settings PIN when one is configured —
+        // a child shouldn't be able to re-pair their own device to a different
+        // parent account to escape an existing lock.
+        if let gate = gateOrNil(req) { return gate }
+        guard let payload: FamilyRedeemPayload = decode(req.payload),
+              !payload.code.isEmpty, !payload.serverUrl.isEmpty else {
+            return .error("code and serverUrl required")
+        }
+        let (err, result) = familySvc.redeem(code: payload.code, serverUrl: payload.serverUrl)
+        if let err = err { return .error(err) }
+        guard let result = result else { return .error("Pairing failed") }
+        return .familyPaired(result)
+    }
+
+    private func handleFamilyUnpair(_ req: IpcRequest) -> IpcResponse {
+        if let gate = gateOrNil(req) { return gate }
+        familySvc.clearLocal()
+        return .ok()
     }
 
     // ── Status overlay ───────────────────────────────────────────────────────
@@ -168,6 +225,7 @@ final class IpcSocketService {
             retryAfterSeconds: parentSvc.retryAfterSeconds,
             graceMinutes: parentSvc.graceMinutes
         )
+        status.family = buildFamilyStatus()
         return status
     }
 

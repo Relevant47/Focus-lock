@@ -2,6 +2,25 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [Unreleased] — Phase 2.3 + 2.4 (family controls, child-daemon hookup + anti-bypass hardening)
+
+### Added — Phase 2.3
+- **Family controls — child daemon hooked up to the cloud.** The Windows C# and macOS Swift daemons now sync with the family server: persistent WebSocket to `/api/v1/device/ws`, 60-second heartbeats carrying both wall and monotonic clocks, exponential-backoff reconnect (2s → 30s). On every reconnect the daemon pulls the current rule set via REST before re-opening the WS, so a dropped push window can't leave the cache stale. Rules are cached locally so a daemon restart re-applies the last-known state immediately.
+- **`block_now` and `unblock_all` enforcement.** When the parent pushes a `block_now` rule from their dashboard, the child daemon's enforcement loop unions the rule's target apps + domains with anything the user's own focus session is blocking, and applies the combined set via the existing hosts file + process-kill primitives. `unblock_all` acts as a kill-switch that suppresses family-side enforcement entirely (useful for "homework site got blocked at 11pm — let it through"). Family rules are enforced *outside* a focus session too — the parent isn't gated on whether the kid happened to start a focus timer.
+- **Pairing flow on the child device.** New IPC messages `family_redeem_code`, `family_unpair`, `family_get_status`. Redeeming a 6-digit pairing code POSTs to `/api/v1/family/pair/redeem`, persists the returned device token under `ProgramData\FocusLock\family.json` (Windows, ACL: SYSTEM + Administrators only) or `/Library/Application Support/FocusLock/family.json` (macOS, mode 0600) — both unreadable from a non-admin child user account. Pairing-code redemption is gated behind the existing settings PIN when one is configured, so a child can't re-pair their own device to a different parent account to escape an existing lock.
+
+### Added — Phase 2.4 (anti-bypass hardening)
+- **HMAC-signed family caches.** Both `family.json` (device token + parent-account binding) and `family-rules.json` (cached cloud rules) now ship with a `.sig` sidecar — a hex HMAC-SHA256 computed against the same `daemon.key` SessionService uses. Any tampered cache fails verification at load time and is discarded: the device falls back to "unpaired" or "no rules" rather than honouring the edit. The new `IntegritySigner` (C#) / `IntegritySigner.swift` is reusable for any future signed file.
+- **Schedule-rule cron enforcement.** A minimal 5-field cron parser (`*`, `N`, `N-M`, `N,M,O`, `*/N`) evaluates each `schedule` rule against the device's local time on every enforcement tick. Matching rules contribute to the same hosts/process union as `block_now`, so scheduled blocks land within one second of a minute boundary. Cross-midnight windows (e.g. weekday 9pm–6am) are not auto-expressible in a single cron; users compose two rules — documented in the design doc.
+- **Offline tracking + audit.** `FamilyStatus.offlineSeconds` is now surfaced through `family_get_status`. When the WebSocket has been disconnected for >5 minutes, the daemon writes a one-shot `family_offline_5min` event to the parent audit log; a matching `family_reconnected` event lands when the link comes back. Outage detection runs on the reconnect loop so the alert is delivered within ~30 seconds of crossing the threshold. Pair/unpair are audited too (`family_paired` / `family_unpaired`).
+- **Windows Safe Mode registration.** A `SafeModeRegistration` hosted service writes `HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\{Minimal,Network}\FocusLock = "Service"` at daemon startup so the service starts when the user reboots into Safe Mode — without it, holding Shift while clicking Restart was a one-click bypass. Best-effort: failures are logged and the daemon keeps running.
+- **`family_check_environment` IPC.** Returns a small `FamilyEnvironment` snapshot — platform, OS version, daemon-elevation status, UAC-enabled flag (Windows). The parent setup flow can use this to surface "this account is administrator — set up a non-admin child account first" before pairing.
+
+### Notes
+- **No client UI for entering the pairing code yet.** The IPC plumbing and protocol types are in place; the child-side "Enter pairing code from parent" screen is a separate UI task. Same for the `FamilyEnvironment` UI surface.
+- **Offline lockdown is "honour the cache + audit" only.** Aggressive deny-all-with-allowlist via Windows Firewall / pfctl was deferred — the daemon-only path is enough to make offline a non-bypass (cached `block_now` and matching `schedule` rules keep enforcing) and the firewall layer carries enough cross-platform / fail-closed risk to warrant its own phase.
+- **Installer hardening (admin-protected uninstall via NSIS/WiX) is still open.** Daemon side is ready — the Safe Mode key is written; the cache+config files are signed; the env-probe IPC exists — but the actual NSIS/WiX uninstall gate still needs to be wired up next time we cut a release.
+
 ## [1.0.27] — 2026-05-21
 
 ### Added

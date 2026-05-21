@@ -212,32 +212,36 @@ Parent dashboard shows for each child device:
 
 ## Phased build plan
 
-**Phase 2.1 — Cloud backend MVP** (~1 week)
+**Phase 2.1 — Cloud backend MVP** ✅ shipped 2026-05-21
 - D1 schema: accounts, devices, lock_rules, audit_log
 - Worker endpoints: signup, login, refresh, pair, list-devices, set-rule, get-rules
 - Durable Objects: 1 DO per device, holds WS connection
 - Auth middleware
-- *No UI yet.* Curl-testable backend.
 
-**Phase 2.2 — Parent dashboard** (~1 week)
-- New "Family" tab in FocusLock UI (parent device)
-- Login + signup flow (Tauri webview can do this — it's just HTTPS)
+**Phase 2.2 — Parent dashboard** ✅ shipped 2026-05-21
+- "Family" tab in FocusLock UI gated behind `VITE_FAMILY_API_URL`
+- Login + signup flow
 - Device list, pairing-code generation
-- "Block X on Sam's device now" button
-- Live device state (via WS from cloud)
+- Per-device block-now form + active rules + unpair
+- Live device state (online dot polled every 30s)
 
-**Phase 2.3 — Child daemon hook-up** (~1 week)
-- Child daemon adds: cloud-sync service (WS + heartbeat)
-- Lock rules from cloud merge with local rules (parent rules take precedence)
-- Pairing code entry flow on child device
-- Offline cache + recovery
+**Phase 2.3 — Child daemon hook-up** ✅ shipped 2026-05-21
+- Cloud-sync service on both daemons: WebSocket to `/api/v1/device/ws`, 60-second heartbeats (wall + monotonic), exponential reconnect (2s → 30s)
+- REST snapshot pull on every reconnect so a dropped push window can't leave the cache stale
+- `block_now` and `unblock_all` enforcement — rules unioned with active session blocks, applied via existing hosts file + process-kill primitives, enforced outside a session too
+- Local rule cache (`family-rules.json`) survives daemon restarts
+- IPC: `family_redeem_code`, `family_unpair`, `family_get_status`; redeem gated behind settings PIN when configured
+- Device token + server URL persisted under ProgramData ACL (Win) / mode 0600 (mac)
+- **Deferred to 2.4:** schedule-rule enforcement (cached but not yet acted on), HMAC signing of the family cache, the offline precautionary lockdown
+- **Still open:** child-side UI for entering the pairing code — IPC and shared/protocol.ts types are in place, the screen itself is a separate task
 
-**Phase 2.4 — Anti-bypass hardening** (~1 week)
-- Monotonic clock everywhere
-- Safe Mode registration on Windows
-- Admin-protected uninstall
-- HMAC signing of cloud-sync state
-- Non-admin-account detection + warning in parent setup flow
+**Phase 2.4 — Anti-bypass hardening** ✅ daemon-side shipped 2026-05-21
+- Schedule-rule cron evaluation: minimal 5-field parser, evaluated each tick in local time, matching rules contribute to the same union as `block_now`
+- Safe Mode registration on Windows: `HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\{Minimal,Network}\FocusLock` written at daemon startup
+- HMAC signing of `family-rules.json` + `family.json` via a new `IntegritySigner` that reuses `daemon.key`; tampered files fail verify-on-load and are discarded
+- Offline tracking + audit: `FamilyStatus.offlineSeconds`, one-shot `family_offline_5min` / `family_reconnected` audit events, pair/unpair audited too
+- `family_check_environment` IPC: platform, OS version, daemon-elevation status, UAC-enabled flag
+- **Carried over to 2.5:** admin-protected uninstall (needs NSIS/WiX edits — installer-side, not daemon); firewall-level offline lockdown (cross-platform deny-all-except-allowlist via netsh/pfctl, deferred as own phase); per-user admin-account enumeration in the env-probe
 
 **Phase 2.5 — Polish + beta** (~1 week)
 - Onboarding walkthroughs for parent and child sides

@@ -2,33 +2,65 @@ import Foundation
 
 fputs("[focuslock] Daemon starting\n", stderr)
 
-let sessionSvc   = SessionService()
-let profileSvc   = ProfileService()
-let auditSvc     = ParentAuditService()
-let parentSvc    = ParentService(audit: auditSvc)
-let hostsSvc     = HostsService()
-let processKill  = ProcessKillService(session: sessionSvc)
-let scheduleSvc  = ScheduleService(profiles: profileSvc, session: sessionSvc)
-let ipcSvc       = IpcSocketService(session: sessionSvc, profiles: profileSvc, parent: parentSvc, audit: auditSvc)
-let interceptSvc = InterceptHttpService(session: sessionSvc, profiles: profileSvc)
-
-// Re-apply hosts file if a session was recovered from disk
-if sessionSvc.isActive, let active = sessionSvc.active {
-    hostsSvc.apply(active)
-    fputs("[focuslock] Resumed active session, hosts file applied\n", stderr)
-} else {
-    hostsSvc.remove()
-}
+let sessionSvc       = SessionService()
+let profileSvc       = ProfileService()
+let auditSvc         = ParentAuditService()
+let parentSvc        = ParentService(audit: auditSvc)
+let signer           = IntegritySigner()
+let envProbe         = EnvironmentProbe()
+let familySvc        = FamilyService(signer: signer, audit: auditSvc)
+let familyEnforce    = FamilyEnforcementService(signer: signer)
+let cloudSync        = CloudSyncService(family: familySvc, enforce: familyEnforce, audit: auditSvc)
+let hostsSvc         = HostsService()
+let processKill      = ProcessKillService(session: sessionSvc, family: familyEnforce)
+let scheduleSvc      = ScheduleService(profiles: profileSvc, session: sessionSvc)
+let ipcSvc           = IpcSocketService(
+    session: sessionSvc, profiles: profileSvc, parent: parentSvc, audit: auditSvc,
+    family: familySvc, familyEnforce: familyEnforce, cloudSync: cloudSync,
+    envProbe: envProbe)
+let interceptSvc     = InterceptHttpService(session: sessionSvc, profiles: profileSvc)
 
 ipcSvc.start()
 interceptSvc.start()
+cloudSync.start()
 
 // ── Main tick loop ────────────────────────────────────────────────────────────
 
 var tickCount = 0
-var wasActive = sessionSvc.isActive
-var lastAppliedSessionId: String? = sessionSvc.active?.sessionId
-var hostsCurrentlyLifted = false
+var hostsApplied = false
+var lastFingerprint = ""
+
+func applyEnforcement(force: Bool) {
+    let session = sessionSvc.active
+    let sessionLive = sessionSvc.isActive && session != nil
+    let lift = sessionSvc.shouldLiftBlocksDuringBreak
+
+    let sessionDomains: [String] = (sessionLive && !lift) ? (session?.blockedDomains ?? []) : []
+    let sessionAllow:   [String] = sessionLive ? (session?.allowlistedDomains ?? []) : []
+    let (familyDomains, _) = familyEnforce.union()
+
+    var union = Set<String>()
+    for d in sessionDomains { union.insert(d) }
+    for d in familyDomains  { union.insert(d) }
+
+    if union.isEmpty {
+        if hostsApplied {
+            hostsSvc.remove()
+            hostsApplied = false
+            lastFingerprint = ""
+        }
+        return
+    }
+
+    let fp = union.sorted().joined(separator: ",") + "|" + sessionAllow.sorted().joined(separator: ",")
+    if !force && fp == lastFingerprint && hostsApplied { return }
+
+    hostsSvc.apply(blocked: Array(union), allowed: sessionAllow)
+    hostsApplied = true
+    lastFingerprint = fp
+}
+
+applyEnforcement(force: true)
 
 while true {
     Thread.sleep(forTimeInterval: 1.0)
@@ -36,36 +68,13 @@ while true {
 
     sessionSvc.tick()
 
-    let isActive = sessionSvc.isActive
+    // Re-enforce every 30s regardless to overwrite manual hosts edits.
+    applyEnforcement(force: tickCount % 30 == 0)
 
-    if isActive, let active = sessionSvc.active {
-        let sid = active.sessionId
-        let shouldLift = sessionSvc.shouldLiftBlocksDuringBreak
-
-        if shouldLift {
-            if !hostsCurrentlyLifted {
-                hostsSvc.remove()
-                hostsCurrentlyLifted = true
-                fputs("[pomodoro] Break — blocks lifted\n", stderr)
-            }
-            // Don't kill processes during break
-        } else {
-            if hostsCurrentlyLifted || sid != lastAppliedSessionId || tickCount % 30 == 0 {
-                hostsSvc.apply(active)
-                lastAppliedSessionId = sid
-                hostsCurrentlyLifted = false
-            }
-            if tickCount % 2 == 0 {
-                processKill.poll()
-            }
-        }
-
-        wasActive = true
-    } else if wasActive && !isActive {
-        hostsSvc.remove()
-        lastAppliedSessionId = nil
-        wasActive = false
-        hostsCurrentlyLifted = false
+    let sessionWorking = sessionSvc.isActive && !sessionSvc.shouldLiftBlocksDuringBreak
+    let familyHas = familyEnforce.hasActiveBlocks
+    if (sessionWorking || familyHas) && tickCount % 2 == 0 {
+        processKill.poll()
     }
 
     if tickCount % 60 == 0 {

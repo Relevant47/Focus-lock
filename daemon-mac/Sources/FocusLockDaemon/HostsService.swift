@@ -7,7 +7,13 @@ final class HostsService {
     private static let markerEnd   = "# ── FocusLock END ──"
 
     func apply(_ session: SessionState) {
-        let domains = expandDomains(blocked: session.blockedDomains, allowed: session.allowlistedDomains)
+        apply(blocked: session.blockedDomains, allowed: session.allowlistedDomains)
+    }
+
+    /// Direct-list entry point used by the worker when blocks come from a
+    /// union of sources (e.g. local session + cloud family rules).
+    func apply(blocked: [String], allowed: [String]) {
+        let domains = expandDomains(blocked: blocked, allowed: allowed)
         writeBlock(domains)
         flushDns()
     }

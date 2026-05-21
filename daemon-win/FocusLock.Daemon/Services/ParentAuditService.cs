@@ -123,4 +123,8 @@ public static class ParentAuditEvents
     public const string PinVerifyRateLimit  = "pin_verify_rate_limited";
     public const string GateBlocked         = "gate_blocked";
     public const string GateAllowed         = "gate_allowed";
+    public const string FamilyPaired        = "family_paired";
+    public const string FamilyUnpaired      = "family_unpaired";
+    public const string FamilyOffline5Min   = "family_offline_5min";
+    public const string FamilyReconnected   = "family_reconnected";
 }

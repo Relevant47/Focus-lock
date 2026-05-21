@@ -4,22 +4,30 @@ import Foundation
 /// active session's blocked process list.
 final class ProcessKillService {
     private let session: SessionService
+    private let family: FamilyEnforcementService
 
-    init(session: SessionService) {
+    init(session: SessionService, family: FamilyEnforcementService) {
         self.session = session
+        self.family = family
     }
 
     func poll() {
-        guard let state = session.active, state.isActive,
-              !state.blockedProcesses.isEmpty else { return }
+        let sessionProcs = (session.active?.isActive == true)
+            ? (session.active?.blockedProcesses ?? [])
+            : []
+        let (_, familyProcs) = family.union()
+
+        if sessionProcs.isEmpty && familyProcs.isEmpty { return }
+
+        let unionProcs = sessionProcs + familyProcs
 
         let blockedNames = Set(
-            state.blockedProcesses.map {
+            unionProcs.map {
                 URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent.lowercased()
             }
         )
         let blockedPaths = Set(
-            state.blockedProcesses
+            unionProcs
                 .filter { $0.contains("/") }
                 .map { $0.lowercased() }
         )

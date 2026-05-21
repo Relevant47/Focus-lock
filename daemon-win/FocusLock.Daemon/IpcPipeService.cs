@@ -22,6 +22,10 @@ public sealed class IpcPipeService : BackgroundService
     private readonly ProfileService _profiles;
     private readonly ParentService _parent;
     private readonly ParentAuditService _audit;
+    private readonly FamilyService _family;
+    private readonly FamilyEnforcementService _familyEnforce;
+    private readonly CloudSyncService _cloudSync;
+    private readonly EnvironmentProbe _envProbe;
     private readonly ILogger<IpcPipeService> _log;
 
     public IpcPipeService(
@@ -29,12 +33,20 @@ public sealed class IpcPipeService : BackgroundService
         ProfileService profiles,
         ParentService parent,
         ParentAuditService audit,
+        FamilyService family,
+        FamilyEnforcementService familyEnforce,
+        CloudSyncService cloudSync,
+        EnvironmentProbe envProbe,
         ILogger<IpcPipeService> log)
     {
         _session = session;
         _profiles = profiles;
         _parent = parent;
         _audit = audit;
+        _family = family;
+        _familyEnforce = familyEnforce;
+        _cloudSync = cloudSync;
+        _envProbe = envProbe;
         _log = log;
     }
 
@@ -160,6 +172,10 @@ public sealed class IpcPipeService : BackgroundService
                 "verify_recovery_key"      => HandleVerifyRecoveryKey(req),
                 "regenerate_recovery_key"  => HandleRegenerateRecoveryKey(req),
                 "get_parent_audit"         => HandleGetParentAudit(req),
+                "family_redeem_code"       => HandleFamilyRedeem(req).GetAwaiter().GetResult(),
+                "family_unpair"            => HandleFamilyUnpair(req),
+                "family_get_status"        => IpcResponse.FamilyStatus(BuildFamilyStatus()),
+                "family_check_environment" => IpcResponse.FamilyEnvironment(_envProbe.Probe()),
                 _ => IpcResponse.Error($"Unknown request type: {req.Type}"),
             };
         }
@@ -182,7 +198,28 @@ public sealed class IpcPipeService : BackgroundService
             RetryAfterSeconds = _parent.RetryAfterSeconds,
             GraceMinutes = _parent.GraceMinutes,
         };
+        status.Family = BuildFamilyStatus();
         return status;
+    }
+
+    private FamilyStatus BuildFamilyStatus()
+    {
+        var cfg = _family.Current;
+        var snapshot = _familyEnforce.Snapshot();
+        return new FamilyStatus
+        {
+            Paired              = cfg != null,
+            Connected           = _cloudSync.Connected,
+            AccountId           = cfg?.AccountId,
+            DeviceId            = cfg?.DeviceId,
+            ServerUrl           = cfg?.ServerUrl,
+            LastConnectedAt     = _cloudSync.LastConnectedAt?.ToString("O"),
+            LastDisconnectedAt  = _cloudSync.LastDisconnectedAt?.ToString("O"),
+            LastError           = _cloudSync.LastError,
+            ActiveRuleCount     = snapshot.Count,
+            OfflineSeconds      = _cloudSync.OfflineSeconds,
+            ActiveRules         = snapshot.ToList(),
+        };
     }
 
     // ── Parental control gate ──────────────────────────────────────────────
@@ -400,6 +437,39 @@ public sealed class IpcPipeService : BackgroundService
             lv.ValueKind == JsonValueKind.Number)
             limit = lv.GetInt32();
         return IpcResponse.ParentAudit(_audit.Recent(limit));
+    }
+
+    // ── Family controls (Phase 2.3) ────────────────────────────────────────
+
+    private async Task<IpcResponse> HandleFamilyRedeem(IpcRequest req)
+    {
+        // Pairing-code redemption is gated when a settings lock is configured —
+        // otherwise the child could pair their own device to a different parent
+        // account to escape an existing lock.
+        var gate = GateOrNull(req);
+        if (gate != null) return gate;
+
+        var payload = Deserialize<FamilyRedeemPayload>(req.Payload);
+        if (payload == null || string.IsNullOrEmpty(payload.Code) || string.IsNullOrEmpty(payload.ServerUrl))
+            return IpcResponse.Error("code and serverUrl required");
+
+        var (err, result) = await _family.RedeemAsync(payload.Code, payload.ServerUrl, CancellationToken.None)
+            .ConfigureAwait(false);
+        if (err != null || result == null) return IpcResponse.Error(err ?? "Pairing failed");
+        return IpcResponse.FamilyPaired(result);
+    }
+
+    private IpcResponse HandleFamilyUnpair(IpcRequest req)
+    {
+        // Local unpair on a child device is privileged — a kid shouldn't be
+        // able to walk away from a parent's account. Gate behind the settings
+        // PIN when one is configured; for unpaired-PIN devices the action is
+        // effectively just "stop syncing", which is fine to allow.
+        var gate = GateOrNull(req);
+        if (gate != null) return gate;
+
+        _family.ClearLocal();
+        return IpcResponse.Ok();
     }
 
     private static T? Deserialize<T>(JsonElement? element)

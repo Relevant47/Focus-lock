@@ -123,6 +123,9 @@ public sealed class IpcResponse
     public static IpcResponse ParentAudit(IEnumerable<ParentAuditEntry> entries) => new() { Type = "parent_audit", Payload = entries };
     public static IpcResponse RecoveryKey(string key) => new() { Type = "recovery_key", Payload = new RecoveryKeyResponsePayload { Key = key } };
     public static IpcResponse OkWithRecoveryKey(string key) => new() { Type = "ok_with_recovery_key", Payload = new RecoveryKeyResponsePayload { Key = key } };
+    public static IpcResponse FamilyStatus(FamilyStatus s) => new() { Type = "family_status", Payload = s };
+    public static IpcResponse FamilyPaired(FamilyRedeemResult r) => new() { Type = "family_paired", Payload = r };
+    public static IpcResponse FamilyEnvironment(FamilyEnvironment e) => new() { Type = "family_environment", Payload = e };
 }
 
 public sealed class DaemonStatus
@@ -141,4 +144,5 @@ public sealed class DaemonStatus
     public int CurrentStreak { get; set; }
     public int? LastFocusScore { get; set; }
     public ParentControlsState ParentControls { get; set; } = new();
+    public FamilyStatus Family { get; set; } = new();
 }

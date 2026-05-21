@@ -154,6 +154,11 @@ struct DaemonStatus: Codable {
     var currentStreak: Int
     var lastFocusScore: Int?
     var parentControls: ParentControlsState = ParentControlsState(enabled: false, rateLimited: false, retryAfterSeconds: nil, graceMinutes: 5)
+    var family: FamilyStatus = FamilyStatus(
+        paired: false, connected: false,
+        accountId: nil, deviceId: nil, serverUrl: nil,
+        lastConnectedAt: nil, lastDisconnectedAt: nil, lastError: nil,
+        activeRuleCount: 0, offlineSeconds: 0, activeRules: [])
 }
 
 struct IpcResponse: Codable {
@@ -189,6 +194,15 @@ struct IpcResponse: Codable {
     }
     static func okWithRecoveryKey(_ key: String) -> IpcResponse {
         IpcResponse(type: "ok_with_recovery_key", payload: AnyCodable(RecoveryKeyResponsePayload(key: key)))
+    }
+    static func familyStatus(_ s: FamilyStatus) -> IpcResponse {
+        IpcResponse(type: "family_status", payload: AnyCodable(s))
+    }
+    static func familyPaired(_ r: FamilyRedeemResult) -> IpcResponse {
+        IpcResponse(type: "family_paired", payload: AnyCodable(r))
+    }
+    static func familyEnvironment(_ e: FamilyEnvironment) -> IpcResponse {
+        IpcResponse(type: "family_environment", payload: AnyCodable(e))
     }
 }
 

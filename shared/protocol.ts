@@ -99,7 +99,12 @@ export type IpcRequest =
   | { type: "clear_parent_pin"; payload: { pin: string } }
   | { type: "verify_recovery_key"; payload: { key: string } }
   | { type: "regenerate_recovery_key"; payload: { pin: string } & ParentTokenEnvelope }
-  | { type: "get_parent_audit"; payload?: { limit?: number } & ParentTokenEnvelope };
+  | { type: "get_parent_audit"; payload?: { limit?: number } & ParentTokenEnvelope }
+  // ── Family controls (Phase 2.3) — child-side daemon ↔ cloud sync ─────────
+  | { type: "family_redeem_code"; payload: FamilyRedeemPayload & ParentTokenEnvelope }
+  | { type: "family_unpair"; payload?: ParentTokenEnvelope }
+  | { type: "family_get_status" }
+  | { type: "family_check_environment" };
 
 /// Sensitive commands accept an optional grace token from a recent verify_parent_pin.
 /// When a parent PIN is configured, the daemon rejects gated commands without a valid token.
@@ -144,6 +149,9 @@ export type IpcResponse =
   | { type: "parent_audit"; payload: ParentAuditEntry[] }
   | { type: "recovery_key"; payload: { key: string } }
   | { type: "ok_with_recovery_key"; payload: { key: string } }
+  | { type: "family_status"; payload: FamilyStatus }
+  | { type: "family_paired"; payload: FamilyRedeemResult }
+  | { type: "family_environment"; payload: FamilyEnvironment }
   | { type: "error"; message: string; code?: ErrorCode };
 
 export interface ParentAuditEntry {
@@ -161,7 +169,11 @@ export type ParentAuditEventType =
   | "pin_verify_fail"
   | "pin_verify_rate_limited"
   | "gate_blocked"
-  | "gate_allowed";
+  | "gate_allowed"
+  | "family_paired"
+  | "family_unpaired"
+  | "family_offline_5min"
+  | "family_reconnected";
 
 export type ErrorCode =
   | "parent_lock_required"   // gated command attempted without valid parent token
@@ -189,6 +201,63 @@ export interface DaemonStatus {
   currentStreak: number;
   lastFocusScore: number | null;
   parentControls: ParentControlsState;
+  family: FamilyStatus;
+}
+
+// ── Family controls (Phase 2.3) ──────────────────────────────────────────────
+
+/// The child-device-side view of family pairing + cloud sync status, surfaced
+/// by the daemon. The parent dashboard (in `ui/src/pages/Family.tsx`) speaks
+/// directly to the cloud server — this interface is only for the child UI's
+/// "am I paired?" / pairing-code-entry screen.
+export interface FamilyStatus {
+  paired: boolean;
+  connected: boolean;            // live WebSocket to the family server
+  accountId: string | null;
+  deviceId: string | null;
+  serverUrl: string | null;
+  lastConnectedAt: string | null;
+  lastDisconnectedAt: string | null;
+  lastError: string | null;
+  activeRuleCount: number;
+  /// Seconds since the last successful connection. 0 when currently connected.
+  /// Crosses 300 → audit event `family_offline_5min` is written.
+  offlineSeconds: number;
+  activeRules: FamilyRuleSummary[];
+}
+
+/// Read-once snapshot of the host environment, returned by the
+/// `family_check_environment` IPC. Used by the parent setup flow to surface
+/// "this account is administrator — set up a non-admin child account first."
+export interface FamilyEnvironment {
+  platform: "windows" | "macos";
+  osVersion: string;
+  daemonElevated: boolean;       // SYSTEM (Win) or root (mac)
+  uacEnabled: boolean | null;    // Windows-only; null on macOS
+  currentUser: string | null;    // Daemon's own identity (informational)
+}
+
+export interface FamilyRuleSummary {
+  id: string;
+  kind: "block_now" | "schedule" | "unblock_all";
+  targetApps: string[];
+  targetDomains: string[];
+  scheduleCron: string | null;
+  createdAt: string;
+}
+
+export interface FamilyRedeemPayload {
+  /// 6-digit code from the parent's dashboard.
+  code: string;
+  /// Cloud server origin (e.g. https://family.focus-lock.app). Self-hosters
+  /// supply their own; the UI typically passes its build-time VITE_FAMILY_API_URL.
+  serverUrl: string;
+}
+
+export interface FamilyRedeemResult {
+  accountId: string;
+  deviceId: string;
+  pairedAt: string;
 }
 
 export interface ParentControlsState {

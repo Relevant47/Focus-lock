@@ -90,4 +90,8 @@ enum ParentAuditEvents {
     static let pinVerifyRateLimit  = "pin_verify_rate_limited"
     static let gateBlocked         = "gate_blocked"
     static let gateAllowed         = "gate_allowed"
+    static let familyPaired        = "family_paired"
+    static let familyUnpaired      = "family_unpaired"
+    static let familyOffline5Min   = "family_offline_5min"
+    static let familyReconnected   = "family_reconnected"
 }

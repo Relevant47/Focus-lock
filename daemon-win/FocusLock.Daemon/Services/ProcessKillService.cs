@@ -12,25 +12,34 @@ public sealed class ProcessKillService
 {
     private readonly ILogger<ProcessKillService> _log;
     private readonly SessionService _session;
+    private readonly FamilyEnforcementService _family;
 
-    public ProcessKillService(ILogger<ProcessKillService> log, SessionService session)
+    public ProcessKillService(
+        ILogger<ProcessKillService> log,
+        SessionService session,
+        FamilyEnforcementService family)
     {
         _log = log;
         _session = session;
+        _family = family;
     }
 
     public void Poll()
     {
         var state = _session.Active;
-        if (state == null || !state.IsActive) return;
-        if (state.BlockedProcesses.Count == 0) return;
+        var sessionProcs = (state != null && state.IsActive) ? state.BlockedProcesses : new List<string>();
+        var (_, familyProcs) = _family.GetUnion();
 
-        // Build a lookup of names and full paths to match against
-        var blockedNames = state.BlockedProcesses
+        if (sessionProcs.Count == 0 && familyProcs.Count == 0) return;
+
+        // Build a lookup of names and full paths to match against (session ∪ family)
+        var unionProcs = sessionProcs.Concat(familyProcs);
+
+        var blockedNames = unionProcs
             .Select(p => Path.GetFileNameWithoutExtension(p).ToLowerInvariant())
             .ToHashSet();
 
-        var blockedPaths = state.BlockedProcesses
+        var blockedPaths = unionProcs
             .Where(p => p.Contains('\\') || p.Contains('/'))
             .Select(p => p.ToLowerInvariant())
             .ToHashSet();

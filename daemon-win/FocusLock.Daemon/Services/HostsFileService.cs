@@ -22,11 +22,18 @@ public sealed class HostsFileService
 
     public HostsFileService(ILogger<HostsFileService> log) => _log = log;
 
-    public void Apply(SessionState session)
+    public void Apply(SessionState session) =>
+        Apply(session.BlockedDomains, session.AllowlistedDomains);
+
+    /// <summary>
+    /// Direct-list entry point used by the worker when blocks come from a
+    /// union of sources (e.g. local session + cloud family rules).
+    /// </summary>
+    public void Apply(IReadOnlyCollection<string> blocked, IReadOnlyCollection<string> allowed)
     {
         try
         {
-            var domains = ExpandDomains(session.BlockedDomains, session.AllowlistedDomains);
+            var domains = ExpandDomains(blocked, allowed);
             WriteBlock(domains);
             FlushDns();
             _log.LogDebug("Hosts file updated ({Count} domains)", domains.Count);
@@ -57,7 +64,7 @@ public sealed class HostsFileService
     private static readonly string[] CommonSubdomains =
         ["www", "m", "mobile", "app", "api", "cdn", "static", "media", "img", "assets"];
 
-    private List<string> ExpandDomains(List<string> blocked, List<string> allowed)
+    private List<string> ExpandDomains(IReadOnlyCollection<string> blocked, IReadOnlyCollection<string> allowed)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var d in blocked)
