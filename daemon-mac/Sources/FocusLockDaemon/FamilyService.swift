@@ -160,6 +160,7 @@ final class FamilyService {
             // Legacy 2.3 unsigned config is treated as untrusted — re-pair required.
             if FileManager.default.fileExists(atPath: Self.configPath) {
                 fputs("[family] config has no valid signature — re-pair required\n", stderr)
+                audit.record(ParentAuditEvents.familyCacheTampered, detail: "family.json")
             }
             return nil
         }

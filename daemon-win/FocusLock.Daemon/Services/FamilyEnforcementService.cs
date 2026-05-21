@@ -37,6 +37,7 @@ public sealed class FamilyEnforcementService
 
     private readonly ILogger<FamilyEnforcementService> _log;
     private readonly IntegritySigner _signer;
+    private readonly ParentAuditService _audit;
     private readonly object _lock = new();
     private Dictionary<string, CloudRule> _rules = new();
     // Compiled cron evaluators keyed by rule ID. Rebuilt as rules change so
@@ -45,10 +46,11 @@ public sealed class FamilyEnforcementService
 
     public event Action? RulesChanged;
 
-    public FamilyEnforcementService(ILogger<FamilyEnforcementService> log, IntegritySigner signer)
+    public FamilyEnforcementService(ILogger<FamilyEnforcementService> log, IntegritySigner signer, ParentAuditService audit)
     {
         _log = log;
         _signer = signer;
+        _audit = audit;
         Directory.CreateDirectory(StateDir);
         LoadCache();
     }
@@ -213,7 +215,10 @@ public sealed class FamilyEnforcementService
         if (bytes == null)
         {
             if (File.Exists(CachePath))
+            {
                 _log.LogWarning("Family rule cache has no valid signature — discarding");
+                _audit.Record(ParentAuditEvents.FamilyCacheTampered, detail: "family-rules.json");
+            }
             return;
         }
         try

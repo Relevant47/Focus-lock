@@ -156,7 +156,10 @@ public sealed class FamilyService
             // user only loses the device token, which is cheap to refresh
             // by entering a new pairing code on the parent dashboard.
             if (File.Exists(ConfigPath))
+            {
                 _log.LogWarning("Family config has no valid signature — re-pair required");
+                _audit.Record(ParentAuditEvents.FamilyCacheTampered, detail: "family.json");
+            }
             return null;
         }
         try

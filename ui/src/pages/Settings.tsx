@@ -7,6 +7,7 @@ import { getDailyGoal, setDailyGoal } from '../lib/goal';
 import { Page, PageHeader, Toggle, Pill } from '../components/ui';
 import { Icon } from '../components/Icons';
 import { cn } from '../lib/cn';
+import { AUDIT_EVENT_LABEL, formatAuditTime } from '../lib/auditEvents';
 
 // ── Section primitive ────────────────────────────────────────────────────────
 function Section({
@@ -41,26 +42,6 @@ function Row({
       {children && <div className="shrink-0 flex items-center">{children}</div>}
     </div>
   );
-}
-
-const AUDIT_EVENT_LABEL: Record<string, { label: string; tone: 'success' | 'warn' | 'danger' | 'neutral' }> = {
-  pin_set:                  { label: 'PIN configured',         tone: 'success' },
-  pin_changed:              { label: 'PIN changed',            tone: 'success' },
-  pin_cleared:              { label: 'PIN removed',            tone: 'warn'    },
-  pin_verify_success:       { label: 'Unlock — success',       tone: 'success' },
-  pin_verify_fail:          { label: 'Unlock — wrong PIN',     tone: 'danger'  },
-  pin_verify_rate_limited:  { label: 'Unlock — rate limited',  tone: 'warn'    },
-  gate_blocked:             { label: 'Command blocked',        tone: 'danger'  },
-  gate_allowed:             { label: 'Command allowed',        tone: 'neutral' },
-};
-
-function formatAuditTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return iso;
-  }
 }
 
 function useCooldownTimer(isoString: string | null | undefined) {

@@ -127,4 +127,5 @@ public static class ParentAuditEvents
     public const string FamilyUnpaired      = "family_unpaired";
     public const string FamilyOffline5Min   = "family_offline_5min";
     public const string FamilyReconnected   = "family_reconnected";
+    public const string FamilyCacheTampered = "family_cache_tampered";
 }

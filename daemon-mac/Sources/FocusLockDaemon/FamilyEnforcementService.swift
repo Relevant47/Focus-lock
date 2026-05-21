@@ -18,6 +18,7 @@ final class FamilyEnforcementService {
     private var rules: [String: CloudRule] = [:]
     private var listeners: [() -> Void] = []
     private let signer: IntegritySigner
+    private let audit: ParentAuditService
     // Compiled cron evaluators keyed by rule ID. Rebuilt as rules change so
     // we don't re-parse on every tick.
     private var cron: [String: CronEvaluator] = [:]
@@ -29,8 +30,9 @@ final class FamilyEnforcementService {
     }()
     private let decoder = JSONDecoder()
 
-    init(signer: IntegritySigner) {
+    init(signer: IntegritySigner, audit: ParentAuditService) {
         self.signer = signer
+        self.audit = audit
         loadCache()
     }
 
@@ -180,6 +182,7 @@ final class FamilyEnforcementService {
         guard let data = signer.readVerified(path: Self.cachePath) else {
             if FileManager.default.fileExists(atPath: Self.cachePath) {
                 fputs("[family] cache has no valid signature — discarding\n", stderr)
+                audit.record(ParentAuditEvents.familyCacheTampered, detail: "family-rules.json")
             }
             return
         }

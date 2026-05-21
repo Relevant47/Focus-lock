@@ -173,7 +173,8 @@ export type ParentAuditEventType =
   | "family_paired"
   | "family_unpaired"
   | "family_offline_5min"
-  | "family_reconnected";
+  | "family_reconnected"
+  | "family_cache_tampered";
 
 export type ErrorCode =
   | "parent_lock_required"   // gated command attempted without valid parent token

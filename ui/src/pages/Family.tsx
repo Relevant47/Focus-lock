@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFamily } from '../stores/family';
 import { useDaemon } from '../stores/daemon';
 import { Page, PageHeader, Pill } from '../components/ui';
@@ -6,6 +6,7 @@ import { Icon } from '../components/Icons';
 import { cn } from '../lib/cn';
 import { familyApiUrl, type DeviceSummary, type LockRule } from '../lib/familyApi';
 import type { FamilyEnvironment, FamilyStatus } from '../types';
+import { AUDIT_EVENT_LABEL, FAMILY_AUDIT_EVENTS, TAMPER_ALERT_EVENTS, formatAuditTime } from '../lib/auditEvents';
 
 const DEVICE_POLL_INTERVAL_MS = 30_000;
 
@@ -24,6 +25,11 @@ export default function Family() {
   // surfaced on unpaired (or "I haven't paired this one") devices.
   const showChildView = family?.paired === true;
 
+  // Tamper / extended-offline alerts: poll the local audit log when this is a
+  // paired child device or when a parent is signed in, fire OS notifications
+  // for tamper-class events that we haven't seen before.
+  useTamperAlerts(showChildView || !!session);
+
   return (
     <Page className="overflow-y-auto">
       <div className="max-w-3xl mx-auto px-8 py-10">
@@ -38,6 +44,90 @@ export default function Family() {
       </div>
     </Page>
   );
+}
+
+// ── Tamper alerts ──────────────────────────────────────────────────────────
+// Polls the audit log every 60s while active and fires an OS notification +
+// in-page console line for any tamper-class events the user hasn't already
+// seen. Uses localStorage so a reload doesn't re-surface old events.
+
+const TAMPER_LAST_SEEN_KEY = 'focus-lock:family-tamper-last-seen';
+const TAMPER_POLL_INTERVAL_MS = 60_000;
+
+function useTamperAlerts(active: boolean) {
+  const loadParentAudit = useDaemon(s => s.loadParentAudit);
+  const enabled = useDaemon(s => !!s.status?.parentControls?.enabled);
+  const parentToken = useDaemon(s => s.parentToken);
+  const parentTokenExpiresAt = useDaemon(s => s.parentTokenExpiresAt);
+  const entries = useDaemon(s => s.parentAudit);
+  const lastSeenRef = useRef<number>(0);
+
+  // Hydrate the last-seen marker once.
+  useEffect(() => {
+    const raw = localStorage.getItem(TAMPER_LAST_SEEN_KEY);
+    lastSeenRef.current = raw ? Number(raw) || 0 : 0;
+  }, []);
+
+  // Poll loop. We skip when a settings-lock PIN is set and the parent hasn't
+  // unlocked it this session — the daemon will refuse the read anyway, and
+  // we'd just keep tripping the parent-unlock modal.
+  useEffect(() => {
+    if (!active) return;
+    const unlocked = !!parentToken && !!parentTokenExpiresAt && parentTokenExpiresAt > Date.now();
+    if (enabled && !unlocked) return;
+
+    let cancelled = false;
+    const tick = () => {
+      if (cancelled) return;
+      loadParentAudit(100).catch(() => { /* daemon offline / not authed */ });
+    };
+    tick();
+    const t = window.setInterval(tick, TAMPER_POLL_INTERVAL_MS);
+    return () => { cancelled = true; window.clearInterval(t); };
+  }, [active, enabled, parentToken, parentTokenExpiresAt, loadParentAudit]);
+
+  // React to new entries that crossed our last-seen marker. Fires after each
+  // audit reload completes (entries reference identity changes).
+  useEffect(() => {
+    if (!active || entries.length === 0) return;
+    const tamperEvents = entries.filter(e => TAMPER_ALERT_EVENTS.has(e.event));
+    if (tamperEvents.length === 0) return;
+
+    // entries arrive newest-first (ParentAuditService.Recent reverses on read).
+    let highest = lastSeenRef.current;
+    for (const entry of tamperEvents) {
+      const ts = Date.parse(entry.timestamp);
+      if (!Number.isFinite(ts)) continue;
+      if (ts <= lastSeenRef.current) continue;
+      fireTamperNotification(entry.event, entry.detail ?? null);
+      if (ts > highest) highest = ts;
+    }
+    if (highest > lastSeenRef.current) {
+      lastSeenRef.current = highest;
+      localStorage.setItem(TAMPER_LAST_SEEN_KEY, String(highest));
+    }
+  }, [active, entries]);
+}
+
+function fireTamperNotification(event: string, detail: string | null) {
+  const meta = AUDIT_EVENT_LABEL[event] ?? { label: event, tone: 'danger' as const };
+  const title = event === 'family_cache_tampered'
+    ? 'FocusLock — Tamper detected'
+    : event === 'family_offline_5min'
+    ? 'FocusLock — Family server unreachable'
+    : `FocusLock — ${meta.label}`;
+  const body = event === 'family_cache_tampered'
+    ? `${detail ?? 'A signed cache file'} was modified. Cached rules were discarded.`
+    : event === 'family_offline_5min'
+    ? "The daemon hasn't reached the family server in over 5 minutes. Cached rules are still enforced."
+    : `New event: ${meta.label}`;
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(title, { body, silent: false }); } catch { /* ignore */ }
+  }
+  // Useful for diagnosing tamper-alert plumbing in devtools.
+  // eslint-disable-next-line no-console
+  console.warn('[family]', event, detail ?? '');
 }
 
 // ── Child paired view ──────────────────────────────────────────────────────
@@ -125,6 +215,8 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
       </div>
 
       {error && <p className="text-xs text-danger">{error}</p>}
+
+      <FamilyAuditLog />
 
       <div className="flex justify-end">
         <button
@@ -351,6 +443,98 @@ function SignedInView() {
       )}
 
       {devices.map(d => <DeviceCard key={d.id} device={d} />)}
+
+      <FamilyAuditLog />
+    </div>
+  );
+}
+
+// ── FamilyAuditLog ──────────────────────────────────────────────────────────
+// Surfaces the same audit log Settings shows, but filtered to family events
+// and rendered as a collapsible card under the device list. The daemon also
+// fires OS notifications for tamper-class events on first sight via
+// useTamperAlerts() — that's mounted on the page root.
+
+function FamilyAuditLog() {
+  const enabled = useDaemon(s => !!s.status?.parentControls?.enabled);
+  const parentToken = useDaemon(s => s.parentToken);
+  const parentTokenExpiresAt = useDaemon(s => s.parentTokenExpiresAt);
+  const entries = useDaemon(s => s.parentAudit);
+  const loadParentAudit = useDaemon(s => s.loadParentAudit);
+  const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const unlocked = !!parentToken && !!parentTokenExpiresAt && parentTokenExpiresAt > Date.now();
+
+  async function refresh() {
+    setError(null);
+    try { await loadParentAudit(100); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Failed to load audit log'); }
+  }
+
+  // Auto-load when settings-lock PIN isn't gating us, or once it's unlocked.
+  useEffect(() => {
+    if (!enabled || unlocked) refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, unlocked]);
+
+  const familyEntries = entries.filter(e => FAMILY_AUDIT_EVENTS.has(e.event));
+
+  return (
+    <div className="card p-4 space-y-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="flex items-center justify-between w-full text-left"
+      >
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold">Activity log</p>
+          <p className="text-xs text-faint mt-1">
+            {familyEntries.length === 0
+              ? 'No family events yet.'
+              : `${familyEntries.length} recent family event${familyEntries.length === 1 ? '' : 's'}`}
+          </p>
+        </div>
+        <Icon.Arrow size={14} className={cn('text-dim shrink-0 transition-transform', expanded && 'rotate-90')} />
+      </button>
+
+      {expanded && (
+        <div className="pt-2 border-t border-border/50 space-y-2">
+          {enabled && !unlocked && (
+            <p className="text-xs text-faint">
+              The settings-lock PIN is set. Unlock it from <span className="text-text">Settings → Settings lock</span> to view the audit history.
+            </p>
+          )}
+          {error && <p className="text-xs text-danger">{error}</p>}
+
+          <div className="flex items-center justify-end">
+            <button onClick={refresh} className="text-xs text-muted hover:text-text">
+              <Icon.Refresh size={12} /> Refresh
+            </button>
+          </div>
+
+          {familyEntries.length === 0 ? (
+            <p className="text-xs text-faint">No family events recorded.</p>
+          ) : (
+            <ul className="space-y-1.5 max-h-72 overflow-auto pr-1">
+              {familyEntries.map((entry, i) => {
+                const meta = AUDIT_EVENT_LABEL[entry.event] ?? { label: entry.event, tone: 'neutral' as const };
+                return (
+                  <li key={i} className="flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Pill tone={meta.tone === 'accent' ? 'accent' : meta.tone} className="shrink-0">{meta.label}</Pill>
+                      {entry.detail && (
+                        <span className="text-muted font-mono truncate">{entry.detail}</span>
+                      )}
+                    </div>
+                    <span className="text-faint shrink-0 tnum">{formatAuditTime(entry.timestamp)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

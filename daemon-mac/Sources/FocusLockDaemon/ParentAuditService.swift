@@ -94,4 +94,5 @@ enum ParentAuditEvents {
     static let familyUnpaired      = "family_unpaired"
     static let familyOffline5Min   = "family_offline_5min"
     static let familyReconnected   = "family_reconnected"
+    static let familyCacheTampered = "family_cache_tampered"
 }
