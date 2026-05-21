@@ -1,0 +1,97 @@
+// Thin fetch wrapper around the family-server Cloudflare Worker.
+// Configure base URL via VITE_FAMILY_API_URL. When unset, the Family tab is
+// hidden entirely (see familyEnabled below) — the feature is gated until a
+// backend is actually deployed.
+
+const ENV_URL: string | undefined = (import.meta as any).env?.VITE_FAMILY_API_URL;
+const API_URL: string = ENV_URL ?? 'http://localhost:8787';
+
+/** True only when VITE_FAMILY_API_URL is set at build time. */
+export const familyEnabled: boolean = !!ENV_URL;
+
+export class FamilyApiError extends Error {
+  constructor(public status: number, message: string) { super(message); this.name = 'FamilyApiError'; }
+}
+
+async function request<T>(path: string, init: RequestInit, token?: string): Promise<T> {
+  const headers: Record<string, string> = {
+    ...(init.body ? { 'content-type': 'application/json' } : {}),
+    ...(token ? { authorization: `Bearer ${token}` } : {}),
+  };
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...init, headers });
+  } catch (err) {
+    throw new FamilyApiError(0, err instanceof Error ? err.message : 'network error');
+  }
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  const data = text ? safeParse(text) : null;
+  if (!res.ok) {
+    const msg = data && typeof data === 'object' && data !== null && 'error' in data
+      ? String((data as { error: unknown }).error)
+      : `request failed (${res.status})`;
+    throw new FamilyApiError(res.status, msg);
+  }
+  return data as T;
+}
+
+function safeParse(s: string): unknown {
+  try { return JSON.parse(s); } catch { return null; }
+}
+
+// ── Types (mirror family-server/src/types.ts) ──────────────────────────────
+
+export interface Session    { token: string; accountId: string; expiresIn: number }
+export interface PairCode   { code: string; expiresAt: string; ttlSeconds: number }
+export interface DeviceSummary {
+  id: string; hostname: string | null; os: string; osVersion: string | null;
+  pairedAt: string; lastSeenAt: string | null; online: boolean;
+}
+export interface LockRule {
+  id: string; deviceId: string;
+  kind: 'block_now' | 'schedule' | 'unblock_all';
+  targetApps: string[]; targetDomains: string[];
+  scheduleCron: string | null; active: boolean; createdAt: string;
+}
+export interface CreateRuleInput {
+  kind: 'block_now' | 'schedule' | 'unblock_all';
+  targetApps?: string[]; targetDomains?: string[]; scheduleCron?: string;
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+
+export const auth = {
+  signup:  (email: string, password: string) =>
+    request<Session>('/api/v1/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  login:   (email: string, password: string) =>
+    request<Session>('/api/v1/auth/login',  { method: 'POST', body: JSON.stringify({ email, password }) }),
+  refresh: (token: string) =>
+    request<Session>('/api/v1/auth/refresh', { method: 'POST' }, token),
+};
+
+// ── Family ─────────────────────────────────────────────────────────────────
+
+export const family = {
+  pairCreate: (token: string) =>
+    request<PairCode>('/api/v1/family/pair/create', { method: 'POST' }, token),
+
+  listDevices: (token: string) =>
+    request<{ devices: DeviceSummary[] }>('/api/v1/family/devices', { method: 'GET' }, token),
+
+  deleteDevice: (token: string, deviceId: string) =>
+    request<{ ok: boolean }>(`/api/v1/family/devices/${deviceId}`, { method: 'DELETE' }, token),
+
+  listRules: (token: string, deviceId: string) =>
+    request<{ rules: LockRule[] }>(`/api/v1/family/devices/${deviceId}/rules`, { method: 'GET' }, token),
+
+  createRule: (token: string, deviceId: string, input: CreateRuleInput) =>
+    request<{ rule: LockRule }>(`/api/v1/family/devices/${deviceId}/rules`,
+      { method: 'POST', body: JSON.stringify(input) }, token),
+
+  deleteRule: (token: string, deviceId: string, ruleId: string) =>
+    request<{ ok: boolean }>(`/api/v1/family/devices/${deviceId}/rules/${ruleId}`,
+      { method: 'DELETE' }, token),
+};
+
+export const familyApiUrl = API_URL;

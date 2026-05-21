@@ -16,7 +16,9 @@ import BlockLists from './pages/BlockLists';
 import Profiles from './pages/Profiles';
 import Schedules from './pages/Schedules';
 import Analytics from './pages/Analytics';
+import Family from './pages/Family';
 import Settings from './pages/Settings';
+import { familyEnabled } from './lib/familyApi';
 
 function RoutedShell() {
   const location = useLocation();
@@ -27,6 +29,7 @@ function RoutedShell() {
         <Route path="/blocklists" element={<BlockLists />} />
         <Route path="/profiles"   element={<Profiles />} />
         <Route path="/schedules"  element={<Schedules />} />
+        {familyEnabled && <Route path="/family" element={<Family />} />}
         <Route path="/analytics"  element={<Analytics />} />
         <Route path="/settings"   element={<Settings />} />
         <Route path="*"           element={<Navigate to="/" replace />} />

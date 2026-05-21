@@ -43,6 +43,9 @@ export const Icon = {
   Trophy:    (p: Props) => <Base {...p}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></Base>,
   Target:    (p: Props) => <Base {...p}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></Base>,
   Bell:      (p: Props) => <Base {...p}><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8z"/><path d="M10 21a2 2 0 0 0 4 0"/></Base>,
+  Users:     (p: Props) => <Base {...p}><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 21c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><path d="M15 21c0-2.6 1.6-4.9 4-5.8"/></Base>,
+  Trash:     (p: Props) => <Base {...p}><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></Base>,
+  Refresh:   (p: Props) => <Base {...p}><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></Base>,
   Brand:     (p: Props) => (
     <svg width={p.size ?? 18} height={p.size ?? 18} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" {...p}>
       <line x1="12" y1="12" x2="50" y2="50" />

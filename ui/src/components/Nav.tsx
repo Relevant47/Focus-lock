@@ -4,6 +4,7 @@ import { Icon } from './Icons';
 import { cn } from '../lib/cn';
 import { fmtClock } from '../lib/fmt';
 import { getDailyGoal, minutesToday } from '../lib/goal';
+import { familyEnabled } from '../lib/familyApi';
 
 interface LinkDef { to: string; label: string; Icon: (p: any) => JSX.Element; end?: boolean; }
 
@@ -21,6 +22,12 @@ const GROUPS: { label?: string; links: LinkDef[] }[] = [
       { to: '/schedules',  label: 'Schedules',   Icon: Icon.Calendar },
     ],
   },
+  ...(familyEnabled ? [{
+    label: 'Family',
+    links: [
+      { to: '/family', label: 'Family', Icon: Icon.Users },
+    ],
+  }] : []),
   {
     label: 'Insights',
     links: [
