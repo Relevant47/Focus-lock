@@ -7,12 +7,15 @@ import { cn } from '../lib/cn';
 import { familyApiUrl, type DeviceSummary, type LockRule } from '../lib/familyApi';
 import type { FamilyEnvironment, FamilyStatus } from '../types';
 import { AUDIT_EVENT_LABEL, FAMILY_AUDIT_EVENTS, TAMPER_ALERT_EVENTS, formatAuditTime } from '../lib/auditEvents';
+import FamilyOnboarding, { useFamilyOnboarding } from '../components/FamilyOnboarding';
 
 const DEVICE_POLL_INTERVAL_MS = 30_000;
 
 export default function Family() {
   const session = useFamily(s => s.session);
   const family = useDaemon(s => s.status?.family ?? null);
+  const { showOnboarding, complete, reset } = useFamilyOnboarding();
+  const [signedOutMode, setSignedOutMode] = useState<SignedOutMode>('login');
 
   // Refresh the stored session once on mount so a stale token gets evicted
   // (logs the user out) before they try to do anything.
@@ -30,6 +33,11 @@ export default function Family() {
   // for tamper-class events that we haven't seen before.
   useTamperAlerts(showChildView || !!session);
 
+  // First-time walkthrough only when we'd otherwise show the signed-out card —
+  // there's no point onboarding a kid whose daemon is already paired or a
+  // parent who's already signed in.
+  const showFirstRun = showOnboarding && !showChildView && !session;
+
   return (
     <Page className="overflow-y-auto">
       <div className="max-w-3xl mx-auto px-8 py-10">
@@ -37,11 +45,27 @@ export default function Family() {
           eyebrow="Coming soon — beta"
           title="Family"
           sub="Lock apps on a child's computer from your own. Pair a device, set rules, see what's active."
+          right={
+            <button
+              onClick={reset}
+              title="Show walkthrough again"
+              className="btn-ghost px-2 py-1 text-[11px] text-muted hover:text-text"
+            >
+              <Icon.Sparkle size={12} /> Walkthrough
+            </button>
+          }
         />
         {showChildView
           ? <ChildPairedView family={family!} />
-          : session ? <SignedInView /> : <SignedOutView />}
+          : session ? <SignedInView /> : <SignedOutView mode={signedOutMode} onModeChange={setSignedOutMode} />}
       </div>
+
+      {showFirstRun && (
+        <FamilyOnboarding
+          onDone={complete}
+          onPickPair={() => setSignedOutMode('pair')}
+        />
+      )}
     </Page>
   );
 }
@@ -233,8 +257,13 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
 
 // ── Signed-out: signup / login toggle + child pairing entry ────────────────
 
-function SignedOutView() {
-  const [mode, setMode] = useState<'login' | 'signup' | 'pair'>('login');
+type SignedOutMode = 'login' | 'signup' | 'pair';
+
+function SignedOutView({ mode, onModeChange }: {
+  mode: SignedOutMode;
+  onModeChange: (m: SignedOutMode) => void;
+}) {
+  const setMode = onModeChange;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
