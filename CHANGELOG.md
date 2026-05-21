@@ -21,6 +21,11 @@ All notable changes to FocusLock will be documented here.
 - **Offline lockdown is "honour the cache + audit" only.** Aggressive deny-all-with-allowlist via Windows Firewall / pfctl was deferred — the daemon-only path is enough to make offline a non-bypass (cached `block_now` and matching `schedule` rules keep enforcing) and the firewall layer carries enough cross-platform / fail-closed risk to warrant its own phase.
 - **Installer hardening (admin-protected uninstall via NSIS/WiX) is still open.** Daemon side is ready — the Safe Mode key is written; the cache+config files are signed; the env-probe IPC exists — but the actual NSIS/WiX uninstall gate still needs to be wired up next time we cut a release.
 
+## [1.0.28] — 2026-05-21
+
+### Added
+- **"No turning back" confirmation before starting a Hardcore session.** Flipping the toggle is one thing; *starting* a Hardcore session is the irreversible thing. A confirmation modal now appears between Start and the actual session launch, listing what's about to happen (Stop is disabled, closing the app doesn't end it, killing the daemon doesn't end it, only the timer does). Type `LOCK ME IN` to confirm. Hardcore profiles launched via Quick Start chips get the same gate — no shortcuts around it.
+
 ## [1.0.27] — 2026-05-21
 
 ### Added

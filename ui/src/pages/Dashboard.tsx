@@ -6,6 +6,7 @@ import { Icon } from '../components/Icons';
 import { Page, Pill, Toggle } from '../components/ui';
 import EmptyState from '../components/EmptyState';
 import IntentionModal from '../components/IntentionModal';
+import HardcoreConfirmModal from '../components/HardcoreConfirmModal';
 import Confetti from '../components/Confetti';
 import { fmtClock, fmtDate } from '../lib/fmt';
 import { cn } from '../lib/cn';
@@ -132,6 +133,7 @@ export default function Dashboard() {
   const [unlockInput, setUnlockInput] = useState('');
   const [showUnlockPrompt, setShowUnlockPrompt] = useState(false);
   const [showIntention, setShowIntention] = useState(false);
+  const [showHardcoreConfirm, setShowHardcoreConfirm] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<StartSessionPayload | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -179,8 +181,11 @@ export default function Dashboard() {
 
   function askIntention() {
     setError('');
-    setPendingPayload(buildPayload());
-    setShowIntention(true);
+    const payload = buildPayload();
+    setPendingPayload(payload);
+    // Hardcore = interpose the no-going-back confirmation before the intention prompt.
+    if (payload.hardcoreMode) setShowHardcoreConfirm(true);
+    else setShowIntention(true);
   }
 
   async function runStart(intention: string | null) {
@@ -218,10 +223,11 @@ export default function Dashboard() {
       hardcoreMode: p.hardcoreMode,
       pomodoroConfig: p.pomodoroConfig,
     };
-    // Quick-start is a one-tap action — respect the profile's hardcore setting
-    // verbatim. The toggle on the manual start panel is for the longer flow.
+    // Quick-start respects the profile's hardcore setting verbatim — but
+    // hardcore profiles still get the lock-in confirmation, no exceptions.
     setPendingPayload(payload);
-    setShowIntention(true);
+    if (payload.hardcoreMode) setShowHardcoreConfirm(true);
+    else setShowIntention(true);
   }
 
   async function handleStop() {
@@ -265,6 +271,12 @@ export default function Dashboard() {
   return (
     <Page className="p-8">
       <Confetti trigger={confettiTrigger} />
+      <HardcoreConfirmModal
+        open={showHardcoreConfirm}
+        durationMinutes={pendingPayload?.durationMinutes ?? duration}
+        onCancel={() => { setShowHardcoreConfirm(false); setPendingPayload(null); }}
+        onConfirm={() => { setShowHardcoreConfirm(false); setShowIntention(true); }}
+      />
       <IntentionModal
         open={showIntention}
         onClose={() => { setShowIntention(false); setPendingPayload(null); }}
