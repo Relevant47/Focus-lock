@@ -243,13 +243,17 @@ Parent dashboard shows for each child device:
 - `family_check_environment` IPC: platform, OS version, daemon-elevation status, UAC-enabled flag
 - **Carried over to 2.5:** admin-protected uninstall (needs NSIS/WiX edits — installer-side, not daemon); firewall-level offline lockdown (cross-platform deny-all-except-allowlist via netsh/pfctl, deferred as own phase); per-user admin-account enumeration in the env-probe
 
-**Phase 2.5 — Polish + beta** (~1 week)
-- Onboarding walkthroughs for parent and child sides
-- Audit log UI
-- Emergency unblock button
-- Tamper-alert notifications
-- Closed beta with ~5 friend-families
-- Iterate on what actually fails in real use
+**Phase 2.5 — Polish + beta** ✅ daemon + UI shipped 2026-05-23
+- Child-pairing UI screen — "I have a pairing code" tab on the signed-out Family view
+- Parent-side env warning UI — surfaces daemon-not-elevated, UAC-off, and named local-admin accounts via the env probe
+- Audit log UI on parent + child views with collapsible card, filtered to family events
+- Tamper-alert notifications — daemon writes `family_cache_tampered` on signed-cache mismatch, UI polls every 60s and fires OS notifications
+- Emergency unblock — per-device "Lift all family locks" / "Re-enable rules" toggle on the parent dashboard, posts an `unblock_all` rule
+- Per-user admin enumeration — Windows AccountManagement + macOS dscl, surfaces the names of admin accounts in the env warning
+- First-run walkthrough modal — 3-step parent vs child path, replayable from the page header
+- Admin-protected uninstall — daemon writes a 15-minute authorization token via `family_authorize_uninstall`; NSIS hook checks it via PowerShell and aborts with a clear message when the settings-lock PIN is set
+- Firewall-level offline lockdown — experimental Windows-only opt-in (`firewall_lockdown_enabled` flag) that adds per-EXE-path Windows Firewall outbound blocks via `FirewallLockdownService` after 5 minutes of WS downtime, with fail-open cleanup on startup + shutdown
+- **Open:** closed beta with ~5 friend-families; iterate on what actually fails in real use; macOS pfctl equivalent of the firewall lockdown (flag round-trips but enforcement is a no-op there)
 
 **Total: ~5 weeks of focused work.** Realistic with normal life happening: 8-10 weeks.
 
