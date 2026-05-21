@@ -88,6 +88,9 @@ interface Actions {
   redeemFamilyCode(code: string, serverUrl: string): Promise<FamilyRedeemResult>;
   unpairFamily(): Promise<void>;
   checkFamilyEnvironment(): Promise<FamilyEnvironment>;
+  /// Authorize a Windows uninstall. Gated by the settings-lock PIN if one is
+  /// configured. Writes a 15-minute marker file the NSIS uninstaller checks.
+  authorizeUninstall(): Promise<void>;
 }
 
 interface ParentTokenPayload { token: string; expiresAt: string }
@@ -322,5 +325,12 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       throw new Error('Unexpected response from daemon');
     }
     return res.payload as FamilyEnvironment;
+  },
+
+  async authorizeUninstall() {
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      await request('family_authorize_uninstall', pt ? { parentToken: pt } : undefined);
+    });
   },
 }));

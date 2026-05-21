@@ -44,6 +44,63 @@ function Row({
   );
 }
 
+function UninstallAuthorizationButton({ authorize }: { authorize: () => Promise<void> }) {
+  const [state, setState] = useState<'idle' | 'authorized'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  // 15 minutes — the daemon writes the token with the same TTL.
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (state !== 'authorized') return;
+    const t = window.setInterval(() => {
+      setSecondsLeft(s => Math.max(0, s - 1));
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, [state]);
+
+  useEffect(() => {
+    if (state === 'authorized' && secondsLeft === 0) setState('idle');
+  }, [state, secondsLeft]);
+
+  async function handle() {
+    setError(null);
+    try {
+      await authorize();
+      setState('authorized');
+      setSecondsLeft(15 * 60);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Authorize failed');
+    }
+  }
+
+  if (state === 'authorized') {
+    const mm = Math.floor(secondsLeft / 60);
+    const ss = secondsLeft % 60;
+    return (
+      <div className="w-full">
+        <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-xs">
+          <p className="text-text font-medium mb-0.5 flex items-center gap-1.5">
+            <Icon.Lock size={12} className="text-warn" />
+            Uninstall authorized — {mm}:{ss.toString().padStart(2, '0')} remaining
+          </p>
+          <p className="text-faint">
+            Open Windows Settings → Apps → FocusLock → Uninstall within this window. Past 15 minutes the lock re-engages.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button onClick={handle} className="btn-ghost px-4 py-2 text-sm text-danger hover:text-danger">
+        Allow uninstall (15 min)
+      </button>
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </div>
+  );
+}
+
 function useCooldownTimer(isoString: string | null | undefined) {
   if (!isoString) return null;
   const until = new Date(isoString).getTime();
@@ -52,7 +109,7 @@ function useCooldownTimer(isoString: string | null | undefined) {
 }
 
 export default function Settings() {
-  const { connected, status, requestDisableHardcore, setParentPin, changeParentPin, clearParentPin, loadParentAudit, parentAudit, parentToken, parentTokenExpiresAt, regenerateRecoveryKey } = useDaemon();
+  const { connected, status, requestDisableHardcore, setParentPin, changeParentPin, clearParentPin, loadParentAudit, parentAudit, parentToken, parentTokenExpiresAt, regenerateRecoveryKey, authorizeUninstall } = useDaemon();
   const [theme, setThemeState] = useState<Theme>(getTheme());
   const [goalMinutes, setGoalMinutesState] = useState(getDailyGoal());
   const [token, setToken] = useState('');
@@ -315,7 +372,7 @@ export default function Settings() {
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-1">
+                <div className="flex flex-wrap gap-2 pt-1">
                   {!parentEnabled && (
                     <button onClick={() => { resetParentForm(); setParentMode('setup'); }} className="btn-primary px-4 py-2 text-sm">
                       Set up settings lock
@@ -332,6 +389,7 @@ export default function Settings() {
                       <button onClick={() => { resetParentForm(); setParentMode('clear'); }} className="btn-ghost px-4 py-2 text-sm">
                         Remove PIN
                       </button>
+                      <UninstallAuthorizationButton authorize={authorizeUninstall} />
                     </>
                   )}
                 </div>

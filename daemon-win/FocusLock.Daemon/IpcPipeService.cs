@@ -176,6 +176,7 @@ public sealed class IpcPipeService : BackgroundService
                 "family_unpair"            => HandleFamilyUnpair(req),
                 "family_get_status"        => IpcResponse.FamilyStatus(BuildFamilyStatus()),
                 "family_check_environment" => IpcResponse.FamilyEnvironment(_envProbe.Probe()),
+                "family_authorize_uninstall" => HandleAuthorizeUninstall(req),
                 _ => IpcResponse.Error($"Unknown request type: {req.Type}"),
             };
         }
@@ -470,6 +471,54 @@ public sealed class IpcPipeService : BackgroundService
 
         _family.ClearLocal();
         return IpcResponse.Ok();
+    }
+
+    private IpcResponse HandleAuthorizeUninstall(IpcRequest req)
+    {
+        // Gate uninstall the same way we gate unpair — the kid shouldn't be
+        // able to remove FocusLock from Windows Settings → Apps. When no PIN
+        // is set the gate is a no-op (anti-self-bypass features only matter
+        // once the user has opted into them).
+        var gate = GateOrNull(req);
+        if (gate != null) return gate;
+
+        var dir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "FocusLock");
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "uninstall-authorized.token");
+        var expiry = DateTimeOffset.UtcNow.AddMinutes(15).ToUnixTimeSeconds();
+        try
+        {
+            File.WriteAllText(path, expiry.ToString() + Environment.NewLine);
+            RestrictAuthorizationAcl(path);
+            _audit.Record(ParentAuditEvents.UninstallAuthorized, detail: $"expiresInSeconds=900");
+            return IpcResponse.Ok();
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Failed to write uninstall authorization token");
+            return IpcResponse.Error("Could not write uninstall authorization token");
+        }
+    }
+
+    private static void RestrictAuthorizationAcl(string path)
+    {
+        // SYSTEM + Administrators full control. Anyone else: no access. The
+        // NSIS uninstaller runs elevated so it can still read the token.
+        try
+        {
+            var info = new FileSecurity();
+            info.SetAccessRuleProtection(true, false);
+            info.AddAccessRule(new FileSystemAccessRule(
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
+                FileSystemRights.FullControl, AccessControlType.Allow));
+            info.AddAccessRule(new FileSystemAccessRule(
+                new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
+                FileSystemRights.FullControl, AccessControlType.Allow));
+            new FileInfo(path).SetAccessControl(info);
+        }
+        catch { /* daemon may not be elevated in dev runs; the token is still written */ }
     }
 
     private static T? Deserialize<T>(JsonElement? element)

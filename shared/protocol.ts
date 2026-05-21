@@ -104,7 +104,8 @@ export type IpcRequest =
   | { type: "family_redeem_code"; payload: FamilyRedeemPayload & ParentTokenEnvelope }
   | { type: "family_unpair"; payload?: ParentTokenEnvelope }
   | { type: "family_get_status" }
-  | { type: "family_check_environment" };
+  | { type: "family_check_environment" }
+  | { type: "family_authorize_uninstall"; payload?: ParentTokenEnvelope };
 
 /// Sensitive commands accept an optional grace token from a recent verify_parent_pin.
 /// When a parent PIN is configured, the daemon rejects gated commands without a valid token.
@@ -174,7 +175,8 @@ export type ParentAuditEventType =
   | "family_unpaired"
   | "family_offline_5min"
   | "family_reconnected"
-  | "family_cache_tampered";
+  | "family_cache_tampered"
+  | "uninstall_authorized";
 
 export type ErrorCode =
   | "parent_lock_required"   // gated command attempted without valid parent token
