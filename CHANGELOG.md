@@ -2,6 +2,11 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.0.27] — 2026-05-21
+
+### Added
+- **Hardcore toggle right on the Dashboard start screen.** Previously Hardcore mode was only configurable per-profile, so you had to set up a dedicated "Hardcore" profile to use it. Now there's a clear toggle below the duration picker on the main start screen: flip it on and the session cannot be stopped early no matter what — the daemon refuses early-stop commands until the timer ends. Flip it off and you can stop anytime. The toggle pre-fills from the selected profile (if any) so it Just Works either way.
+
 ## [1.0.26] — 2026-05-21
 
 ### Changed

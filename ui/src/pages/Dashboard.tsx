@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useDaemon } from '../stores/daemon';
 import { CATEGORY_DOMAINS, type StartSessionPayload } from '../types';
 import { Icon } from '../components/Icons';
-import { Page, Pill } from '../components/ui';
+import { Page, Pill, Toggle } from '../components/ui';
 import EmptyState from '../components/EmptyState';
 import IntentionModal from '../components/IntentionModal';
 import Confetti from '../components/Confetti';
@@ -127,6 +127,7 @@ export default function Dashboard() {
   const { connected, status, profiles, logs, startSession, stopSession, skipBreak } = useDaemon();
   const [profileId, setProfileId] = useState('');
   const [duration, setDuration] = useState(25);
+  const [hardcore, setHardcore] = useState(false);
   const [friendLockToken, setFriendLockToken] = useState('');
   const [unlockInput, setUnlockInput] = useState('');
   const [showUnlockPrompt, setShowUnlockPrompt] = useState(false);
@@ -153,6 +154,12 @@ export default function Dashboard() {
 
   const profile = profiles.find(p => p.id === profileId);
 
+  // When the user picks a profile, prefill hardcore with that profile's setting.
+  // They can still toggle it off (or on for a non-hardcore profile) before starting.
+  useEffect(() => {
+    setHardcore(profile?.hardcoreMode ?? false);
+  }, [profile?.id, profile?.hardcoreMode]);
+
   function buildPayload(): StartSessionPayload {
     const blockedDomains = [
       ...(profile?.blockedCategories ?? []).flatMap(cat => CATEGORY_DOMAINS[cat as keyof typeof CATEGORY_DOMAINS] ?? []),
@@ -164,7 +171,7 @@ export default function Dashboard() {
       blockedDomains,
       blockedProcesses: profile?.customBlockedProcesses ?? [],
       allowlistedDomains: profile?.allowlistedDomains ?? [],
-      hardcoreMode: profile?.hardcoreMode ?? false,
+      hardcoreMode: hardcore,
       pomodoroConfig: profile?.pomodoroConfig ?? null,
       unlockToken: friendLockToken.trim() || undefined,
     };
@@ -211,6 +218,8 @@ export default function Dashboard() {
       hardcoreMode: p.hardcoreMode,
       pomodoroConfig: p.pomodoroConfig,
     };
+    // Quick-start is a one-tap action — respect the profile's hardcore setting
+    // verbatim. The toggle on the manual start panel is for the longer flow.
     setPendingPayload(payload);
     setShowIntention(true);
   }
@@ -381,6 +390,32 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Hardcore toggle */}
+            <div className="mt-5">
+              <div className={cn(
+                'flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors',
+                hardcore
+                  ? 'border-crimson/40 bg-crimson/5'
+                  : 'border-border bg-bg/30',
+              )}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Icon.Lock size={12} className={hardcore ? 'text-crimson' : 'text-muted'} />
+                    <p className="text-sm text-text">Hardcore</p>
+                  </div>
+                  <p className={cn(
+                    'text-[11px] mt-0.5 leading-snug',
+                    hardcore ? 'text-crimson' : 'text-muted',
+                  )}>
+                    {hardcore
+                      ? 'Cannot be stopped early — runs the full duration no matter what'
+                      : 'You can stop the session anytime from the dashboard'}
+                  </p>
+                </div>
+                <Toggle on={hardcore} onChange={setHardcore} danger label="Hardcore" />
+              </div>
+            </div>
+
             <div className="mt-5">
               <label className="block text-xs text-muted mb-1.5">Friend lock token <span className="text-faint">(optional)</span></label>
               <input
@@ -396,7 +431,7 @@ export default function Dashboard() {
               <div className="mt-4 rounded-lg bg-bg/40 border border-border p-3 text-xs text-muted space-y-0.5">
                 {profile.blockedCategories.length > 0 && <p>Categories: {profile.blockedCategories.join(', ')}</p>}
                 {profile.customBlockedDomains.length > 0 && <p>{profile.customBlockedDomains.length} custom domains</p>}
-                {profile.hardcoreMode && <p className="text-crimson font-medium">Hardcore mode — session cannot be stopped early</p>}
+                {hardcore && <p className="text-crimson font-medium">Hardcore mode — session cannot be stopped early</p>}
               </div>
             )}
 
