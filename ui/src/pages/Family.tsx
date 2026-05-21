@@ -652,12 +652,16 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
   const rules         = useFamily(s => s.rulesByDevice[device.id] ?? []);
   const loadRules     = useFamily(s => s.loadRules);
   const blockNow      = useFamily(s => s.blockNow);
+  const emergencyUnblock = useFamily(s => s.emergencyUnblock);
   const removeRule    = useFamily(s => s.removeRule);
   const unpairDevice  = useFamily(s => s.unpairDevice);
   const [expanded, setExpanded] = useState(false);
   const [apps, setApps] = useState('');
   const [domains, setDomains] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [unblocking, setUnblocking] = useState(false);
+
+  const activeUnblockAll = rules.find(r => r.kind === 'unblock_all' && r.active);
 
   useEffect(() => { if (expanded) loadRules(device.id); }, [expanded, device.id, loadRules]);
 
@@ -669,6 +673,26 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
     try { await blockNow(device.id, appList, domainList); setApps(''); setDomains(''); }
     catch { /* error in store */ }
     finally { setSubmitting(false); }
+  }
+
+  async function submitEmergencyUnblock() {
+    if (activeUnblockAll) {
+      // Toggle off: remove the existing kill-switch rule.
+      if (!window.confirm('Re-enable all family rules on this device?')) return;
+      setUnblocking(true);
+      try { await removeRule(device.id, activeUnblockAll.id); }
+      catch { /* error in store */ }
+      finally { setUnblocking(false); }
+      return;
+    }
+    if (!window.confirm(
+      `Lift ALL family rules on ${device.hostname ?? 'this device'}?\n\n` +
+      "Block-now and scheduled rules will be suppressed until you clear the unblock. The kid will be able to use everything until then. Use this for emergencies only — homework site got blocked, kid needs to call you, etc."
+    )) return;
+    setUnblocking(true);
+    try { await emergencyUnblock(device.id); }
+    catch { /* error in store */ }
+    finally { setUnblocking(false); }
   }
 
   async function confirmUnpair() {
@@ -698,6 +722,36 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
 
       {expanded && (
         <div className="space-y-3 pt-2 border-t border-border/50">
+          {/* Emergency unblock — at the top because it's the panic button */}
+          <div className={cn(
+            'rounded-md border p-3',
+            activeUnblockAll ? 'border-success/40 bg-success/5' : 'border-border/50',
+          )}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-text flex items-center gap-1.5">
+                  <Icon.ShieldChk size={12} className={activeUnblockAll ? 'text-success' : 'text-muted'} />
+                  {activeUnblockAll ? 'Emergency unblock active' : 'Emergency unblock'}
+                </p>
+                <p className="text-[11px] text-faint mt-0.5">
+                  {activeUnblockAll
+                    ? 'All family rules are currently suppressed. Re-enable when ready.'
+                    : 'Suppresses every family rule on this device until you clear it.'}
+                </p>
+              </div>
+              <button
+                onClick={submitEmergencyUnblock}
+                disabled={unblocking}
+                className={cn(
+                  'btn-ghost px-3 py-1.5 text-xs shrink-0',
+                  activeUnblockAll ? 'text-success' : 'text-muted hover:text-text',
+                )}
+              >
+                {unblocking ? 'Working…' : activeUnblockAll ? 'Re-enable rules' : 'Lift all locks'}
+              </button>
+            </div>
+          </div>
+
           {/* Block-now form */}
           <div className="space-y-2">
             <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold">Block now</p>

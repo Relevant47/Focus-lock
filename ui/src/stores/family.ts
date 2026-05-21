@@ -38,6 +38,7 @@ interface Actions {
   unpairDevice(deviceId: string): Promise<void>;
   loadRules(deviceId: string): Promise<void>;
   blockNow(deviceId: string, apps: string[], domains: string[]): Promise<void>;
+  emergencyUnblock(deviceId: string): Promise<void>;
   removeRule(deviceId: string, ruleId: string): Promise<void>;
   clearError(): void;
 }
@@ -139,6 +140,24 @@ export const useFamily = create<Store>((set, get) => ({
         kind: 'block_now',
         targetApps: apps,
         targetDomains: domains,
+      });
+      const existing = get().rulesByDevice[deviceId] ?? [];
+      set({
+        rulesByDevice: { ...get().rulesByDevice, [deviceId]: [rule, ...existing] },
+        loading: false,
+      });
+    } catch (e) { set({ error: errMsg(e), loading: false }); throw e; }
+  },
+
+  async emergencyUnblock(deviceId) {
+    const s = get().session;
+    if (!s) return;
+    set({ loading: true, error: null });
+    try {
+      const { rule } = await family.createRule(s.token, deviceId, {
+        kind: 'unblock_all',
+        targetApps: [],
+        targetDomains: [],
       });
       const existing = get().rulesByDevice[deviceId] ?? [];
       set({
