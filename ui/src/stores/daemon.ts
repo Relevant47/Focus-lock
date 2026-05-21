@@ -3,6 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type {
   DaemonStatus,
+  FamilyEnvironment,
+  FamilyRedeemResult,
   FocusProfile,
   ParentAuditEntry,
   ScheduledSession,
@@ -82,6 +84,10 @@ interface Actions {
   verifyRecoveryKey(key: string): Promise<void>;
   /// Regenerate the recovery key. Requires current PIN. Returns the new key.
   regenerateRecoveryKey(pin: string): Promise<string>;
+  // Family (cross-device child-side)
+  redeemFamilyCode(code: string, serverUrl: string): Promise<FamilyRedeemResult>;
+  unpairFamily(): Promise<void>;
+  checkFamilyEnvironment(): Promise<FamilyEnvironment>;
 }
 
 interface ParentTokenPayload { token: string; expiresAt: string }
@@ -283,5 +289,38 @@ export const useDaemon = create<State & Actions>((set, get) => ({
     }
     const p = res.payload as { key: string };
     return p.key;
+  },
+
+  // ── Family (cross-device child-side pairing) ──────────────────────────────
+
+  async redeemFamilyCode(code, serverUrl) {
+    // Settings-lock PIN gate kicks in only when one is configured; the daemon
+    // enforces the gate, the UI just supplies a fresh token when it has one
+    // so the parent doesn't re-prompt for the PIN they just typed.
+    return await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      const payload: Record<string, unknown> = { code, serverUrl };
+      if (pt) payload.parentToken = pt;
+      const res = await request('family_redeem_code', payload);
+      if (res.type !== 'family_paired' || !res.payload) {
+        throw new Error('Unexpected response from daemon');
+      }
+      return res.payload as FamilyRedeemResult;
+    });
+  },
+
+  async unpairFamily() {
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      await request('family_unpair', pt ? { parentToken: pt } : undefined);
+    });
+  },
+
+  async checkFamilyEnvironment() {
+    const res = await request('family_check_environment');
+    if (res.type !== 'family_environment' || !res.payload) {
+      throw new Error('Unexpected response from daemon');
+    }
+    return res.payload as FamilyEnvironment;
   },
 }));

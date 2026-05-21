@@ -10,6 +10,11 @@ export type {
   DaemonStatus,
   ParentAuditEntry,
   ParentAuditEventType,
+  FamilyStatus,
+  FamilyEnvironment,
+  FamilyRuleSummary,
+  FamilyRedeemPayload,
+  FamilyRedeemResult,
 } from '@shared/protocol';
 
 export { CATEGORY_DOMAINS } from '@shared/protocol';
