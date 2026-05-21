@@ -227,7 +227,26 @@
 
   <div class="timeline" id="timeline">
 
-    <!-- ───── 2026-05-21 (latest) ───── -->
+    <!-- ───── 2026-05-22 (latest) ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 22, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.0</span>
+      </div>
+      <div class="entry-body">
+        <h2>Family Controls — closed beta</h2>
+        <ul>
+          <li><strong>The thing the 1.0.26 changelog promised.</strong> A parent on one machine can hard-lock specific apps and websites on a child's machine, at any time, from anywhere. Cloud-synced rules, real-time push, anti-bypass enforcement on the child side.</li>
+          <li><strong>How it works.</strong> Parent signs up on their own machine, generates a 6-digit pairing code, enters it on the child's machine. From then on, the parent's dashboard shows the child's device with a live online dot, a block-now form (apps + domains), an audit log of what's happened, and an emergency-unblock button when something gets stuck.</li>
+          <li><strong>The threat model FocusLock can actually defend.</strong> Killing the daemon (auto-restart watchdog), editing the family-rule cache (HMAC-signed, tamper-detected), rebooting into Safe Mode (Windows registers the service to start there too), uninstalling via Settings → Apps (now requires explicit parent authorization with a 15-minute window from inside FocusLock), and — opt-in — renaming a blocked binary (Windows Firewall blocks per-EXE-path, macOS pfctl blocks per-IP when daemon's been offline > 5 minutes).</li>
+          <li><strong>The threat model FocusLock can't.</strong> A kid with administrator rights, a Linux USB boot, or BIOS access defeats all of this in minutes. The parent dashboard surfaces this directly — it now enumerates every local administrator account on the device by name with platform-specific instructions for demoting them. Nothing else FocusLock does matters until that step is done.</li>
+          <li><strong>Closed beta.</strong> Free during the beta, then ~$5/mo per family for the hosted cloud once it stabilizes. Single-device FocusLock stays free forever. The full backend is open-source under the same GPL repo, so anyone can self-host their own family server and stay free that way too. <a href="https://github.com/Relevant47/focus-lock/blob/main/docs/family-controls-beta.md">Beta details + setup guide →</a></li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-21 ───── -->
     <article class="entry" data-type="app">
       <div class="entry-meta">
         <div class="entry-date">May 21, 2026</div>
