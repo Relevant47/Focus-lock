@@ -125,6 +125,26 @@ public sealed class FamilyService
     }
 
     /// <summary>
+    /// Toggle the opt-in firewall lockdown flag on the persisted FamilyConfig.
+    /// Returns false if the device isn't paired (nothing to update).
+    /// </summary>
+    public bool SetFirewallLockdownEnabled(bool enabled)
+    {
+        FamilyConfig? next;
+        lock (_lock)
+        {
+            if (_config == null) return false;
+            if (_config.FirewallLockdownEnabled == enabled) return true;
+            _config.FirewallLockdownEnabled = enabled;
+            next = _config;
+            SaveConfig(_config);
+        }
+        ConfigChanged?.Invoke(next);
+        _log.LogInformation("Firewall lockdown flag set to {Enabled}", enabled);
+        return true;
+    }
+
+    /// <summary>
     /// Local unpair — drops the token + config without notifying the server.
     /// Called from the daemon when the server signals an unpair via WS, or
     /// from the UI when the parent removes this device.

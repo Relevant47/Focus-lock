@@ -11,6 +11,10 @@ struct FamilyConfig: Codable {
     var deviceToken: String  // 1-year JWT
     var pairedAt: String
     var hostname: String?
+    /// Mirror of the Windows flag. macOS daemon doesn't currently implement
+    /// firewall lockdown (pfctl deferred), but the flag round-trips so a
+    /// future implementation can read it without a schema bump.
+    var firewallLockdownEnabled: Bool?
 }
 
 struct FamilyRuleSummary: Codable {
@@ -35,6 +39,8 @@ struct FamilyStatus: Codable {
     /// Seconds since the last successful connection. 0 when currently connected.
     var offlineSeconds: Int
     var activeRules: [FamilyRuleSummary]
+    var firewallLockdownEnabled: Bool
+    var firewallLockdownActive: Bool
 }
 
 // ── IPC payloads ───────────────────────────────────────────────────────────

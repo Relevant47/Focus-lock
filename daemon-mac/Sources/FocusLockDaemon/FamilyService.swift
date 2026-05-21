@@ -137,6 +137,25 @@ final class FamilyService {
             accountId: cfg.accountId, deviceId: cfg.deviceId, pairedAt: cfg.pairedAt))
     }
 
+    /// Toggle the opt-in firewall-lockdown flag on the persisted config.
+    /// Returns false if the device isn't paired. macOS daemon currently has
+    /// no pfctl enforcement of the flag — it just round-trips through the
+    /// stored config so a future implementation can pick it up.
+    func setFirewallLockdownEnabled(_ enabled: Bool) -> Bool {
+        lock.lock()
+        guard var cfg = config else { lock.unlock(); return false }
+        if (cfg.firewallLockdownEnabled ?? false) == enabled {
+            lock.unlock(); return true
+        }
+        cfg.firewallLockdownEnabled = enabled
+        config = cfg
+        save(cfg)
+        lock.unlock()
+        notify(cfg)
+        fputs("[family] firewall_lockdown_enabled=\(enabled)\n", stderr)
+        return true
+    }
+
     /// Drops local pairing. Called from the IPC handler, and from the WS read
     /// loop when the server sends an `unpair` push (e.g. parent removed this
     /// device from their dashboard).

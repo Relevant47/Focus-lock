@@ -168,6 +168,8 @@ final class IpcSocketService {
         case "family_unpair":              return handleFamilyUnpair(req)
         case "family_get_status":          return .familyStatus(buildFamilyStatus())
         case "family_check_environment":   return .familyEnvironment(envProbe.probe())
+        case "family_authorize_uninstall": return handleFamilyAuthorizeUninstall(req)
+        case "family_set_firewall_lockdown": return handleFamilySetFirewallLockdown(req)
         default:
             return .error("Unknown request type: \(req.type)")
         }
@@ -190,8 +192,35 @@ final class IpcSocketService {
             lastError:          cloudSync.lastError,
             activeRuleCount:    snap.count,
             offlineSeconds:     cloudSync.offlineSeconds,
-            activeRules:        snap
+            activeRules:        snap,
+            firewallLockdownEnabled: cfg?.firewallLockdownEnabled ?? false,
+            // macOS daemon doesn't implement pfctl lockdown yet — flag is
+            // persisted but enforcement is a no-op.
+            firewallLockdownActive:  false
         )
+    }
+
+    private func handleFamilyAuthorizeUninstall(_ req: IpcRequest) -> IpcResponse {
+        // Mac uninstall is "drag to Trash" — no NSIS gate to honour. Still
+        // accept the IPC for protocol parity so the UI can call it cross-
+        // platform without conditionals. Write the audit event so a parent
+        // can see uninstall was attempted.
+        if let gate = gateOrNil(req) { return gate }
+        audit.record(ParentAuditEvents.uninstallAuthorized,
+                     detail: "platform=macos noop=true")
+        return .ok
+    }
+
+    private func handleFamilySetFirewallLockdown(_ req: IpcRequest) -> IpcResponse {
+        if let gate = gateOrNil(req) { return gate }
+        guard let dict = req.payload?.value as? [String: AnyCodable],
+              let enabled = dict["enabled"]?.value as? Bool else {
+            return .error("Missing 'enabled' boolean")
+        }
+        if !familySvc.setFirewallLockdownEnabled(enabled) {
+            return .error("Device is not paired")
+        }
+        return .ok
     }
 
     private func handleFamilyRedeem(_ req: IpcRequest) -> IpcResponse {

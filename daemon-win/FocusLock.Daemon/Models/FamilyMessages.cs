@@ -16,6 +16,14 @@ public sealed class FamilyConfig
     public string DeviceToken { get; set; } = string.Empty;   // long-lived (1y) JWT
     public string PairedAt    { get; set; } = string.Empty;   // ISO 8601
     public string? Hostname   { get; set; }
+    /// <summary>
+    /// Opt-in Windows-only "kid pulled the network cable" mitigation. When set,
+    /// the daemon applies per-app Windows Firewall outbound-block rules for
+    /// cached block_now process targets after the WebSocket has been offline
+    /// for > 5 minutes, on top of the existing process-kill loop. Rules
+    /// auto-clear on reconnect. See FirewallLockdownService.
+    /// </summary>
+    public bool FirewallLockdownEnabled { get; set; }
 }
 
 public sealed class FamilyStatus
@@ -32,6 +40,8 @@ public sealed class FamilyStatus
     /// <summary>Seconds since the last successful connection. 0 when currently connected.</summary>
     public int    OfflineSeconds      { get; set; }
     public List<FamilyRuleSummary> ActiveRules { get; set; } = new();
+    public bool   FirewallLockdownEnabled { get; set; }
+    public bool   FirewallLockdownActive  { get; set; }
 }
 
 public sealed class FamilyRuleSummary

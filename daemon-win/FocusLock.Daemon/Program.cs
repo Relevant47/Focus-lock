@@ -20,6 +20,8 @@ builder.Services.AddSingleton<EnvironmentProbe>();
 builder.Services.AddSingleton<FamilyService>();
 builder.Services.AddSingleton<FamilyEnforcementService>();
 builder.Services.AddSingleton<CloudSyncService>();
+builder.Services.AddSingleton<FirewallLockdownService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<FirewallLockdownService>());
 builder.Services.AddHostedService<SafeModeRegistration>();
 builder.Services.AddHostedService<DaemonWorker>();
 builder.Services.AddHostedService<IpcPipeService>();

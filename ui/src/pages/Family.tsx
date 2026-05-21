@@ -160,8 +160,10 @@ function fireTamperNotification(event: string, detail: string | null) {
 
 function ChildPairedView({ family }: { family: FamilyStatus }) {
   const unpair = useDaemon(s => s.unpairFamily);
+  const setFirewallLockdown = useDaemon(s => s.setFirewallLockdown);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [togglingLockdown, setTogglingLockdown] = useState(false);
 
   async function handleUnpair() {
     if (!window.confirm(
@@ -172,6 +174,21 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
     try { await unpair(); }
     catch (e) { setError(e instanceof Error ? e.message : 'Unpair failed'); }
     finally { setBusy(false); }
+  }
+
+  async function handleToggleLockdown(next: boolean) {
+    if (next && !window.confirm(
+      "Turn on firewall lockdown?\n\n" +
+      "When the daemon has been offline from the family server for more than 5 minutes, " +
+      "Windows Firewall will block outbound traffic from any process currently being blocked " +
+      "by a family rule. This is on top of the existing kill-the-process loop — useful if " +
+      "the kid tries to rename binaries to escape.\n\n" +
+      "Experimental, Windows-only. macOS daemon stores the flag but doesn't enforce it yet."
+    )) return;
+    setTogglingLockdown(true); setError(null);
+    try { await setFirewallLockdown(next); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Toggle failed'); }
+    finally { setTogglingLockdown(false); }
   }
 
   return (
@@ -225,6 +242,32 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
           </ul>
         </div>
       )}
+
+      {/* Opt-in firewall lockdown */}
+      <div className="card p-4 space-y-2 border-border/50">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold flex items-center gap-1.5">
+              <Icon.Shield size={11} /> Firewall lockdown
+              <Pill tone="warn" className="ml-1">Experimental</Pill>
+              {family.firewallLockdownActive && <Pill tone="danger" className="ml-1">Active now</Pill>}
+            </p>
+            <p className="text-xs text-faint mt-1 leading-relaxed">
+              When the daemon's been offline from the family server for &gt;5 minutes, block outbound traffic from currently-blocked apps via Windows Firewall. On top of the kill-process loop, so renaming binaries doesn't escape. Windows-only.
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleLockdown(!family.firewallLockdownEnabled)}
+            disabled={togglingLockdown}
+            className={cn(
+              'btn-ghost px-3 py-1.5 text-xs shrink-0',
+              family.firewallLockdownEnabled ? 'text-success' : 'text-muted hover:text-text',
+            )}
+          >
+            {togglingLockdown ? 'Working…' : family.firewallLockdownEnabled ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
+      </div>
 
       <div className="card p-4 space-y-2 border-border/50">
         <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold">Device info</p>

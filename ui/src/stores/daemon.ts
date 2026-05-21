@@ -91,6 +91,8 @@ interface Actions {
   /// Authorize a Windows uninstall. Gated by the settings-lock PIN if one is
   /// configured. Writes a 15-minute marker file the NSIS uninstaller checks.
   authorizeUninstall(): Promise<void>;
+  /// Toggle the opt-in firewall-lockdown flag on the paired device. Gated.
+  setFirewallLockdown(enabled: boolean): Promise<void>;
 }
 
 interface ParentTokenPayload { token: string; expiresAt: string }
@@ -331,6 +333,15 @@ export const useDaemon = create<State & Actions>((set, get) => ({
     await withParentGate(async () => {
       const pt = activeParentToken(get());
       await request('family_authorize_uninstall', pt ? { parentToken: pt } : undefined);
+    });
+  },
+
+  async setFirewallLockdown(enabled) {
+    await withParentGate(async () => {
+      const pt = activeParentToken(get());
+      const payload: Record<string, unknown> = { enabled };
+      if (pt) payload.parentToken = pt;
+      await request('family_set_firewall_lockdown', payload);
     });
   },
 }));

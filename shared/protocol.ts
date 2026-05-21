@@ -105,7 +105,8 @@ export type IpcRequest =
   | { type: "family_unpair"; payload?: ParentTokenEnvelope }
   | { type: "family_get_status" }
   | { type: "family_check_environment" }
-  | { type: "family_authorize_uninstall"; payload?: ParentTokenEnvelope };
+  | { type: "family_authorize_uninstall"; payload?: ParentTokenEnvelope }
+  | { type: "family_set_firewall_lockdown"; payload: { enabled: boolean } & ParentTokenEnvelope };
 
 /// Sensitive commands accept an optional grace token from a recent verify_parent_pin.
 /// When a parent PIN is configured, the daemon rejects gated commands without a valid token.
@@ -227,6 +228,13 @@ export interface FamilyStatus {
   /// Crosses 300 → audit event `family_offline_5min` is written.
   offlineSeconds: number;
   activeRules: FamilyRuleSummary[];
+  /// Opt-in: when daemon has been offline > 5min, apply per-app Windows
+  /// Firewall blocks on cached block_now process targets. Windows only;
+  /// macOS daemon stores but does not enforce the flag yet.
+  firewallLockdownEnabled: boolean;
+  /// True when the daemon currently has firewall lockdown rules applied
+  /// (i.e. lockdown is enabled AND triggered AND we successfully wrote rules).
+  firewallLockdownActive: boolean;
 }
 
 /// Read-once snapshot of the host environment, returned by the

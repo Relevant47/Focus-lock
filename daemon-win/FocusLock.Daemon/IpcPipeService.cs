@@ -26,6 +26,7 @@ public sealed class IpcPipeService : BackgroundService
     private readonly FamilyEnforcementService _familyEnforce;
     private readonly CloudSyncService _cloudSync;
     private readonly EnvironmentProbe _envProbe;
+    private readonly FirewallLockdownService _firewallLockdown;
     private readonly ILogger<IpcPipeService> _log;
 
     public IpcPipeService(
@@ -37,6 +38,7 @@ public sealed class IpcPipeService : BackgroundService
         FamilyEnforcementService familyEnforce,
         CloudSyncService cloudSync,
         EnvironmentProbe envProbe,
+        FirewallLockdownService firewallLockdown,
         ILogger<IpcPipeService> log)
     {
         _session = session;
@@ -47,6 +49,7 @@ public sealed class IpcPipeService : BackgroundService
         _familyEnforce = familyEnforce;
         _cloudSync = cloudSync;
         _envProbe = envProbe;
+        _firewallLockdown = firewallLockdown;
         _log = log;
     }
 
@@ -177,6 +180,7 @@ public sealed class IpcPipeService : BackgroundService
                 "family_get_status"        => IpcResponse.FamilyStatus(BuildFamilyStatus()),
                 "family_check_environment" => IpcResponse.FamilyEnvironment(_envProbe.Probe()),
                 "family_authorize_uninstall" => HandleAuthorizeUninstall(req),
+                "family_set_firewall_lockdown" => HandleSetFirewallLockdown(req),
                 _ => IpcResponse.Error($"Unknown request type: {req.Type}"),
             };
         }
@@ -220,6 +224,8 @@ public sealed class IpcPipeService : BackgroundService
             ActiveRuleCount     = snapshot.Count,
             OfflineSeconds      = _cloudSync.OfflineSeconds,
             ActiveRules         = snapshot.ToList(),
+            FirewallLockdownEnabled = cfg?.FirewallLockdownEnabled ?? false,
+            FirewallLockdownActive  = _firewallLockdown.IsLocked,
         };
     }
 
@@ -500,6 +506,20 @@ public sealed class IpcPipeService : BackgroundService
             _log.LogWarning(ex, "Failed to write uninstall authorization token");
             return IpcResponse.Error("Could not write uninstall authorization token");
         }
+    }
+
+    private IpcResponse HandleSetFirewallLockdown(IpcRequest req)
+    {
+        var gate = GateOrNull(req);
+        if (gate != null) return gate;
+        if (req.Payload == null) return IpcResponse.Error("Missing payload");
+        if (!req.Payload.Value.TryGetProperty("enabled", out var enabledEl)
+            || enabledEl.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+            return IpcResponse.Error("Missing 'enabled' boolean");
+
+        if (!_family.SetFirewallLockdownEnabled(enabledEl.GetBoolean()))
+            return IpcResponse.Error("Device is not paired");
+        return IpcResponse.Ok();
     }
 
     private static void RestrictAuthorizationAcl(string path)
