@@ -2,6 +2,9 @@
 node_modules/
 ui/node_modules/
 update-server/node_modules/
+family-server/node_modules/
+family-server/.wrangler/
+family-server/.dev.vars
 
 # Build outputs
 ui/dist/
