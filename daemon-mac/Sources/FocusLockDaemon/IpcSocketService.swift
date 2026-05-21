@@ -13,6 +13,7 @@ final class IpcSocketService {
     private let familyEnforce: FamilyEnforcementService
     private let cloudSync: CloudSyncService
     private let envProbe: EnvironmentProbe
+    private let firewallLockdown: FirewallLockdownService
     private var serverFd: Int32 = -1
     private var isRunning = false
 
@@ -32,7 +33,7 @@ final class IpcSocketService {
     init(session: SessionService, profiles: ProfileService, parent: ParentService,
          audit: ParentAuditService, family: FamilyService,
          familyEnforce: FamilyEnforcementService, cloudSync: CloudSyncService,
-         envProbe: EnvironmentProbe) {
+         envProbe: EnvironmentProbe, firewallLockdown: FirewallLockdownService) {
         self.sessionSvc = session
         self.profileSvc = profiles
         self.parentSvc = parent
@@ -41,6 +42,7 @@ final class IpcSocketService {
         self.familyEnforce = familyEnforce
         self.cloudSync = cloudSync
         self.envProbe = envProbe
+        self.firewallLockdown = firewallLockdown
     }
 
     func start() {
@@ -194,9 +196,7 @@ final class IpcSocketService {
             offlineSeconds:     cloudSync.offlineSeconds,
             activeRules:        snap,
             firewallLockdownEnabled: cfg?.firewallLockdownEnabled ?? false,
-            // macOS daemon doesn't implement pfctl lockdown yet — flag is
-            // persisted but enforcement is a no-op.
-            firewallLockdownActive:  false
+            firewallLockdownActive:  firewallLockdown.isLocked
         )
     }
 
