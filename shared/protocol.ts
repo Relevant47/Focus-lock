@@ -236,6 +236,16 @@ export interface FamilyEnvironment {
   daemonElevated: boolean;       // SYSTEM (Win) or root (mac)
   uacEnabled: boolean | null;    // Windows-only; null on macOS
   currentUser: string | null;    // Daemon's own identity (informational)
+  localUsers: LocalUserAccount[]; // Per-user admin enumeration; empty if unavailable
+}
+
+/// One local account on the host. Surfaced so the parent setup flow can name
+/// which accounts need to be demoted from administrator before pairing.
+export interface LocalUserAccount {
+  name: string;
+  isAdmin: boolean;
+  isCurrent: boolean;
+  isBuiltIn: boolean;
 }
 
 export interface FamilyRuleSummary {

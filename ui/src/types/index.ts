@@ -15,6 +15,7 @@ export type {
   FamilyRuleSummary,
   FamilyRedeemPayload,
   FamilyRedeemResult,
+  LocalUserAccount,
 } from '@shared/protocol';
 
 export { CATEGORY_DOMAINS } from '@shared/protocol';

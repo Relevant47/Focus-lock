@@ -566,14 +566,24 @@ function EnvironmentWarning() {
   const elevatedOk = env.daemonElevated;
   const uacWeak = env.platform === 'windows' && env.uacEnabled === false;
 
+  // Real human admin accounts only — built-in (SYSTEM, Administrator, _services
+  // etc.) are interesting to advanced users but noisy as a warning surface.
+  const humanAdmins = env.localUsers.filter(u => u.isAdmin && !u.isBuiltIn);
+
+  const hasIssues = !elevatedOk || uacWeak || humanAdmins.length > 0;
+
   // Hide the banner entirely if everything looks fine — no need to nag.
-  if (elevatedOk && !uacWeak) {
+  if (!hasIssues) {
     return (
       <div className="card p-3 border-success/25 bg-success/5 flex items-start gap-3">
         <Icon.ShieldChk size={16} className="text-success shrink-0 mt-0.5" />
         <div className="flex-1 text-xs">
           <p className="text-text font-medium mb-0.5">This machine's daemon is set up correctly</p>
-          <p className="text-faint">Elevated{env.platform === 'windows' ? ' · UAC enabled' : ''} · {platform} {env.osVersion}. Don't forget to verify the *child's* device too — that's where the locks actually have to hold.</p>
+          <p className="text-faint">
+            Elevated{env.platform === 'windows' ? ' · UAC enabled' : ''} · {platform} {env.osVersion}.
+            {env.localUsers.length > 0 && ` ${env.localUsers.filter(u => !u.isBuiltIn).length} local account${env.localUsers.filter(u => !u.isBuiltIn).length === 1 ? '' : 's'}, none with admin.`}
+            {' '}Don't forget to verify the *child's* device too — that's where the locks actually have to hold.
+          </p>
         </div>
         <button onClick={() => { sessionStorage.setItem('family-env-warning-dismissed', '1'); setDismissed(true); }}
           className="text-faint hover:text-text shrink-0"><Icon.Close size={12} /></button>
@@ -600,15 +610,33 @@ function EnvironmentWarning() {
                 {' '}Without it, any logged-in user (including the kid's account) can elevate without prompting. Re-enable UAC in Control Panel → User Accounts.
               </li>
             )}
-            <li>
-              <span className="text-text">Make sure the child's Windows/macOS account is a standard (non-admin) account.</span>
-              {' '}Without that, every protection FocusLock ships can be bypassed in under a minute. See the design doc for the why.
-            </li>
+            {humanAdmins.length > 0 && (
+              <li>
+                <span className="text-text">
+                  {humanAdmins.length === 1
+                    ? `Local account "${humanAdmins[0].name}" is an administrator.`
+                    : `${humanAdmins.length} local accounts are administrators: ${humanAdmins.map(u => u.name).join(', ')}.`}
+                </span>{' '}
+                If any of these are the child's account, demote it to standard ({env.platform === 'windows'
+                  ? 'Settings → Accounts → Family & other users → Change account type → Standard'
+                  : 'System Settings → Users & Groups → uncheck "Allow this user to administer this computer"'}).
+                Anyone in this list can stop the daemon, edit the hosts file, and uninstall FocusLock in seconds.
+              </li>
+            )}
+            {humanAdmins.length === 0 && env.localUsers.length === 0 && (
+              <li>
+                <span className="text-text">Couldn't enumerate local accounts.</span>
+                {' '}Make sure the child's account on this machine is a standard (non-admin) account — that's a load-bearing assumption for everything FocusLock does.
+              </li>
+            )}
           </ul>
           <p className="text-[11px] text-faint pt-1">
-            Detected on this device: {platform} {env.osVersion} · daemon {elevatedOk ? 'elevated' : <span className="text-warn">not elevated</span>}
+            Detected: {platform} {env.osVersion} · daemon {elevatedOk ? 'elevated' : <span className="text-warn">not elevated</span>}
             {env.platform === 'windows' && env.uacEnabled !== null && (
               <> · UAC {env.uacEnabled ? 'on' : <span className="text-warn">off</span>}</>
+            )}
+            {env.localUsers.length > 0 && (
+              <> · {env.localUsers.filter(u => !u.isBuiltIn).length} non-built-in user{env.localUsers.filter(u => !u.isBuiltIn).length === 1 ? '' : 's'}</>
             )}
           </p>
         </div>

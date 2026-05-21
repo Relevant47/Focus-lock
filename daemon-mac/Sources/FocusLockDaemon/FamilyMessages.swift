@@ -59,6 +59,16 @@ struct FamilyEnvironment: Codable {
     var daemonElevated: Bool        // SYSTEM (Win) or root (mac)
     var uacEnabled: Bool?           // Windows-only; nil on macOS
     var currentUser: String?        // Daemon's own identity (informational)
+    var localUsers: [LocalUserAccount]  // Per-user admin enumeration; empty when unavailable
+}
+
+/// One local account on the host. Surfaced so the parent setup flow can name
+/// which accounts need to be demoted from administrator before pairing.
+struct LocalUserAccount: Codable {
+    var name: String
+    var isAdmin: Bool
+    var isCurrent: Bool
+    var isBuiltIn: Bool
 }
 
 // ── Cloud wire shapes ──────────────────────────────────────────────────────

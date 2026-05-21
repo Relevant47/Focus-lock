@@ -71,6 +71,21 @@ public sealed class FamilyEnvironment
     public bool   DaemonElevated  { get; set; }                 // SYSTEM (Win) or root (mac)
     public bool?  UacEnabled      { get; set; }                 // Windows only; null elsewhere
     public string? CurrentUser    { get; set; }                 // Daemon's own identity (informational)
+    public List<LocalUserAccount> LocalUsers { get; set; } = new(); // Per-user admin enumeration; empty if unavailable
+}
+
+/// <summary>
+/// One local account on the host. Surfaced so the parent setup flow can name
+/// which accounts need to be demoted from administrator before pairing.
+/// </summary>
+public sealed class LocalUserAccount
+{
+    public string Name       { get; set; } = string.Empty;
+    public bool   IsAdmin    { get; set; }
+    /// <summary>True if this account is currently logged in (best-effort).</summary>
+    public bool   IsCurrent  { get; set; }
+    /// <summary>True for accounts the OS marks as built-in (Administrator, Guest, DefaultAccount, WDAGUtilityAccount, etc.).</summary>
+    public bool   IsBuiltIn  { get; set; }
 }
 
 // ── Cloud wire shapes (snake_case in transit handled by JSON opts) ─────────
