@@ -9,5 +9,15 @@ binding       = "DB"
 database_name = "focuslock-family"
 database_id   = "REPLACE_WITH_D1_DATABASE_ID"
 
+# Durable Object: one instance per device, holds the live WebSocket and
+# the throttled last_seen tracker.
+[[durable_objects.bindings]]
+name       = "DEVICE_CONN"
+class_name = "DeviceConnection"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["DeviceConnection"]
+
 # JWT_SECRET is set via `npm run secret:set-jwt` — DO NOT commit it to source.
 # For local dev (wrangler dev), put it in .dev.vars (gitignored).

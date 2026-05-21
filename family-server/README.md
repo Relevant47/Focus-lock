@@ -1,29 +1,78 @@
 # FocusLock — Family Controls Server
 
-Cloudflare Worker + D1 backend for cross-device family controls (a parent on one device hard-locks apps on a child's device). **Phase 2.1 — auth slice only.** Pairing, devices, lock rules, and the WebSocket transport land in Phase 2.2+.
+Cloudflare Worker + D1 + Durable Objects backend for cross-device family controls (a parent on one device hard-locks apps on a child's device). **Phase 2.2 — pairing, devices, rules, WebSocket.**
 
 See [`docs/family-controls-design.md`](../docs/family-controls-design.md) for the full architecture and design decisions.
 
 ---
 
-## What's in here (Phase 2.1)
+## Endpoint inventory
 
-| Route                              | Method | Auth          | What it does                                       |
-|------------------------------------|--------|---------------|----------------------------------------------------|
-| `/healthz`                         | GET    | none          | Liveness ping                                      |
-| `/api/v1/auth/signup`              | POST   | none          | Create a parent account, return a session token    |
-| `/api/v1/auth/login`               | POST   | none          | Verify email+password, return a session token      |
-| `/api/v1/auth/refresh`             | POST   | Bearer (session) | Issue a fresh 30-day session token              |
-| `/api/v1/auth/reset-request`       | POST   | none          | Email a reset token (currently logged to console)  |
-| `/api/v1/auth/reset-confirm`       | POST   | none (reset tok in body) | Use a reset token to set a new password |
+### Auth (Phase 2.1)
 
-**Auth model:** session tokens are HS256 JWTs (30-day TTL) signed by the Worker's `JWT_SECRET`. Reset tokens are short-lived JWTs (1-hour TTL) with `kind: "reset"` claim; they cannot be used as session tokens.
+| Route                              | Method | Auth                | What it does                                       |
+|------------------------------------|--------|---------------------|----------------------------------------------------|
+| `/healthz`                         | GET    | none                | Liveness ping                                      |
+| `/api/v1/auth/signup`              | POST   | none                | Create a parent account, return a session token    |
+| `/api/v1/auth/login`               | POST   | none                | Verify email+password, return a session token      |
+| `/api/v1/auth/refresh`             | POST   | Bearer (session)    | Issue a fresh 30-day session token                 |
+| `/api/v1/auth/reset-request`       | POST   | none                | Email a reset token (currently logged to console)  |
+| `/api/v1/auth/reset-confirm`       | POST   | none (reset tok in body) | Use a reset token to set a new password       |
 
-**Password hashing:** PBKDF2-SHA256, 600 000 iterations, 16-byte random salt — NIST SP 800-132 (2023). All via WebCrypto, no native deps.
+### Family (Phase 2.2)
 
-**Password recovery:** email reset, **instant** (no 24h delay). Trade-off accepted per [design doc decision #4](../docs/family-controls-design.md#product-decisions-locked-2026-05-21).
+| Route                                                | Method | Auth             | What it does                                                                      |
+|------------------------------------------------------|--------|------------------|-----------------------------------------------------------------------------------|
+| `/api/v1/family/pair/create`                         | POST   | Bearer (session) | Generate a 6-digit pairing code, valid 10 minutes                                 |
+| `/api/v1/family/pair/redeem`                         | POST   | none (code in body) | Consume a code; create the child device row; return a 1-year device-bound JWT |
+| `/api/v1/family/devices`                             | GET    | Bearer (session) | List paired devices (with online status)                                          |
+| `/api/v1/family/devices/:id`                         | DELETE | Bearer (session) | Unpair a device (deletes device row + cascades rules)                             |
+| `/api/v1/family/devices/:id/rules`                   | POST   | Bearer (session) | Create a lock rule; pushes to child via WS if connected                           |
+| `/api/v1/family/devices/:id/rules`                   | GET    | Bearer (session) | List active rules for a device                                                    |
+| `/api/v1/family/devices/:id/rules/:ruleId`           | DELETE | Bearer (session) | Soft-delete a rule (sets `active = 0`); pushes to child                           |
+| `/api/v1/device/rules`                               | GET    | Bearer (device)  | Child daemon pulls its own active rules (e.g. after reconnect)                    |
+| `/api/v1/device/ws`                                  | GET    | Bearer (device)  | WebSocket upgrade — server-pushed rule changes + child heartbeat                  |
 
-**Email enumeration resistance:** signup returns `409` on duplicate (which does leak — see below), but `/reset-request` always returns the same response regardless of whether the email is registered. **Open issue:** signup currently leaks account existence; revisit when adding email verification.
+**Auth model:**
+- **Session tokens** (parent): HS256 JWT, `kind` is unset (only `sub` = accountId). 30-day TTL. Issued by signup / login / refresh / reset-confirm.
+- **Device tokens** (child): HS256 JWT, `kind: "device"`, `sub` = accountId, `did` = deviceId. 1-year TTL. Issued by pair/redeem. Revocation = `DELETE /devices/:id` (drops the device row; subsequent auth check sees no row and fails).
+- **Reset tokens**: HS256 JWT, `kind: "reset"`, 1-hour TTL. Rejected by both `requireAuth` (parent) and `requireDeviceAuth` (child) — only valid as the body parameter of `/auth/reset-confirm`.
+
+**Password hashing:** PBKDF2-SHA256, 600 000 iterations, 16-byte random salt — NIST SP 800-132 (2023). All via WebCrypto.
+
+---
+
+## WebSocket protocol
+
+Connect: `wss://<worker-host>/api/v1/device/ws` with `Authorization: Bearer <device-token>` header.
+
+**Server → client messages:**
+
+```jsonc
+// New or updated rule
+{ "type": "rule_change", "rule": { "id": "...", "kind": "block_now", "targetApps": [...], ... } }
+
+// Rule deleted (parent removed it)
+{ "type": "rule_delete", "ruleId": "..." }
+
+// Device was unpaired by parent — daemon should close the WS and stop enforcing cloud rules
+{ "type": "unpair" }
+
+// Heartbeat acknowledgment
+{ "type": "ack", "t": 1716295000000 }
+```
+
+**Client → server messages:**
+
+```jsonc
+// Heartbeat (recommend every 60s). Updates last_seen_at (throttled to 1 DB write per minute).
+{ "type": "heartbeat" }
+```
+
+**Connection lifecycle:**
+- One active WS per device. Re-connecting boots the previous WS (so a kid running two daemons can't keep an old, less-restricted state alive).
+- If WS drops, child daemon should reconnect with exponential backoff and re-pull rules via `GET /api/v1/device/rules`.
+- If no heartbeat is seen for 90 seconds, the device is shown as **offline** in the parent dashboard.
 
 ---
 
@@ -54,38 +103,61 @@ npm run dev
 # Worker on http://localhost:8787
 ```
 
-### Curl walkthrough
+---
+
+## End-to-end curl walkthrough (pair + block)
 
 ```bash
 BASE=http://localhost:8787
 
-# 1. signup
+# ── Parent side ────────────────────────────────────────────────────────────
+
+# 1. Parent signs up
 curl -sX POST $BASE/api/v1/auth/signup \
   -H 'content-type: application/json' \
   -d '{"email":"alice@example.com","password":"correct horse battery"}'
-# => { "token": "eyJ...", "accountId": "uuid", "expiresIn": 2592000 }
+# => { token, accountId, expiresIn }
 
-TOKEN=...   # paste the token from above
+PARENT_TOKEN=...   # paste the token
 
-# 2. login (separate device)
-curl -sX POST $BASE/api/v1/auth/login \
+# 2. Parent generates a pairing code
+curl -sX POST $BASE/api/v1/family/pair/create \
+  -H "authorization: Bearer $PARENT_TOKEN"
+# => { code: "123456", expiresAt: "...", ttlSeconds: 600 }
+
+CODE=123456   # paste
+
+# ── Child side ─────────────────────────────────────────────────────────────
+
+# 3. Child daemon redeems the code (no parent auth — the code IS the proof)
+curl -sX POST $BASE/api/v1/family/pair/redeem \
   -H 'content-type: application/json' \
-  -d '{"email":"alice@example.com","password":"correct horse battery"}'
+  -d "{\"code\":\"$CODE\",\"hostname\":\"sams-laptop\",\"os\":\"windows\",\"osVersion\":\"11\"}"
+# => { deviceId, deviceToken, accountId, expiresInSeconds }
 
-# 3. refresh
-curl -sX POST $BASE/api/v1/auth/refresh \
-  -H "authorization: Bearer $TOKEN"
+DEVICE_ID=...
+DEVICE_TOKEN=...
 
-# 4. password-reset request (check wrangler dev logs for the emitted token)
-curl -sX POST $BASE/api/v1/auth/reset-request \
+# 4. Child daemon connects WebSocket (use wscat or similar)
+wscat -c "$BASE/api/v1/device/ws" -H "authorization: Bearer $DEVICE_TOKEN"
+# Send: {"type":"heartbeat"}
+# Expect: {"type":"ack","t":...}
+
+# ── Parent side (with child connected) ─────────────────────────────────────
+
+# 5. Parent sees the device online
+curl -s $BASE/api/v1/family/devices \
+  -H "authorization: Bearer $PARENT_TOKEN"
+# => { devices: [{ id, hostname, os, pairedAt, lastSeenAt, online: true }] }
+
+# 6. Parent creates a block_now rule on Sam's laptop
+curl -sX POST "$BASE/api/v1/family/devices/$DEVICE_ID/rules" \
+  -H "authorization: Bearer $PARENT_TOKEN" \
   -H 'content-type: application/json' \
-  -d '{"email":"alice@example.com"}'
-
-# 5. password-reset confirm (using the token from the log)
-RESET_TOKEN=...   # paste from wrangler dev log line: [reset-email] to=... token=...
-curl -sX POST $BASE/api/v1/auth/reset-confirm \
-  -H 'content-type: application/json' \
-  -d "{\"token\":\"$RESET_TOKEN\",\"newPassword\":\"new horse staple\"}"
+  -d '{"kind":"block_now","targetApps":["discord.exe","steam.exe"],"targetDomains":["reddit.com","x.com"]}'
+# => { rule: { id, kind, targetApps, targetDomains, active: true, ... } }
+# Child's wscat connection receives:
+#   { "type": "rule_change", "rule": { ... } }
 ```
 
 ---
@@ -104,7 +176,7 @@ npm run secret:set-jwt
 npm run deploy
 ```
 
-The deployed Worker URL goes into the parent-device FocusLock UI config (Phase 2.2). The Cloudflare updater Worker is unaffected — that's a separate Worker.
+The deployed Worker URL goes into the parent-device FocusLock UI config (Phase 2.2 UI — separate, not yet built).
 
 ---
 
@@ -112,21 +184,20 @@ The deployed Worker URL goes into the parent-device FocusLock UI config (Phase 2
 
 See [`migrations/0001_initial_schema.sql`](./migrations/0001_initial_schema.sql).
 
-Tables (only `accounts` and `audit_log` are exercised in Phase 2.1; the rest are scaffolded for Phase 2.2+):
-
-- **accounts** — parent accounts (id, email, password hash, created_at, email_verified_at)
+Tables:
+- **accounts** — parent accounts (id, email, password hash, timestamps)
 - **devices** — paired child devices (id, account_id, hostname, os, token hash, last_seen)
-- **pairing_codes** — short-lived 6-digit pairing codes
-- **lock_rules** — per-device lock rules (block_now / schedule / unblock_all)
-- **audit_log** — every parent + device event (login, pair, lock_set, tamper, etc.)
+- **pairing_codes** — short-lived 6-digit codes
+- **lock_rules** — per-device rules (`block_now` / `schedule` / `unblock_all`); soft-deleted via `active = 0`
+- **audit_log** — every parent + device event
 
 ---
 
 ## What's intentionally not here yet
 
-- **Pairing endpoints** (`/pair/create`, `/pair/redeem`) — Phase 2.2
-- **Device endpoints** (`/devices`, `/devices/:id/rules`) — Phase 2.2
-- **WebSocket via Durable Objects** — Phase 2.2
-- **Email integration** (Resend / SendGrid / Postmark) — currently `console.log` only, fine for beta
-- **Rate limiting** — Cloudflare's built-in WAF rules will cover us during beta; per-IP/per-account limits added before public launch
+- **Parent dashboard UI** — Phase 2.2 UI (React tab in FocusLock app); separate session
+- **Child daemon integration** — Phase 2.3 (Windows C# + macOS Swift WS clients)
+- **Anti-bypass hardening** — Phase 2.4 (monotonic clocks, Safe-Mode registration, admin-protected uninstall, non-admin-account auto-setup)
+- **Email service integration** — currently `console.log` only
+- **Rate limiting** — Cloudflare WAF covers us during beta; per-IP/per-account limits before public launch
 - **TOTP 2FA** — Phase 3+
