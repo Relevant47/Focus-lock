@@ -1,7 +1,12 @@
-// Password hashing (PBKDF2-SHA256, 600k iters per NIST SP 800-132 2023 guidance)
-// and HS256 JWT signing — all via WebCrypto, no WASM or deps.
-
-const PBKDF2_ITERS = 600_000;
+// Password hashing (PBKDF2-SHA256) and HS256 JWT signing — all via WebCrypto,
+// no WASM or deps.
+//
+// Iteration count note: NIST SP 800-132 (2023) recommends 600k iterations,
+// but Cloudflare Workers caps `crypto.subtle.deriveBits` at 100k (the limit
+// throws NotSupportedError above that). The on-disk hash format includes the
+// iteration count so existing 600k-hashed accounts (none yet — closed beta)
+// can still verify against the same code path.
+const PBKDF2_ITERS = 100_000;
 const PBKDF2_HASH_BITS = 256;
 const PBKDF2_SALT_BYTES = 16;
 
