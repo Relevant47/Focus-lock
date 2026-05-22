@@ -1,5 +1,6 @@
 import { hashPassword, signJwt, verifyJwt, verifyPassword } from './crypto';
 import { createAccount, findAccountByEmail, logAudit, updatePassword } from './db';
+import { sendResetEmail } from './email';
 import type { Env } from './types';
 import {
   badRequest,
@@ -80,9 +81,7 @@ export async function resetRequest(req: Request, env: Env): Promise<Response> {
   if (account) {
     const resetToken = await signJwt({ sub: account.id, kind: 'reset' }, env.JWT_SECRET, RESET_TOKEN_TTL_SECONDS);
     await logAudit(env.DB, account.id, null, 'password_reset_requested', null, clientIp(req));
-    // TODO Phase 2.1+: send via Resend/SendGrid/Postmark using a separate Worker secret.
-    // For now we just log it; the operator can grab the token from Worker logs during beta.
-    console.log(`[reset-email] to=${email} token=${resetToken}`);
+    await sendResetEmail(env, email, resetToken);
   }
   // Same response regardless of whether the email exists, to prevent enumeration.
   return json({ message: 'If that email is registered, a reset link has been sent.' });

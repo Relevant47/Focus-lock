@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="robots" content="noindex"/>
+  <title>Reset your password — FocusLock</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;padding:48px 24px;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .card{max-width:440px;width:100%;background:#13131a;border:1px solid #1e1e2e;border-radius:16px;padding:32px}
+    h1{font-size:1.5rem;font-weight:700;margin-bottom:8px;color:#f1f5f9}
+    p{color:#94a3b8;font-size:.875rem;margin-bottom:20px}
+    label{display:block;font-size:.75rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+    input{width:100%;background:#0a0a0f;border:1px solid #1e1e2e;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:.875rem;font-family:inherit;margin-bottom:16px}
+    input:focus{outline:none;border-color:#6366f1}
+    button{width:100%;background:#6366f1;color:white;border:none;padding:12px;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit}
+    button:hover:not(:disabled){background:#4f46e5}
+    button:disabled{background:#3a3a4a;color:#71717a;cursor:not-allowed}
+    .msg{margin-top:12px;font-size:.8125rem;padding:10px 12px;border-radius:8px}
+    .msg.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+    .msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86efac}
+    .hint{color:#475569;font-size:.75rem;margin-top:20px;padding-top:16px;border-top:1px solid #1e1e2e}
+    .hint a{color:#818cf8;text-decoration:none}
+    .hint a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Reset your password</h1>
+  <p id="intro">Enter a new password for your FocusLock family account. Minimum 8 characters.</p>
+
+  <form id="form">
+    <label for="pw">New password</label>
+    <input type="password" id="pw" required minlength="8" autocomplete="new-password" autofocus/>
+    <label for="pw2">Confirm new password</label>
+    <input type="password" id="pw2" required minlength="8" autocomplete="new-password"/>
+    <button type="submit" id="submit">Set new password</button>
+    <div id="msg"></div>
+  </form>
+
+  <p class="hint">
+    Done? Open FocusLock and log in with the new password.<br>
+    Issues? <a href="mailto:me@oscarpetrikas.com">me@oscarpetrikas.com</a>
+  </p>
+</div>
+
+<script>
+  // Resolve the family-server origin. Default to the production worker;
+  // can be overridden per-deploy by setting a meta tag if we ever host
+  // the landing under a different account.
+  const API_BASE = 'https://focuslock-family.oscarpetrikas.workers.dev';
+
+  const params = new URLSearchParams(location.search);
+  const token = params.get('token');
+  const form = document.getElementById('form');
+  const submit = document.getElementById('submit');
+  const msg = document.getElementById('msg');
+  const intro = document.getElementById('intro');
+
+  if (!token) {
+    intro.textContent = 'This page needs a reset token in the URL. Use the link from your email.';
+    form.style.display = 'none';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg.className = ''; msg.textContent = '';
+    const pw = document.getElementById('pw').value;
+    const pw2 = document.getElementById('pw2').value;
+    if (pw !== pw2) {
+      msg.className = 'msg error';
+      msg.textContent = "Passwords don't match.";
+      return;
+    }
+    submit.disabled = true;
+    submit.textContent = 'Working…';
+    try {
+      const res = await fetch(API_BASE + '/api/v1/auth/reset-confirm', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: token, newPassword: pw }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        msg.className = 'msg error';
+        msg.textContent = data.error || ('Reset failed (HTTP ' + res.status + ')');
+        submit.disabled = false;
+        submit.textContent = 'Try again';
+        return;
+      }
+      msg.className = 'msg ok';
+      msg.textContent = 'Password reset! Open FocusLock and log in.';
+      form.querySelectorAll('input').forEach(i => i.disabled = true);
+      submit.textContent = 'Done';
+    } catch (err) {
+      msg.className = 'msg error';
+      msg.textContent = "Couldn't reach the server. Check your connection and try again.";
+      submit.disabled = false;
+      submit.textContent = 'Try again';
+    }
+  });
+</script>
+</body>
+</html>

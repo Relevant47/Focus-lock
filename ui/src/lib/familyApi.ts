@@ -68,6 +68,11 @@ export const auth = {
     request<Session>('/api/v1/auth/login',  { method: 'POST', body: JSON.stringify({ email, password }) }),
   refresh: (token: string) =>
     request<Session>('/api/v1/auth/refresh', { method: 'POST' }, token),
+  /// Triggers a password-reset email (no response leaks whether the email exists).
+  /// User completes the reset in their browser via the link they receive.
+  resetRequest: (email: string) =>
+    request<{ message: string }>('/api/v1/auth/reset-request',
+      { method: 'POST', body: JSON.stringify({ email }) }),
 };
 
 // ── Family ─────────────────────────────────────────────────────────────────

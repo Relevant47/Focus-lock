@@ -4,7 +4,7 @@ import { useDaemon } from '../stores/daemon';
 import { Page, PageHeader, Pill } from '../components/ui';
 import { Icon } from '../components/Icons';
 import { cn } from '../lib/cn';
-import { familyApiUrl, type DeviceSummary, type LockRule } from '../lib/familyApi';
+import { auth as familyAuth, familyApiUrl, FamilyApiError, type DeviceSummary, type LockRule } from '../lib/familyApi';
 import type { FamilyEnvironment, FamilyStatus } from '../types';
 import { AUDIT_EVENT_LABEL, FAMILY_AUDIT_EVENTS, TAMPER_ALERT_EVENTS, formatAuditTime } from '../lib/auditEvents';
 import FamilyOnboarding, { useFamilyOnboarding } from '../components/FamilyOnboarding';
@@ -361,7 +361,10 @@ function SignedOutView({ mode, onModeChange }: {
             )}
           </div>
           {error && <p className="text-xs text-danger">{error}</p>}
-          <div className="flex justify-end pt-1">
+          <div className="flex items-center justify-between pt-1">
+            {mode === 'login' ? (
+              <ForgotPasswordButton currentEmail={email} />
+            ) : <span />}
             <button type="submit" disabled={submitting} className="btn-primary px-4 py-2 text-sm">
               {submitting ? 'Working…' : mode === 'signup' ? 'Create account' : 'Log in'}
             </button>
@@ -430,6 +433,91 @@ function PairingCodeEntryForm() {
         </button>
       </div>
     </form>
+  );
+}
+
+// ── Forgot-password flow ───────────────────────────────────────────────────
+// The actual "set a new password" form lives on the landing site at /reset,
+// linked from the email. Here we just collect the email + tell the user to
+// go check their inbox. Same response copy regardless of whether the email
+// is registered, so this UI doesn't leak existence either.
+
+function ForgotPasswordButton({ currentEmail }: { currentEmail: string }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(currentEmail);
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pre-fill with whatever the user has typed into the login email field.
+  useEffect(() => { if (open) setEmail(currentEmail); }, [open, currentEmail]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || submitting) return;
+    setSubmitting(true); setError(null);
+    try {
+      await familyAuth.resetRequest(email.trim().toLowerCase());
+      setSent(true);
+    } catch (e) {
+      setError(e instanceof FamilyApiError ? e.message : 'Could not reach the family server.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)}
+        className="text-[11px] text-faint hover:text-text underline-offset-2 hover:underline">
+        Forgot password?
+      </button>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 modal-backdrop">
+      <div className="w-full max-w-md mx-4 bg-surface border border-borderhi rounded-2xl shadow-hero p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-text">Reset your password</h3>
+          <button onClick={() => { setOpen(false); setSent(false); setError(null); }}
+            className="text-faint hover:text-text"><Icon.Close size={14} /></button>
+        </div>
+        {sent ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted leading-relaxed">
+              If <span className="font-mono text-text">{email}</span> is registered, a reset link is on its way. Check your inbox (and spam folder) — the link expires in 1 hour.
+            </p>
+            <p className="text-[11px] text-faint">
+              Open the email link in your browser. The page there walks you through choosing a new password. Then come back here and log in.
+            </p>
+            <div className="flex justify-end pt-2">
+              <button onClick={() => { setOpen(false); setSent(false); }}
+                className="btn-primary px-4 py-2 text-sm">Got it</button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-3">
+            <p className="text-xs text-muted">
+              Enter the email you signed up with. We'll send you a link to choose a new password.
+            </p>
+            <div>
+              <label className="text-xs text-muted block mb-1">Email</label>
+              <input type="email" required autoFocus
+                value={email} onChange={e => setEmail(e.target.value)}
+                className="input-base w-full px-3 py-2 text-sm" />
+            </div>
+            {error && <p className="text-xs text-danger">{error}</p>}
+            <div className="flex justify-end pt-1">
+              <button type="submit" disabled={submitting || !email.trim()}
+                className="btn-primary px-4 py-2 text-sm">
+                {submitting ? 'Sending…' : 'Send reset link'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -2,6 +2,16 @@ export interface Env {
   DB: D1Database;
   JWT_SECRET: string;
   DEVICE_CONN: DurableObjectNamespace;
+  // Optional email integration. Unset → reset tokens log to console
+  // (dev / self-host without email yet).
+  RESEND_API_KEY?: string;
+  /// Override "FocusLock <onboarding@resend.dev>" once a custom domain is
+  /// verified in Resend, e.g. "FocusLock <hello@focuslock.app>".
+  EMAIL_FROM?: string;
+  /// Base URL for the password-reset landing page. The worker appends
+  /// `?token=<jwt>` to this when sending the email. Defaults to the Vercel
+  /// landing URL; set to a custom domain once configured.
+  RESET_URL_BASE?: string;
 }
 
 export interface AuthContext {
