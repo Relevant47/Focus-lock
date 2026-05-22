@@ -2,6 +2,11 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.1.1] — 2026-05-22
+
+### Fixed
+- **Family tab actually ships this time.** v1.1.0's release workflow forgot to pass `VITE_FAMILY_API_URL` to the Tauri build, so the Family tab was hidden in shipped artifacts even though the backend was live. `release.yml` now reads the URL from a GitHub Actions repository variable and bakes it into the build. Forks without that variable set still get the Family tab hidden (same as 1.0.x), so this isn't a behaviour change for self-hosters.
+
 ## [1.1.0] — 2026-05-22 — Family Controls (closed beta)
 
 The first major release on top of the 1.0.x line. Adds cross-device family controls: a parent on one machine can hard-lock specific apps and websites on a child's machine at any time, with cloud sync, anti-bypass hardening, and honest documentation of where the limits are.
