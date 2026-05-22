@@ -10,7 +10,12 @@ const API_URL: string = ENV_URL ?? 'http://localhost:8787';
 export const familyEnabled: boolean = !!ENV_URL;
 
 export class FamilyApiError extends Error {
-  constructor(public status: number, message: string) { super(message); this.name = 'FamilyApiError'; }
+  constructor(
+    public status: number,
+    message: string,
+    /// Populated on 429 responses — seconds until the caller can retry.
+    public retryAfterSeconds: number | null = null,
+  ) { super(message); this.name = 'FamilyApiError'; }
 }
 
 async function request<T>(path: string, init: RequestInit, token?: string): Promise<T> {
@@ -31,7 +36,20 @@ async function request<T>(path: string, init: RequestInit, token?: string): Prom
     const msg = data && typeof data === 'object' && data !== null && 'error' in data
       ? String((data as { error: unknown }).error)
       : `request failed (${res.status})`;
-    throw new FamilyApiError(res.status, msg);
+    let retryAfter: number | null = null;
+    if (res.status === 429) {
+      // Prefer the JSON body's retryAfterSeconds (more precise than the header
+      // which is rounded up to whole seconds). Fall back to Retry-After header.
+      const bodyRetry = data && typeof data === 'object' && data !== null && 'retryAfterSeconds' in data
+        ? Number((data as { retryAfterSeconds: unknown }).retryAfterSeconds)
+        : NaN;
+      if (Number.isFinite(bodyRetry)) retryAfter = bodyRetry;
+      else {
+        const header = Number(res.headers.get('retry-after'));
+        if (Number.isFinite(header)) retryAfter = header;
+      }
+    }
+    throw new FamilyApiError(res.status, msg, retryAfter);
   }
   return data as T;
 }

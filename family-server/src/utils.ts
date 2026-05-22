@@ -16,6 +16,20 @@ export function conflict(msg: string): Response    { return json({ error: msg },
 export function gone(msg: string): Response        { return json({ error: msg },           410); }
 export function serverError(): Response            { return json({ error: 'internal error' }, 500); }
 
+/// 429 Too Many Requests with a Retry-After header (seconds). Body carries a
+/// user-facing message; the UI also reads Retry-After to render a countdown.
+export function tooManyRequests(retryAfterSeconds: number, msg: string): Response {
+  const body = JSON.stringify({ error: msg, retryAfterSeconds });
+  return new Response(body, {
+    status: 429,
+    headers: {
+      'content-type': 'application/json',
+      'cache-control': 'no-store',
+      'retry-after': String(Math.max(1, Math.ceil(retryAfterSeconds))),
+    },
+  });
+}
+
 export async function safeJson<T = unknown>(req: Request): Promise<T | null> {
   try { return await req.json() as T; } catch { return null; }
 }

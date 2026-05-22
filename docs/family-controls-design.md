@@ -263,6 +263,14 @@ Parent dashboard shows for each child device:
 - **Operator step:** `wrangler secret put RESEND_API_KEY` against the prod worker. Until done, the worker logs `[reset-email] (no RESEND_API_KEY set)` and the email never actually sends. Key uploaded 2026-05-22.
 - **Sandbox-sender limit:** `onboarding@resend.dev` only delivers to the email used to sign up for Resend. Verifying a custom domain in Resend (`focuslock.app` or similar) lifts this; rotate the key at the same time.
 
+**Phase 2.9 — Login + reset-request rate limiting** ✅ shipped 2026-05-22
+- New `auth_rate_limits` table (`migrations/0002_auth_rate_limits.sql`) with `key TEXT PRIMARY KEY`, attempts counter, window start, and a blocked-until timestamp. Same key used whether the email exists or not — otherwise a 429 vs 401 would leak account existence.
+- `src/rateLimit.ts` module: sliding-window check + record + clear. `LOGIN_POLICY` = 5 failures in 15min → 30min block. `RESET_POLICY` = 3 failures in 60min → 60min block.
+- `src/utils.ts` gains `tooManyRequests(seconds, msg)` helper that returns 429 with both a `Retry-After` header (rounded seconds, per spec) and a `retryAfterSeconds` body field (precise) so the client can render either.
+- `/auth/login` and `/auth/reset-request` check before doing real work, then increment on failure or clear on success. Audit events `login_rate_limited` and `reset_rate_limited` fire the moment a key gets blocked.
+- D1 read-after-write lag may shift the effective threshold up by ~1 attempt in practice — still blocks the attacker after a small finite count. Documented in `rateLimit.ts`; Durable Objects per-key would close the gap if it ever matters.
+- `FamilyApiError.retryAfterSeconds` is now populated on 429s so a future UI countdown can read it; for now the user-facing message ("Too many failed attempts. Try again in 30 minutes.") is descriptive enough on its own.
+
 **Phase 2.7 — Data portability** ✅ shipped 2026-05-22
 - `GET /api/v1/account/export` returns a versioned JSON dump (`schema_version: "1.0"`) of account info, devices, lock rules, and audit log. Secrets (`password_hash`, `device_token_hash`) stripped at the HTTP layer; audit IP omitted on purpose so a shared export file isn't an accidental location-history leak.
 - `DELETE /api/v1/account` requires the JWT *and* password re-entry. Audit-log rows for the account are deleted first (no FK on `audit_log`), then the account row — D1's `ON DELETE CASCADE` handles devices, pairing codes, lock rules. A forensic `account_deleted` audit row is written with `account_id = NULL` so it survives the cascade.

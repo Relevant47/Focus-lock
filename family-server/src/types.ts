@@ -76,6 +76,13 @@ export interface AuditLogRow {
   created_at: string;
 }
 
+export interface RateLimitRow {
+  key: string;
+  attempts: number;
+  window_start: string;
+  blocked_until: string | null;
+}
+
 // ── API shapes (camelCase, what HTTP clients see) ──────────────────────────
 
 export interface DeviceSummary {

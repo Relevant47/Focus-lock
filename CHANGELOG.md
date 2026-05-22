@@ -8,6 +8,7 @@ All notable changes to FocusLock will be documented here.
 
 - **Real forgot-password email.** `/auth/reset-request` now actually sends a reset link via Resend instead of only logging the token to worker output. The send is best-effort — the response shape doesn't change whether the email is registered or whether the send succeeded, so account enumeration stays blocked. Falls back to `console.log` when `RESEND_API_KEY` isn't set so dev / self-hosters still boot. Login form gained a "Forgot password?" button → modal → "check your inbox" confirmation.
 - **Data portability.** New "Your data" card on the parent dashboard: "Export as JSON" downloads a versioned dump of your account, devices, rules, and audit history (secrets and IP addresses stripped); "Delete account" opens a danger-zone modal that requires password re-entry plus a typed confirmation phrase before the destroy button enables. Deletion is permanent and cascades to every paired device — child devices fall back to unpaired on their next sync.
+- **Login + reset-request rate limiting.** Per-email sliding window: 5 failed logins in 15 min triggers a 30-min block; 3 reset requests in 60 min triggers a 60-min block. Failed attempts on a non-existent email are counted equally so 429 vs 401 can't be used to enumerate accounts. Successful login clears the counter so legitimate users aren't punished for typos. The UI just shows the server's message verbatim ("Too many failed attempts. Try again in 30 minutes.") which already reads cleanly in the existing error pill.
 
 ## [1.1.1] — 2026-05-22
 
