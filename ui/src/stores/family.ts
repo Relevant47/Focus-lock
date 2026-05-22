@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { auth, family, FamilyApiError, type DeviceSummary, type LockRule, type Session } from '../lib/familyApi';
+import { account, auth, family, FamilyApiError, type DeviceSummary, type LockRule, type Session } from '../lib/familyApi';
+import type { FamilyDataExport } from '../../../shared/protocol';
 
 const STORAGE_KEY = 'focus-lock:family-session';
 
@@ -40,6 +41,8 @@ interface Actions {
   blockNow(deviceId: string, apps: string[], domains: string[]): Promise<void>;
   emergencyUnblock(deviceId: string): Promise<void>;
   removeRule(deviceId: string, ruleId: string): Promise<void>;
+  exportData(): Promise<FamilyDataExport>;
+  deleteAccount(password: string): Promise<void>;
   clearError(): void;
 }
 
@@ -175,6 +178,28 @@ export const useFamily = create<Store>((set, get) => ({
       const existing = get().rulesByDevice[deviceId] ?? [];
       set({ rulesByDevice: { ...get().rulesByDevice, [deviceId]: existing.filter(r => r.id !== ruleId) } });
     } catch (e) { set({ error: errMsg(e) }); throw e; }
+  },
+
+  async exportData() {
+    const s = get().session;
+    if (!s) throw new FamilyApiError(0, 'not signed in');
+    set({ loading: true, error: null });
+    try {
+      const data = await account.export(s.token);
+      set({ loading: false });
+      return data;
+    } catch (e) { set({ error: errMsg(e), loading: false }); throw e; }
+  },
+
+  async deleteAccount(password) {
+    const s = get().session;
+    if (!s) throw new FamilyApiError(0, 'not signed in');
+    set({ loading: true, error: null });
+    try {
+      await account.delete(s.token, password);
+      persistSession(null);
+      set({ session: null, devices: [], rulesByDevice: {}, pairCode: null, loading: false });
+    } catch (e) { set({ error: errMsg(e), loading: false }); throw e; }
   },
 
   clearError() { set({ error: null }); },

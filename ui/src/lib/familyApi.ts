@@ -99,4 +99,22 @@ export const family = {
       { method: 'DELETE' }, token),
 };
 
+// ── Account (Phase 2.7) ────────────────────────────────────────────────────
+
+import type { FamilyDataExport } from '../../../shared/protocol';
+
+export const account = {
+  /// Full account dump. Caller saves the JSON to disk.
+  export: (token: string) =>
+    request<FamilyDataExport>('/api/v1/account/export', { method: 'GET' }, token),
+
+  /// Permanent — cascades to devices, rules, pairing codes. Password re-auth
+  /// is enforced server-side. After this resolves the caller must drop the
+  /// session token; the JWT is still cryptographically valid but the account
+  /// it points at no longer exists.
+  delete: (token: string, password: string) =>
+    request<{ ok: boolean }>('/api/v1/account',
+      { method: 'DELETE', body: JSON.stringify({ password }) }, token),
+};
+
 export const familyApiUrl = API_URL;

@@ -1,3 +1,4 @@
+import { deleteAccountHandler, exportAccount } from './account';
 import { login, refresh, resetConfirm, resetRequest, signup } from './auth';
 import {
   createRuleHandler, deleteDeviceHandler, deleteRuleHandler,
@@ -19,6 +20,10 @@ add('POST', '/api/v1/auth/login',         login);
 add('POST', '/api/v1/auth/refresh',       refresh);
 add('POST', '/api/v1/auth/reset-request', resetRequest);
 add('POST', '/api/v1/auth/reset-confirm', resetConfirm);
+
+// ── Account data portability (Phase 2.7) ───────────────────────────────────
+add('GET',    '/api/v1/account/export', exportAccount);
+add('DELETE', '/api/v1/account',        deleteAccountHandler);
 
 // ── Pairing (Phase 2.2) ────────────────────────────────────────────────────
 add('POST', '/api/v1/family/pair/create', pairCreate);

@@ -2,6 +2,13 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [Unreleased]
+
+### Added — Family controls
+
+- **Real forgot-password email.** `/auth/reset-request` now actually sends a reset link via Resend instead of only logging the token to worker output. The send is best-effort — the response shape doesn't change whether the email is registered or whether the send succeeded, so account enumeration stays blocked. Falls back to `console.log` when `RESEND_API_KEY` isn't set so dev / self-hosters still boot. Login form gained a "Forgot password?" button → modal → "check your inbox" confirmation.
+- **Data portability.** New "Your data" card on the parent dashboard: "Export as JSON" downloads a versioned dump of your account, devices, rules, and audit history (secrets and IP addresses stripped); "Delete account" opens a danger-zone modal that requires password re-entry plus a typed confirmation phrase before the destroy button enables. Deletion is permanent and cascades to every paired device — child devices fall back to unpaired on their next sync.
+
 ## [1.1.1] — 2026-05-22
 
 ### Fixed

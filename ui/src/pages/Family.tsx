@@ -605,6 +605,8 @@ function SignedInView() {
       {devices.map(d => <DeviceCard key={d.id} device={d} />)}
 
       <FamilyAuditLog />
+
+      <YourDataCard />
     </div>
   );
 }
@@ -695,6 +697,129 @@ function FamilyAuditLog() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── YourDataCard ────────────────────────────────────────────────────────────
+// Phase 2.7 — data portability. Export downloads everything the family-server
+// knows about this account as JSON; Delete account wipes it permanently with a
+// password re-prompt + typed confirmation phrase to guard against accidents.
+
+const DELETE_CONFIRM_PHRASE = 'delete my account';
+
+function YourDataCard() {
+  const exportData = useFamily(s => s.exportData);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  async function doExport() {
+    if (exporting) return;
+    setExporting(true); setExportError(null);
+    try {
+      const data = await exportData();
+      const stamp = new Date().toISOString().slice(0, 10);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `focuslock-family-export-${stamp}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setExportError(e instanceof FamilyApiError ? e.message : 'Export failed.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <div className="card p-5 space-y-4">
+      <div>
+        <h2 className="text-[11px] uppercase tracking-[0.18em] text-dim font-semibold">Your data</h2>
+        <p className="text-xs text-muted mt-1 leading-relaxed">
+          Export everything we store for this account, or delete it permanently. Deletion is immediate and cascades to every paired device, rule, and audit entry.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button onClick={doExport} disabled={exporting} className="btn-ghost px-3 py-1.5 text-xs flex items-center gap-1.5">
+          <Icon.Download size={14} />
+          {exporting ? 'Preparing…' : 'Export as JSON'}
+        </button>
+        <button onClick={() => setConfirmOpen(true)} className="btn-ghost px-3 py-1.5 text-xs text-danger hover:text-danger flex items-center gap-1.5">
+          <Icon.Trash size={14} />
+          Delete account
+        </button>
+      </div>
+
+      {exportError && <p className="text-xs text-danger">{exportError}</p>}
+
+      {confirmOpen && <DeleteAccountModal onClose={() => setConfirmOpen(false)} />}
+    </div>
+  );
+}
+
+function DeleteAccountModal({ onClose }: { onClose: () => void }) {
+  const deleteAccount = useFamily(s => s.deleteAccount);
+  const [password, setPassword] = useState('');
+  const [phrase, setPhrase] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const phraseMatches = phrase.trim().toLowerCase() === DELETE_CONFIRM_PHRASE;
+  const canSubmit = !submitting && password.length > 0 && phraseMatches;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setSubmitting(true); setError(null);
+    try {
+      await deleteAccount(password);
+      // Store action already cleared the session, so the Family page will
+      // re-render in signed-out mode as soon as we close the modal.
+      onClose();
+    } catch (e) {
+      setError(e instanceof FamilyApiError ? e.message : 'Could not delete the account.');
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="absolute inset-0 modal-backdrop">
+      <div className="w-full max-w-md mx-4 bg-surface border border-danger/40 rounded-2xl shadow-hero p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-danger">Delete account</h3>
+          <button onClick={onClose} className="text-faint hover:text-text"><Icon.Close size={14} /></button>
+        </div>
+        <p className="text-xs text-muted leading-relaxed mb-4">
+          This permanently deletes your FocusLock Family account, unpairs every device, and removes all rules and audit history. Paired child devices will fall back to unpaired on their next sync. This cannot be undone.
+        </p>
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <label className="text-xs text-muted block mb-1">Confirm password</label>
+            <input type="password" required autoFocus
+              value={password} onChange={e => setPassword(e.target.value)}
+              className="input-base w-full px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="text-xs text-muted block mb-1">
+              Type <span className="font-mono text-text">{DELETE_CONFIRM_PHRASE}</span> to confirm
+            </label>
+            <input type="text" required
+              value={phrase} onChange={e => setPhrase(e.target.value)}
+              className="input-base w-full px-3 py-2 text-sm" />
+          </div>
+          {error && <p className="text-xs text-danger">{error}</p>}
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" onClick={onClose} className="btn-ghost px-3 py-2 text-xs">Cancel</button>
+            <button type="submit" disabled={!canSubmit}
+              className="btn-danger px-4 py-2 text-xs">
+              {submitting ? 'Deleting…' : 'Delete account permanently'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

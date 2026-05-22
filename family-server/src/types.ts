@@ -66,6 +66,16 @@ export interface LockRuleRow {
   created_by_account_id: string;
 }
 
+export interface AuditLogRow {
+  id: number;
+  account_id: string | null;
+  device_id: string | null;
+  event: string;
+  payload: string | null;
+  ip: string | null;
+  created_at: string;
+}
+
 // ── API shapes (camelCase, what HTTP clients see) ──────────────────────────
 
 export interface DeviceSummary {

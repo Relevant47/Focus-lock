@@ -1,5 +1,5 @@
 import type {
-  AccountRow, DeviceRow, LockRule, LockRuleRow, PairingCodeRow,
+  AccountRow, AuditLogRow, DeviceRow, LockRule, LockRuleRow, PairingCodeRow,
 } from './types';
 
 // ── accounts ───────────────────────────────────────────────────────────────
@@ -26,6 +26,41 @@ export async function createAccount(db: D1Database, email: string, passwordHash:
 
 export async function updatePassword(db: D1Database, accountId: string, newHash: string): Promise<void> {
   await db.prepare('UPDATE accounts SET password_hash = ? WHERE id = ?').bind(newHash, accountId).run();
+}
+
+/// Deletes the account and everything that hangs off it. FK cascade handles
+/// devices, pairing_codes, lock_rules; audit_log has no FK so its account_id
+/// rows are explicitly removed first to avoid orphans.
+export async function deleteAccount(db: D1Database, accountId: string): Promise<void> {
+  await db.prepare('DELETE FROM audit_log WHERE account_id = ?').bind(accountId).run();
+  await db.prepare('DELETE FROM accounts WHERE id = ?').bind(accountId).run();
+}
+
+/// Fetches all rows belonging to an account in one shot, for the data-export
+/// endpoint. Secrets (`password_hash`, `device_token_hash`) are stripped at the
+/// HTTP layer — this helper returns raw rows so the caller controls the shape.
+export async function loadAccountExport(db: D1Database, accountId: string): Promise<{
+  account: AccountRow | null;
+  devices: DeviceRow[];
+  rules: LockRuleRow[];
+  audit: AuditLogRow[];
+}> {
+  const account = await findAccountById(db, accountId);
+  const devicesRes  = await db.prepare('SELECT * FROM devices WHERE account_id = ? ORDER BY paired_at DESC').bind(accountId).all();
+  const rulesRes    = await db.prepare(
+    `SELECT lr.* FROM lock_rules lr
+     JOIN devices d ON d.id = lr.device_id
+     WHERE d.account_id = ? ORDER BY lr.created_at DESC`,
+  ).bind(accountId).all();
+  const auditRes    = await db.prepare(
+    'SELECT * FROM audit_log WHERE account_id = ? ORDER BY created_at DESC',
+  ).bind(accountId).all();
+  return {
+    account,
+    devices: (devicesRes.results ?? []) as unknown as DeviceRow[],
+    rules:   (rulesRes.results   ?? []) as unknown as LockRuleRow[],
+    audit:   (auditRes.results   ?? []) as unknown as AuditLogRow[],
+  };
 }
 
 // ── audit log ──────────────────────────────────────────────────────────────

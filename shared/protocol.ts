@@ -281,6 +281,48 @@ export interface FamilyRedeemResult {
   pairedAt: string;
 }
 
+// ── Family controls Phase 2.7 — data portability ─────────────────────────────
+
+/// JSON returned by GET /api/v1/account/export. Versioned so a future import
+/// tool can branch on shape changes without guessing. Snake_case mirrors the
+/// underlying D1 rows so the file reads naturally next to a database dump.
+export interface FamilyDataExport {
+  schema_version: string;
+  exported_at: string;
+  account: {
+    id: string;
+    email: string;
+    created_at: string;
+    email_verified_at: string | null;
+  };
+  devices: Array<{
+    id: string;
+    hostname: string | null;
+    os: string;
+    os_version: string | null;
+    paired_at: string;
+    last_seen_at: string | null;
+    last_ip: string | null;
+  }>;
+  lock_rules: Array<{
+    id: string;
+    device_id: string;
+    kind: "block_now" | "schedule" | "unblock_all";
+    target_apps: string[];
+    target_domains: string[];
+    schedule_cron: string | null;
+    active: boolean;
+    created_at: string;
+  }>;
+  audit_log: Array<{
+    id: number;
+    device_id: string | null;
+    event: string;
+    payload: unknown;
+    created_at: string;
+  }>;
+}
+
 export interface ParentControlsState {
   /// True when a parent PIN is configured; gated commands require a valid parentToken.
   enabled: boolean;

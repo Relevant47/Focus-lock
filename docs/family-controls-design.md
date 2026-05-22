@@ -255,6 +255,21 @@ Parent dashboard shows for each child device:
 - Firewall-level offline lockdown — experimental Windows-only opt-in (`firewall_lockdown_enabled` flag) that adds per-EXE-path Windows Firewall outbound blocks via `FirewallLockdownService` after 5 minutes of WS downtime, with fail-open cleanup on startup + shutdown
 - **Open:** closed beta with ~5 friend-families; iterate on what actually fails in real use; macOS pfctl equivalent of the firewall lockdown (flag round-trips but enforcement is a no-op there)
 
+**Phase 2.6 — Real password-reset email** ✅ worker shipped 2026-05-22
+- `family-server/src/email.ts` wraps the Resend HTTP API. Three optional env vars: `RESEND_API_KEY` (no key → falls back to `console.log` so dev/self-host still boots), `EMAIL_FROM` (override the default `onboarding@resend.dev` sandbox sender once a custom domain is verified), `RESET_URL_BASE` (override the landing URL).
+- `/auth/reset-request` now actually sends a real reset link. Response stays enumeration-safe (same shape whether the email is registered or not); Resend send failures are logged to worker tail but never bubble up to the caller.
+- New static `landing/reset.html` reads `?token=` from the URL, POSTs to `/auth/reset-confirm`, shows the result. Hardcoded production worker URL — forks edit it.
+- Desktop UI gained a `ForgotPasswordButton` on the login form → modal → submit → "if registered, link is on its way" copy.
+- **Operator step:** `wrangler secret put RESEND_API_KEY` against the prod worker. Until done, the worker logs `[reset-email] (no RESEND_API_KEY set)` and the email never actually sends. Key uploaded 2026-05-22.
+- **Sandbox-sender limit:** `onboarding@resend.dev` only delivers to the email used to sign up for Resend. Verifying a custom domain in Resend (`focuslock.app` or similar) lifts this; rotate the key at the same time.
+
+**Phase 2.7 — Data portability** ✅ shipped 2026-05-22
+- `GET /api/v1/account/export` returns a versioned JSON dump (`schema_version: "1.0"`) of account info, devices, lock rules, and audit log. Secrets (`password_hash`, `device_token_hash`) stripped at the HTTP layer; audit IP omitted on purpose so a shared export file isn't an accidental location-history leak.
+- `DELETE /api/v1/account` requires the JWT *and* password re-entry. Audit-log rows for the account are deleted first (no FK on `audit_log`), then the account row — D1's `ON DELETE CASCADE` handles devices, pairing codes, lock rules. A forensic `account_deleted` audit row is written with `account_id = NULL` so it survives the cascade.
+- New audit events: `account_data_exported`, `account_deleted`, `account_delete_failed`.
+- UI: "Your data" card on the parent-signed-in view. "Export as JSON" triggers a Blob download named `focuslock-family-export-YYYY-MM-DD.json`. "Delete account" opens a danger-zone modal requiring both the password and the typed phrase `delete my account` before the destroy button enables. After success the store clears the session, dropping the user back to signed-out.
+- `FamilyDataExport` wire type lives in `shared/protocol.ts` so a future import tool has something stable to type against.
+
 **Total: ~5 weeks of focused work.** Realistic with normal life happening: 8-10 weeks.
 
 After Phase 2.5 ships as 1.1.0:
