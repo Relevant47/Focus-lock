@@ -2,7 +2,7 @@
 
 All notable changes to FocusLock will be documented here.
 
-## [Unreleased]
+## [1.1.2] — 2026-05-23
 
 ### Added — Family controls
 
