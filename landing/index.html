@@ -1340,6 +1340,422 @@
     }
     .dl-modal-status.show { display: block; }
     .dl-modal-status.error { color: var(--red); }
+
+    /* ── Post-download install-help modal ─────────────────────────────── */
+    .ih-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1100;
+      background: rgba(0,0,0,.78); backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      align-items: center; justify-content: center;
+      padding: 20px; overflow-y: auto;
+    }
+    .ih-overlay.open { display: flex; }
+    .ih-modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      max-width: 640px; width: 100%;
+      box-shadow: var(--shadow-lg);
+      animation: dlIn .3s ease;
+      max-height: calc(100vh - 40px);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .ih-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 22px 28px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ih-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--display); font-weight: 800;
+      font-size: 1.05rem; color: var(--text);
+      letter-spacing: -.01em;
+    }
+    .ih-brand-dot {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      display: grid; place-items: center;
+      color: #fff; font-size: .9rem; font-weight: 900;
+      box-shadow: 0 2px 6px var(--accent-tint);
+    }
+    .ih-close {
+      background: none; border: none; color: var(--dim);
+      cursor: pointer; font-size: 1.3rem; line-height: 1; padding: 6px;
+      transition: color .2s;
+    }
+    .ih-close:hover { color: var(--text); }
+
+    .ih-body {
+      padding: 22px 28px 4px;
+      overflow-y: auto;
+      flex: 1 1 auto;
+    }
+    .ih-title {
+      font-family: var(--display);
+      font-size: 1.45rem; font-weight: 800;
+      letter-spacing: -.015em; color: var(--text);
+      margin: 4px 0 10px;
+    }
+    .ih-sub {
+      font-size: .92rem; color: var(--text-soft);
+      line-height: 1.55; margin: 0 0 22px;
+    }
+
+    .ih-stepper {
+      display: flex; align-items: center; gap: 6px;
+      margin: 0 0 18px;
+    }
+    .ih-step-dot {
+      flex: 1 1 auto; height: 4px; border-radius: 999px;
+      background: var(--border);
+      transition: background .25s;
+    }
+    .ih-step-dot.active { background: var(--accent); }
+    .ih-step-dot.done   { background: var(--accent-dark); }
+
+    .ih-step {
+      display: none;
+      animation: ihStepIn .25s ease;
+    }
+    .ih-step.active { display: block; }
+    @keyframes ihStepIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .ih-step-num {
+      display: inline-block;
+      font-size: .68rem; font-weight: 800;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent); background: var(--accent-soft);
+      padding: 4px 10px; border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    .ih-step h3 {
+      font-family: var(--display);
+      font-size: 1.1rem; font-weight: 700;
+      color: var(--text); margin: 0 0 8px;
+      letter-spacing: -.005em;
+    }
+    .ih-step p {
+      font-size: .9rem; color: var(--text-soft);
+      line-height: 1.55; margin: 0 0 14px;
+    }
+    .ih-step .ih-note {
+      font-size: .8rem; color: var(--muted);
+      font-style: italic;
+    }
+
+    .ih-visual {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 26px 18px;
+      margin: 14px 0 6px;
+      display: grid; place-items: center;
+      min-height: 180px;
+    }
+
+    /* Generic mock window (used for both platforms) */
+    .mock-win {
+      background: #f4f4f6; color: #1a1a22;
+      border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.55);
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      font-size: .78rem; max-width: 320px; width: 100%;
+      overflow: hidden;
+    }
+    .mock-win.dark { background: #2a2a32; color: #e9e9ec; }
+    .mock-titlebar {
+      background: #e3e3e7; padding: 6px 10px;
+      display: flex; align-items: center; gap: 5px;
+      border-bottom: 1px solid #d1d1d6;
+    }
+    .mock-win.dark .mock-titlebar { background: #1c1c22; border-bottom-color: #111; }
+    .mock-traffic {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #ff5f57;
+    }
+    .mock-traffic + .mock-traffic { background: #febc2e; }
+    .mock-traffic + .mock-traffic + .mock-traffic { background: #28c840; }
+    .mock-body {
+      padding: 18px 16px 14px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .mock-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      margin: 0 auto;
+      display: grid; place-items: center;
+      color: #fff; font-weight: 800; font-size: .7rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,.25);
+    }
+    .mock-headline {
+      font-weight: 700; font-size: .82rem;
+      text-align: center; line-height: 1.35;
+    }
+    .mock-msg {
+      font-size: .72rem; color: #5a5a66;
+      text-align: center; line-height: 1.45;
+    }
+    .mock-win.dark .mock-msg { color: #b0b0b8; }
+    .mock-btns {
+      display: flex; gap: 6px; justify-content: flex-end;
+      margin-top: 6px;
+    }
+    .mock-btn {
+      padding: 5px 12px; border-radius: 6px;
+      background: #fff; border: 1px solid #c4c4cc;
+      font-size: .72rem; color: #1a1a22;
+    }
+    .mock-win.dark .mock-btn { background: #3a3a44; border-color: #4a4a55; color: #e9e9ec; }
+    .mock-btn.primary {
+      background: #0a84ff; color: #fff; border-color: #0a84ff;
+    }
+    .mock-btn.danger { color: #d70015; }
+
+    /* Pulse highlight on the action button */
+    .mock-pulse {
+      position: relative;
+      box-shadow: 0 0 0 0 var(--accent);
+      animation: mockPulse 1.6s infinite;
+    }
+    @keyframes mockPulse {
+      0%   { box-shadow: 0 0 0 0   rgba(108,99,255,.7); }
+      70%  { box-shadow: 0 0 0 10px rgba(108,99,255,0); }
+      100% { box-shadow: 0 0 0 0   rgba(108,99,255,0); }
+    }
+
+    /* macOS right-click context menu mock */
+    .mock-ctx {
+      background: rgba(48,48,54,.96);
+      backdrop-filter: blur(20px);
+      color: #fff; border-radius: 8px;
+      padding: 4px 0; min-width: 160px;
+      box-shadow: 0 16px 40px rgba(0,0,0,.6);
+      font-size: .75rem;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .mock-ctx-item {
+      padding: 5px 14px; cursor: default;
+    }
+    .mock-ctx-item.highlight {
+      background: #0a84ff;
+    }
+    .mock-ctx-sep {
+      height: 1px; background: rgba(255,255,255,.1);
+      margin: 4px 0;
+    }
+
+    /* Finder file row mock */
+    .mock-finder-row {
+      display: flex; align-items: center; gap: 10px;
+      background: #fff; color: #1a1a22;
+      padding: 10px 14px; border-radius: 8px;
+      font-size: .8rem; min-width: 240px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    .mock-finder-row .pkg {
+      width: 30px; height: 30px; border-radius: 6px;
+      background: linear-gradient(135deg, #e8e8ed, #c4c4cc);
+      display: grid; place-items: center;
+      font-size: .6rem; font-weight: 800; color: #5a5a66;
+    }
+
+    /* Windows SmartScreen mock */
+    .mock-ss {
+      background: #1f1f23; color: #f1f1f3;
+      border-radius: 6px; padding: 18px 20px;
+      max-width: 320px; width: 100%;
+      box-shadow: 0 18px 40px rgba(0,0,0,.6);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      border: 1px solid #2a2a2f;
+    }
+    .mock-ss-title {
+      font-size: .95rem; font-weight: 600; margin-bottom: 6px;
+    }
+    .mock-ss-sub {
+      font-size: .72rem; color: #b0b0b8; line-height: 1.45;
+      margin-bottom: 14px;
+    }
+    .mock-ss-link {
+      font-size: .72rem; color: #4cc2ff;
+      text-decoration: underline; cursor: pointer;
+    }
+    .mock-ss-meta {
+      font-size: .68rem; color: #b0b0b8;
+      margin: 8px 0 14px; line-height: 1.5;
+    }
+    .mock-ss-meta b { color: #f1f1f3; font-weight: 600; }
+    .mock-ss-btns {
+      display: flex; gap: 8px; justify-content: flex-end;
+    }
+    .mock-ss-btn {
+      background: #2d2d33; border: 1px solid #3a3a40;
+      color: #f1f1f3; font-size: .72rem;
+      padding: 6px 14px; border-radius: 4px;
+    }
+
+    /* UAC prompt mock */
+    .mock-uac {
+      background: #1f1f23; color: #f1f1f3;
+      border-radius: 6px; padding: 18px;
+      max-width: 280px; width: 100%;
+      box-shadow: 0 18px 40px rgba(0,0,0,.6);
+      font-family: 'Segoe UI', sans-serif;
+      border: 1px solid #2a2a2f;
+    }
+    .mock-uac-q { font-size: .85rem; font-weight: 600; margin-bottom: 12px; }
+    .mock-uac-app { font-size: .72rem; color: #b0b0b8; margin-bottom: 14px; }
+    .mock-uac-app b { color: #f1f1f3; }
+    .mock-uac-btns { display: flex; gap: 8px; }
+    .mock-uac-btn {
+      flex: 1; padding: 6px; border-radius: 3px;
+      background: #2d2d33; border: 1px solid #3a3a40;
+      color: #f1f1f3; font-size: .72rem;
+    }
+    .mock-uac-btn.yes { background: #0a84ff; border-color: #0a84ff; }
+
+    /* Step navigation */
+    .ih-nav {
+      display: flex; gap: 10px; justify-content: space-between;
+      margin: 18px 0 6px;
+    }
+    .ih-nav-btn {
+      background: var(--bg-alt); color: var(--text-soft);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 18px; font-size: .85rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: all .15s;
+    }
+    .ih-nav-btn:hover:not(:disabled) {
+      border-color: var(--accent); color: var(--text);
+    }
+    .ih-nav-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .ih-nav-btn.primary {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+    .ih-nav-btn.primary:hover:not(:disabled) {
+      background: var(--accent-dark); border-color: var(--accent-dark);
+    }
+
+    /* FAQ + verify + footer block */
+    .ih-extras {
+      border-top: 1px solid var(--border);
+      margin-top: 18px; padding-top: 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .ih-reassure {
+      background: var(--bg-alt);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: .82rem; color: var(--text-soft);
+      line-height: 1.5;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .ih-reassure .ih-lock { font-size: 1rem; flex-shrink: 0; }
+    .ih-reassure a { color: var(--accent-dark); }
+
+    .ih-faq summary {
+      cursor: pointer; padding: 10px 0;
+      font-size: .85rem; font-weight: 600; color: var(--text);
+      list-style: none; outline: none;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ih-faq summary::-webkit-details-marker { display: none; }
+    .ih-faq summary::after {
+      content: '+'; font-size: 1.1rem; color: var(--muted);
+      transition: transform .2s;
+    }
+    .ih-faq[open] summary::after { content: '−'; }
+    .ih-faq p {
+      font-size: .82rem; color: var(--text-soft);
+      line-height: 1.55; margin: 6px 0 12px;
+    }
+
+    .ih-verify {
+      display: flex; flex-direction: column; gap: 8px;
+      font-size: .78rem;
+    }
+    .ih-hash {
+      display: none;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 10px;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      color: var(--text-soft);
+      word-break: break-all;
+    }
+    .ih-hash.show { display: block; }
+    .ih-hash-label {
+      font-family: var(--sans);
+      color: var(--muted); font-size: .7rem;
+      text-transform: uppercase; letter-spacing: .08em;
+      margin-bottom: 4px; display: block;
+    }
+    .ih-vt {
+      color: var(--accent-dark); text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 600;
+    }
+    .ih-vt:hover { text-decoration: underline; }
+    .ih-vt::before {
+      content: '✓'; color: var(--green); font-weight: 700;
+    }
+
+    /* Footer */
+    .ih-foot {
+      padding: 16px 28px 22px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+      background: var(--bg-alt);
+    }
+    .ih-dontshow {
+      display: flex; align-items: center; gap: 7px;
+      font-size: .82rem; color: var(--muted);
+      cursor: pointer; user-select: none;
+    }
+    .ih-dontshow input { accent-color: var(--accent); }
+    .ih-done {
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 10px 20px; font-size: .9rem; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: background .15s;
+    }
+    .ih-done:hover { background: var(--accent-dark); }
+
+    /* Mobile-only message */
+    .ih-mobile {
+      display: none;
+      padding: 40px 28px;
+      text-align: center;
+    }
+    .ih-mobile .ih-mobile-icon {
+      font-size: 2.5rem; margin-bottom: 14px;
+    }
+    .ih-mobile h2 {
+      font-family: var(--display);
+      font-size: 1.2rem; font-weight: 800;
+      color: var(--text); margin: 0 0 10px;
+    }
+    .ih-mobile p {
+      font-size: .9rem; color: var(--text-soft);
+      line-height: 1.55; margin: 0 0 18px;
+    }
+    .ih-overlay.is-mobile .ih-body,
+    .ih-overlay.is-mobile .ih-foot { display: none; }
+    .ih-overlay.is-mobile .ih-mobile { display: block; }
+
+    @media (max-width: 560px) {
+      .ih-head { padding: 18px 20px 12px; }
+      .ih-body { padding: 18px 20px 4px; }
+      .ih-foot { padding: 14px 20px 18px; }
+      .ih-title { font-size: 1.2rem; }
+      .ih-visual { padding: 18px 10px; min-height: 160px; }
+    }
   </style>
 </head>
 <body>
@@ -1923,6 +2339,98 @@
   </div>
 </div>
 
+<!-- ── Post-download install-help modal ── -->
+<div class="ih-overlay" id="ih-overlay" role="dialog" aria-modal="true" aria-labelledby="ih-title">
+  <div class="ih-modal">
+    <div class="ih-head">
+      <div class="ih-brand">
+        <span class="ih-brand-dot">FL</span>
+        FocusLock
+      </div>
+      <button class="ih-close" id="ih-close" aria-label="Close">✕</button>
+    </div>
+
+    <div class="ih-mobile">
+      <div class="ih-mobile-icon">💻</div>
+      <h2>FocusLock is a desktop app</h2>
+      <p>To install it, open this page on the Mac or Windows PC you want to use it on.</p>
+    </div>
+
+    <div class="ih-body" id="ih-body">
+      <h2 class="ih-title" id="ih-title"></h2>
+      <p class="ih-sub" id="ih-sub"></p>
+
+      <div class="ih-stepper" id="ih-stepper"></div>
+
+      <div id="ih-steps"></div>
+
+      <div class="ih-nav">
+        <button class="ih-nav-btn" id="ih-back">← Back</button>
+        <button class="ih-nav-btn primary" id="ih-next">Next →</button>
+      </div>
+
+      <div class="ih-extras">
+        <div class="ih-reassure" id="ih-reassure">
+          <span class="ih-lock">🔒</span>
+          <span id="ih-reassure-text"></span>
+        </div>
+
+        <details class="ih-faq">
+          <summary>Why does this need administrator access?</summary>
+          <p>
+            FocusLock installs a background service (the "daemon") that runs at the
+            OS level — that's the part that actually enforces your blocks. Without
+            elevation it can only edit your own user's files; with it, the blocks
+            survive logout, can't be killed from Task Manager / Activity Monitor
+            without admin, and persist across restarts. The installer asks once;
+            day-to-day use never needs another prompt.
+          </p>
+        </details>
+
+        <details class="ih-faq">
+          <summary>What exactly does it touch on my system?</summary>
+          <p>
+            The hosts file (to block domains), a list of process names you've added
+            (to close distracting apps when a session is running), and on Windows a
+            registry key under <code>HKLM\SOFTWARE\FocusLock</code> for the
+            daemon's settings. Nothing else. The full source is on
+            <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener">GitHub</a>
+            if you want to read it.
+          </p>
+        </details>
+
+        <details class="ih-faq">
+          <summary>Prefer the terminal?</summary>
+          <p>
+            On macOS, after the <code>.pkg</code> downloads:<br>
+            <code style="display:block;margin:6px 0;padding:6px 8px;background:var(--bg-dark);border-radius:6px;">sudo installer -pkg ~/Downloads/FocusLock*.pkg -target /</code>
+            On Windows (PowerShell as Administrator):<br>
+            <code style="display:block;margin:6px 0;padding:6px 8px;background:var(--bg-dark);border-radius:6px;">Start-Process .\FocusLock-Setup.exe -Verb RunAs -Wait</code>
+          </p>
+        </details>
+
+        <div class="ih-verify">
+          <div class="ih-hash" id="ih-hash">
+            <span class="ih-hash-label">SHA-256 of your download</span>
+            <span id="ih-hash-value"></span>
+          </div>
+          <!-- TODO: replace href with the real VirusTotal scan URL for the latest release -->
+          <a class="ih-vt" id="ih-vt" href="https://www.virustotal.com/gui/search/Focus-lock" target="_blank" rel="noopener">
+            Scanned clean on VirusTotal
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="ih-foot">
+      <label class="ih-dontshow">
+        <input type="checkbox" id="ih-dontshow"> Don't show this again
+      </label>
+      <button class="ih-done" id="ih-done">Got it, I'm ready</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const WIN_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M3,12V6.75L9,5.43V11.91L3,12M20,3V11.75L11,11.91V5.21L20,3M3,13L9,13.09V19.9L3,18.75V13M20,13.25V22L11,20.09V13.09L20,13.25Z"/></svg>`;
   const MAC_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.78,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z"/></svg>`;
@@ -2223,8 +2731,9 @@
         return;
       }
       dlStatus.textContent = 'Download starting…';
-      window.location.href = data.url;
-      setTimeout(closeDlModal, 2000);
+      startBrowserDownload(data.url);
+      closeDlModal();
+      openInstallHelp('win', data.sha256);
     } catch {
       dlStatus.className = 'dl-modal-status show error';
       dlStatus.textContent = 'Network error. Please try again.';
@@ -2239,14 +2748,29 @@
     try {
       const resp = await fetch('/api/download?os=mac');
       const data = await resp.json();
-      window.location.href = data.ok && data.url
+      const url = data.ok && data.url
         ? data.url
         : 'https://github.com/Relevant47/Focus-lock/releases/latest';
+      startBrowserDownload(url);
+      openInstallHelp('mac', data && data.sha256);
     } catch {
-      window.location.href = 'https://github.com/Relevant47/Focus-lock/releases/latest';
+      startBrowserDownload('https://github.com/Relevant47/Focus-lock/releases/latest');
+      openInstallHelp('mac');
     } finally {
       btn.style.cssText = orig;
     }
+  }
+
+  // Triggers a download without navigating the page away, so the help
+  // modal stays visible while the file is being saved.
+  function startBrowserDownload(url) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 1000);
   }
 
   // Intercept all download button clicks
@@ -2257,6 +2781,278 @@
     if (btn.dataset.dl === 'win') openWinModal();
     else if (btn.dataset.dl === 'mac') triggerMacDownload(btn);
   });
+
+  // ── Install-help modal ────────────────────────────────────────────────
+  const IH_STORAGE_KEY = 'focuslock_install_help_seen';
+
+  const macIcon =
+    `<div class="mock-icon">FL</div>`;
+
+  const macGatekeeperOpenAnyway = `
+    <div class="mock-win">
+      <div class="mock-titlebar">
+        <span class="mock-traffic"></span><span class="mock-traffic"></span><span class="mock-traffic"></span>
+      </div>
+      <div class="mock-body">
+        ${macIcon}
+        <div class="mock-headline">"FocusLock.pkg" Not Opened</div>
+        <div class="mock-msg">Apple could not verify "FocusLock.pkg" is free of malware that may harm your Mac or compromise your privacy.</div>
+        <div class="mock-btns">
+          <span class="mock-btn">Move to Trash</span>
+          <span class="mock-btn mock-pulse" style="background:#0a84ff;color:#fff;border-color:#0a84ff;">Open Anyway</span>
+          <span class="mock-btn">Done</span>
+        </div>
+      </div>
+    </div>`;
+
+  const macContextMenu = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div class="mock-finder-row">
+        <div class="pkg">PKG</div>
+        <div><div style="font-weight:600;">FocusLock-1.1.2.pkg</div>
+          <div style="font-size:.7rem;color:#5a5a66;">Installer Package · 24 MB</div></div>
+      </div>
+      <div class="mock-ctx">
+        <div class="mock-ctx-item">Open with…</div>
+        <div class="mock-ctx-item mock-pulse highlight" style="border-radius:4px;margin:0 4px;">Open</div>
+        <div class="mock-ctx-item">Move to Trash</div>
+        <div class="mock-ctx-sep"></div>
+        <div class="mock-ctx-item">Get Info</div>
+        <div class="mock-ctx-item">Rename</div>
+      </div>
+    </div>`;
+
+  const macPwd = `
+    <div class="mock-win">
+      <div class="mock-body" style="text-align:center;">
+        <div style="font-size:1.8rem;">🔒</div>
+        <div class="mock-headline">Installer is trying to install new software.</div>
+        <div class="mock-msg">Enter your password to allow this.</div>
+        <div style="background:#fff;border:1px solid #c4c4cc;border-radius:5px;padding:5px;font-size:.7rem;color:#999;">••••••••</div>
+        <div class="mock-btns" style="justify-content:center;">
+          <span class="mock-btn">Cancel</span>
+          <span class="mock-btn primary mock-pulse">Install Software</span>
+        </div>
+      </div>
+    </div>`;
+
+  const winSmartScreen = `
+    <div class="mock-ss">
+      <div class="mock-ss-title">Windows protected your PC</div>
+      <div class="mock-ss-sub">Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk.</div>
+      <div class="mock-ss-link mock-pulse" style="display:inline-block;padding:2px 4px;border-radius:3px;">More info</div>
+      <div class="mock-ss-btns" style="margin-top:18px;">
+        <span class="mock-ss-btn">Don't run</span>
+      </div>
+    </div>`;
+
+  const winSmartScreenExpanded = `
+    <div class="mock-ss">
+      <div class="mock-ss-title">Windows protected your PC</div>
+      <div class="mock-ss-sub">Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk.</div>
+      <div class="mock-ss-meta">
+        App: <b>FocusLock-Setup.exe</b><br>
+        Publisher: Unknown publisher
+      </div>
+      <div class="mock-ss-btns">
+        <span class="mock-ss-btn mock-pulse" style="background:#0a84ff;border-color:#0a84ff;">Run anyway</span>
+        <span class="mock-ss-btn">Don't run</span>
+      </div>
+    </div>`;
+
+  const winUac = `
+    <div class="mock-uac">
+      <div class="mock-uac-q">Do you want to allow this app to make changes to your device?</div>
+      <div class="mock-uac-app"><b>FocusLock Setup</b><br>Verified publisher: Unknown</div>
+      <div class="mock-uac-btns">
+        <span class="mock-uac-btn yes mock-pulse">Yes</span>
+        <span class="mock-uac-btn">No</span>
+      </div>
+    </div>`;
+
+  const installerWelcome = `
+    <div class="mock-win">
+      <div class="mock-titlebar">
+        <span class="mock-traffic"></span><span class="mock-traffic"></span><span class="mock-traffic"></span>
+      </div>
+      <div class="mock-body" style="text-align:center;">
+        ${macIcon}
+        <div class="mock-headline">Welcome to FocusLock</div>
+        <div class="mock-msg">The installer will guide you through the rest. You can keep all the defaults.</div>
+        <div class="mock-btns" style="justify-content:center;">
+          <span class="mock-btn">Go Back</span>
+          <span class="mock-btn primary">Continue</span>
+        </div>
+      </div>
+    </div>`;
+
+  const STEPS = {
+    mac: {
+      title: "One quick step before you open FocusLock",
+      sub: "Because FocusLock runs at a deep system level to keep your blocks unbypassable, macOS will show a security warning. This is completely normal — here's exactly what to do.",
+      reassure: 'FocusLock is open source — every line is on <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener">GitHub</a>. The warning appears because we haven\'t paid Apple\'s $99/yr developer fee yet, not because anything is wrong with the app.',
+      steps: [
+        {
+          heading: "Open your Downloads folder and find FocusLock.pkg",
+          body: "Your browser just saved it there. <strong>Don't double-click it yet</strong> — that's what triggers the warning we want to skip.",
+          visual: `<div class="mock-finder-row">
+            <div class="pkg">PKG</div>
+            <div><div style="font-weight:600;">FocusLock-1.1.2.pkg</div>
+              <div style="font-size:.7rem;color:#5a5a66;">Installer Package · 24 MB · Just now</div></div>
+          </div>`,
+        },
+        {
+          heading: "Right-click the file → choose Open",
+          body: "Hold <kbd>Control</kbd> and click, or use a two-finger click on the trackpad. Pick <strong>Open</strong> from the menu that appears.",
+          visual: macContextMenu,
+        },
+        {
+          heading: 'A popup will appear — click "Open Anyway"',
+          body: 'macOS will warn that it couldn\'t verify the app. Click the highlighted button to continue.',
+          visual: macGatekeeperOpenAnyway,
+        },
+        {
+          heading: "Enter your Mac password when asked",
+          body: 'This lets FocusLock install its background service. <span class="ih-note">We never see or transmit your password — macOS handles the prompt itself.</span>',
+          visual: macPwd,
+        },
+        {
+          heading: "You're in — follow the installer from here",
+          body: "The standard installer takes over. Keep the defaults and you'll be running in about 30 seconds.",
+          visual: installerWelcome,
+        },
+      ],
+    },
+    win: {
+      title: "Windows will show a warning — here's how to get past it",
+      sub: "FocusLock needs deep system access to enforce your blocks. Windows SmartScreen flags any app that isn't from a large signed publisher. Here's exactly what to do.",
+      reassure: 'This warning appears because code-signing certificates cost $300+/yr and FocusLock is independently built. The full source is on <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener">GitHub</a> and you can verify the file hash below before running it.',
+      steps: [
+        {
+          heading: "Run the downloaded file: FocusLock-Setup.exe",
+          body: "Your browser saved it to <strong>Downloads</strong>. Double-click to start it.",
+          visual: `<div class="mock-finder-row" style="background:#2a2a32;color:#f1f1f3;">
+            <div class="pkg" style="background:linear-gradient(135deg,#3a3a44,#2a2a32);color:#b0b0b8;">EXE</div>
+            <div><div style="font-weight:600;">FocusLock-Setup.exe</div>
+              <div style="font-size:.7rem;color:#b0b0b8;">Application · 28 MB · Just now</div></div>
+          </div>`,
+        },
+        {
+          heading: 'SmartScreen will appear — click "More info"',
+          body: 'A blue dialog says <em>"Windows protected your PC"</em>. The <strong>More info</strong> link looks small but it\'s right where the highlight is.',
+          visual: winSmartScreen,
+        },
+        {
+          heading: 'A "Run anyway" button appears — click it',
+          body: 'After clicking More info, the dialog expands and shows a new button at the bottom. Click <strong>Run anyway</strong>.',
+          visual: winSmartScreenExpanded,
+        },
+        {
+          heading: "The installer asks for Administrator permission — click Yes",
+          body: 'This lets FocusLock install its system service. <span class="ih-note">Without it, FocusLock can\'t actually enforce blocks against apps that try to escape.</span>',
+          visual: winUac,
+        },
+        {
+          heading: "You're in — follow the installer from here",
+          body: "The standard installer takes over. Keep the defaults and you'll be running in about 30 seconds.",
+          visual: installerWelcome,
+        },
+      ],
+    },
+  };
+
+  const ihOverlay   = document.getElementById('ih-overlay');
+  const ihTitle     = document.getElementById('ih-title');
+  const ihSub       = document.getElementById('ih-sub');
+  const ihStepper   = document.getElementById('ih-stepper');
+  const ihStepsEl   = document.getElementById('ih-steps');
+  const ihReassure  = document.getElementById('ih-reassure-text');
+  const ihBack      = document.getElementById('ih-back');
+  const ihNext      = document.getElementById('ih-next');
+  const ihDone      = document.getElementById('ih-done');
+  const ihClose     = document.getElementById('ih-close');
+  const ihDontShow  = document.getElementById('ih-dontshow');
+  const ihHash      = document.getElementById('ih-hash');
+  const ihHashValue = document.getElementById('ih-hash-value');
+
+  let ihCurrentStep = 0;
+  let ihTotalSteps  = 0;
+
+  function isMobileDevice() {
+    if (navigator.userAgentData?.mobile) return true;
+    return /android|iphone|ipad|ipod|mobile|tablet/i.test(navigator.userAgent);
+  }
+
+  function openInstallHelp(platform, sha256) {
+    if (localStorage.getItem(IH_STORAGE_KEY) === '1') return;
+
+    const cfg = STEPS[platform];
+    if (!cfg) return;
+
+    ihTitle.textContent = cfg.title;
+    ihSub.textContent = cfg.sub;
+    ihReassure.innerHTML = cfg.reassure;
+
+    ihStepsEl.innerHTML = cfg.steps.map((s, i) => `
+      <div class="ih-step" data-step="${i}">
+        <div class="ih-step-num">Step ${i + 1} of ${cfg.steps.length}</div>
+        <h3>${s.heading}</h3>
+        <p>${s.body}</p>
+        <div class="ih-visual">${s.visual}</div>
+      </div>
+    `).join('');
+
+    ihStepper.innerHTML = cfg.steps.map(() => '<span class="ih-step-dot"></span>').join('');
+
+    ihTotalSteps = cfg.steps.length;
+    ihCurrentStep = 0;
+    showStep(0);
+
+    if (sha256) {
+      ihHashValue.textContent = sha256;
+      ihHash.classList.add('show');
+    } else {
+      ihHash.classList.remove('show');
+    }
+
+    ihOverlay.classList.toggle('is-mobile', isMobileDevice());
+    ihOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function showStep(n) {
+    ihCurrentStep = Math.max(0, Math.min(n, ihTotalSteps - 1));
+    ihStepsEl.querySelectorAll('.ih-step').forEach((el, i) => {
+      el.classList.toggle('active', i === ihCurrentStep);
+    });
+    ihStepper.querySelectorAll('.ih-step-dot').forEach((el, i) => {
+      el.classList.toggle('active', i === ihCurrentStep);
+      el.classList.toggle('done', i < ihCurrentStep);
+    });
+    ihBack.disabled = ihCurrentStep === 0;
+    const last = ihCurrentStep === ihTotalSteps - 1;
+    ihNext.textContent = last ? "I'm on the last step" : 'Next →';
+    ihNext.disabled = last;
+  }
+
+  function closeInstallHelp() {
+    ihOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if (ihDontShow.checked) {
+      localStorage.setItem(IH_STORAGE_KEY, '1');
+    }
+  }
+
+  ihBack.addEventListener('click', () => showStep(ihCurrentStep - 1));
+  ihNext.addEventListener('click', () => showStep(ihCurrentStep + 1));
+  ihDone.addEventListener('click', closeInstallHelp);
+  ihClose.addEventListener('click', closeInstallHelp);
+  ihOverlay.addEventListener('click', e => { if (e.target === ihOverlay) closeInstallHelp(); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !ihOverlay.classList.contains('open')) return;
+    closeInstallHelp();
+  });
+
 </script>
 
 </body>
