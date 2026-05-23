@@ -2,9 +2,20 @@ import { useEffect, useState } from 'react';
 import { useDaemon } from '../stores/daemon';
 import { CATEGORY_DOMAINS, type StartSessionPayload } from '../types';
 import { SUGGESTED_SITES, faviconUrl, type SuggestedSite } from '../lib/suggestedSites';
+import { SUGGESTED_APPS, type SuggestedApp } from '../lib/suggestedApps';
+import { IS_MACOS } from '../lib/platform';
 import { Page, PageHeader, SectionHeader } from '../components/ui';
 import { Icon } from '../components/Icons';
 import { cn } from '../lib/cn';
+
+/** What string we push to the processes textarea for a given suggested app,
+ *  in the form the daemon for *this* OS knows how to match. On macOS we
+ *  prefer the bundle ID (resolved via NSWorkspace) and fall back to the
+ *  process name. On Windows we use the .exe-less ProcessName. */
+function appTokenForCurrentOS(app: SuggestedApp): string {
+  if (IS_MACOS) return app.macBundleId ?? app.macProcess ?? app.windowsProcess;
+  return app.windowsProcess;
+}
 
 const CATEGORIES = [
   { id: 'social_media', label: 'Social Media',       desc: 'Instagram, TikTok, Twitter/X, Reddit, Facebook',  Icon: Icon.Profile },
@@ -23,6 +34,14 @@ const SUGGESTED_GROUPED: Record<SuggestedSite['category'], SuggestedSite[]> = ((
   for (const s of SUGGESTED_SITES) { (groups[s.category] ??= []).push(s); }
   return groups as Record<SuggestedSite['category'], SuggestedSite[]>;
 })();
+
+const SUGGESTED_APPS_GROUPED: Record<SuggestedApp['category'], SuggestedApp[]> = (() => {
+  const groups: Record<string, SuggestedApp[]> = {};
+  for (const a of SUGGESTED_APPS) { (groups[a.category] ??= []).push(a); }
+  return groups as Record<SuggestedApp['category'], SuggestedApp[]>;
+})();
+
+const APP_CATEGORY_ORDER: SuggestedApp['category'][] = ['Gaming', 'Social', 'Productivity', 'Streaming', 'Other'];
 
 export default function BlockLists() {
   const { connected, status, startSession } = useDaemon();
@@ -67,6 +86,19 @@ export default function BlockLists() {
 
   function isSuggestedActive(site: SuggestedSite) {
     return customDomains.split('\n').map(s => s.trim()).includes(site.domain);
+  }
+
+  function toggleSuggestedApp(app: SuggestedApp) {
+    const token = appTokenForCurrentOS(app);
+    const lines = new Set(customProcesses.split('\n').map(s => s.trim()).filter(Boolean));
+    if (lines.has(token)) lines.delete(token);
+    else lines.add(token);
+    setCustomProcesses(Array.from(lines).join('\n'));
+  }
+
+  function isSuggestedAppActive(app: SuggestedApp) {
+    const token = appTokenForCurrentOS(app);
+    return customProcesses.split('\n').map(s => s.trim()).includes(token);
   }
 
   const domainCount = Array.from(selectedCats).reduce(
@@ -135,6 +167,50 @@ export default function BlockLists() {
                           <span className="flex flex-col leading-tight">
                             <span>{site.label}</span>
                             <span className="text-[10px] text-faint font-normal">{site.domain}</span>
+                          </span>
+                          {on && <Icon.Check size={10} className="text-accent shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Suggested apps */}
+        <div className="card p-5">
+          <SectionHeader
+            title="Suggested apps"
+            hint="Blocks the desktop app process while a session is active — closes it if you try to open it. Adds to Blocked processes below."
+          />
+          <div className="space-y-3">
+            {APP_CATEGORY_ORDER.map(group => {
+              const items = SUGGESTED_APPS_GROUPED[group];
+              if (!items?.length) return null;
+              return (
+                <div key={group}>
+                  <p className="text-[10px] uppercase tracking-wider text-faint font-semibold mb-1.5">{group}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map(app => {
+                      const on = isSuggestedAppActive(app);
+                      const token = appTokenForCurrentOS(app);
+                      return (
+                        <button
+                          key={app.id}
+                          onClick={() => toggleSuggestedApp(app)}
+                          className={cn(
+                            'inline-flex items-center gap-2 px-2 py-1 rounded-md border text-[12px] font-medium transition-all text-left',
+                            on
+                              ? 'bg-accent/15 border-accent/50 text-text'
+                              : 'bg-surface2 border-border text-muted hover:border-borderhi hover:text-text',
+                          )}
+                          title={token}
+                        >
+                          <span className="flex flex-col leading-tight">
+                            <span>{app.label}</span>
+                            <span className="text-[10px] text-faint font-normal font-mono">{token}</span>
                           </span>
                           {on && <Icon.Check size={10} className="text-accent shrink-0" />}
                         </button>
