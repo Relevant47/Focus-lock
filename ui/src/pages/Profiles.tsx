@@ -6,6 +6,21 @@ import { Page, PageHeader, Pill, Toggle } from '../components/ui';
 import { Icon } from '../components/Icons';
 import EmptyState from '../components/EmptyState';
 import { cn } from '../lib/cn';
+import { SUGGESTED_APPS, type SuggestedApp } from '../lib/suggestedApps';
+import { IS_MACOS } from '../lib/platform';
+
+function appTokenForCurrentOS(app: SuggestedApp): string {
+  if (IS_MACOS) return app.macBundleId ?? app.macProcess ?? app.windowsProcess;
+  return app.windowsProcess;
+}
+
+const SUGGESTED_APPS_GROUPED: Record<SuggestedApp['category'], SuggestedApp[]> = (() => {
+  const groups: Record<string, SuggestedApp[]> = {};
+  for (const a of SUGGESTED_APPS) { (groups[a.category] ??= []).push(a); }
+  return groups as Record<SuggestedApp['category'], SuggestedApp[]>;
+})();
+
+const APP_CATEGORY_ORDER: SuggestedApp['category'][] = ['Gaming', 'Social', 'Productivity', 'Streaming', 'Other'];
 
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as BlockCategory[];
 
@@ -42,6 +57,17 @@ function ProfileForm({ initial, onSave, onCancel }: {
   }
   function setPomodoroField<K extends keyof PomodoroConfig>(k: K, v: PomodoroConfig[K]) {
     setForm(f => ({ ...f, pomodoroConfig: { ...(f.pomodoroConfig ?? defaultPomodoro), [k]: v } }));
+  }
+
+  function toggleSuggestedApp(app: SuggestedApp) {
+    const token = appTokenForCurrentOS(app);
+    const next = new Set(form.customBlockedProcesses);
+    if (next.has(token)) next.delete(token);
+    else next.add(token);
+    setField('customBlockedProcesses', Array.from(next));
+  }
+  function isSuggestedAppActive(app: SuggestedApp) {
+    return form.customBlockedProcesses.includes(appTokenForCurrentOS(app));
   }
 
   async function handleSave() {
@@ -95,6 +121,48 @@ function ProfileForm({ initial, onSave, onCancel }: {
             );
           })}
         </div>
+      </div>
+
+      <div>
+        <label className="block text-xs text-muted mb-2">Suggested apps</label>
+        <div className="space-y-3">
+          {APP_CATEGORY_ORDER.map(group => {
+            const items = SUGGESTED_APPS_GROUPED[group];
+            if (!items?.length) return null;
+            return (
+              <div key={group}>
+                <p className="text-[10px] uppercase tracking-wider text-faint font-semibold mb-1.5">{group}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {items.map(app => {
+                    const on = isSuggestedAppActive(app);
+                    const token = appTokenForCurrentOS(app);
+                    return (
+                      <button
+                        key={app.id}
+                        type="button"
+                        onClick={() => toggleSuggestedApp(app)}
+                        className={cn(
+                          'inline-flex items-center gap-2 px-2 py-1 rounded-md border text-[12px] font-medium transition-all text-left',
+                          on
+                            ? 'bg-accent/15 border-accent/50 text-text'
+                            : 'bg-surface2 border-border text-muted hover:border-borderhi hover:text-text',
+                        )}
+                        title={token}
+                      >
+                        <span className="flex flex-col leading-tight">
+                          <span>{app.label}</span>
+                          <span className="text-[10px] text-faint font-normal font-mono">{token}</span>
+                        </span>
+                        {on && <Icon.Check size={10} className="text-accent shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-faint mt-2">Closes the desktop app if it's launched during this profile's sessions.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
