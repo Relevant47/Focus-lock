@@ -21,14 +21,20 @@ function SessionRing({
   const progress = total > 0 ? Math.min(1, (total - remaining) / total) : 0;
   const offset = C * (1 - progress);
   const isBreak = phase === 'break' || phase === 'long_break';
-  const color = hardcore ? '#dc2626' : isBreak ? '#10b981' : '#6366f1';
-  const glow  = hardcore ? 'rgba(220,38,38,0.4)' : isBreak ? 'rgba(16,185,129,0.4)' : 'rgba(99,102,241,0.4)';
+  // Stroke colours read from CSS vars so they invert correctly in light mode.
+  // The accent/danger/success tokens are tuned per theme in index.css.
+  const color = hardcore
+    ? 'var(--crimson)'
+    : isBreak ? 'var(--success)' : 'var(--accent)';
+  const glow  = hardcore
+    ? 'rgb(var(--crimson-rgb) / 0.4)'
+    : isBreak ? 'rgb(var(--success-rgb) / 0.4)' : 'rgb(var(--accent-rgb) / 0.4)';
 
   return (
     <div className="relative w-[260px] h-[260px]">
       <div className="absolute inset-8 rounded-full blur-3xl opacity-50" style={{ background: glow }} />
       <svg className="relative w-full h-full -rotate-90" viewBox="0 0 200 200">
-        <circle cx="100" cy="100" r={r} fill="none" stroke="#1e1e2e" strokeWidth="10" />
+        <circle cx="100" cy="100" r={r} fill="none" stroke="var(--border-hi)" strokeWidth="10" />
         <circle
           cx="100" cy="100" r={r} fill="none" stroke={color} strokeWidth="10"
           strokeLinecap="round" strokeDasharray={C} strokeDashoffset={offset}
@@ -312,11 +318,11 @@ export default function Dashboard() {
                 <svg width="200" height="200" viewBox="0 0 200 200" className="relative">
                   <defs>
                     <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#8b5cf6" />
-                      <stop offset="100%" stopColor="#6366f1" />
+                      <stop offset="0%" stopColor="var(--accent-2)" />
+                      <stop offset="100%" stopColor="var(--accent)" />
                     </linearGradient>
                   </defs>
-                  <circle cx="100" cy="100" r="88" fill="none" stroke="#1e1e2e" strokeWidth="3" />
+                  <circle cx="100" cy="100" r="88" fill="none" stroke="var(--border-hi)" strokeWidth="3" />
                   <circle
                     cx="100" cy="100" r="88" fill="none"
                     stroke="url(#ringGrad)" strokeWidth="3" strokeLinecap="round"
