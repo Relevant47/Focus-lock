@@ -50,10 +50,12 @@ export default function Nav() {
   const goalPct = Math.min(100, (mins / goal) * 100);
 
   return (
+    // The `.sidebar` class (in index.css) handles the surface colour per
+    // theme — soft lavender-grey in light mode, near-black in dark. Tailwind
+    // utilities only handle the layout + the session-active accent glow.
     <nav
       className={cn(
-        'w-60 shrink-0 flex flex-col px-3 py-5 border-r border-border relative',
-        'bg-gradient-to-b from-surface to-[#0e0e15]',
+        'sidebar w-60 shrink-0 flex flex-col px-3 py-5 relative',
         sessionActive && !hardcore && !friendLock && 'shadow-[inset_2px_0_0_0_rgba(99,102,241,0.7),0_0_40px_-8px_rgba(99,102,241,0.5)]',
         sessionActive && hardcore && 'shadow-[inset_2px_0_0_0_rgba(220,38,38,0.8),0_0_40px_-8px_rgba(220,38,38,0.55)]',
         sessionActive && !hardcore && friendLock && 'shadow-[inset_2px_0_0_0_rgba(245,158,11,0.8),0_0_40px_-8px_rgba(245,158,11,0.45)]',
@@ -94,7 +96,12 @@ export default function Nav() {
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-2.5 pl-3 pr-3 py-2 rounded-lg text-[13px] font-medium transition-all group relative',
-                    isActive ? 'nav-active' : 'text-muted hover:text-text hover:bg-surface2 hover:translate-x-[1px]',
+                    // .nav-item base handles theme-aware idle/hover colour
+                    // (see index.css). Tailwind still owns the layout +
+                    // translate animation; .nav-active is added on top
+                    // when this route matches.
+                    'nav-item',
+                    isActive ? 'nav-active' : 'text-muted hover:text-text hover:bg-hover hover:translate-x-[1px]',
                   )
                 }
               >
@@ -108,7 +115,7 @@ export default function Nav() {
 
       {/* Session footer */}
       {sessionActive && (
-        <div className="mt-6 mx-2 p-3 rounded-xl border border-border bg-bg/40">
+        <div className="mt-6 mx-2 p-3 rounded-xl border border-border bg-hover/50">
           <div className="flex items-center gap-2 mb-1.5">
             <span className={cn(
               'w-1.5 h-1.5 rounded-full pulse-dot animate-soft-pulse',
@@ -135,7 +142,7 @@ export default function Nav() {
 
       {/* Daily goal widget */}
       {!sessionActive && (
-        <div className="mt-6 mx-2 p-3 rounded-xl border border-border bg-bg/40">
+        <div className="mt-6 mx-2 p-3 rounded-xl border border-border bg-hover/50">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] uppercase tracking-wider text-faint font-semibold">Today</span>
             <span className="text-[11px] text-muted tnum">{mins}m / {goal}m</span>
@@ -161,8 +168,8 @@ export default function Nav() {
       {/* ⌘K hint */}
       <div className="mt-auto pt-4 px-2">
         <div className="flex items-center gap-1.5 text-[10px] text-faint">
-          <kbd className="px-1.5 py-0.5 rounded border border-border bg-bg/60 text-[10px] font-mono leading-none">⌘</kbd>
-          <kbd className="px-1.5 py-0.5 rounded border border-border bg-bg/60 text-[10px] font-mono leading-none">K</kbd>
+          <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface/60 text-[10px] font-mono leading-none">⌘</kbd>
+          <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface/60 text-[10px] font-mono leading-none">K</kbd>
           <span>command palette</span>
         </div>
       </div>

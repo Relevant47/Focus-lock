@@ -1,24 +1,51 @@
 /** @type {import('tailwindcss').Config} */
+//
+// Colors here are CSS-variable references with Tailwind's `<alpha-value>`
+// placeholder, NOT literal hex codes — that's what makes both `bg-bg` AND
+// `bg-accent/15` flip when we toggle data-theme on <html>.
+//
+// How it works:
+//   1. index.css defines space-separated RGB triples per theme, e.g.
+//      `--accent-rgb: 99 102 241;` (dark) or `91 79 232` (light).
+//   2. Here we wrap each token as `rgb(var(--accent-rgb) / <alpha-value>)`.
+//   3. Tailwind substitutes `<alpha-value>` with `1` for `bg-accent` and
+//      with `0.15` for `bg-accent/15`, giving correct rgb() at runtime.
+//
+// Token map (Tailwind key → CSS var):
+//   bg/surface/surface2/sidebar/hover/active/border/borderhi
+//   text/muted/dim/faint/accent/accent2/success/danger/warn/crimson/toggle
+//
+// Anything addressed in raw CSS (gradients, box-shadows) reads from the
+// plain `--accent`, `--shadow`, etc. variables instead — those also live
+// in index.css.
+function v(name) {
+  return `rgb(var(${name}) / <alpha-value>)`;
+}
+
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        bg:        '#0a0a0f',
-        surface:   '#13131a',
-        surface2:  '#1a1a24',
-        border:    '#1e1e2e',
-        borderhi:  '#2e2e4e',
-        text:      '#f8fafc',
-        muted:     '#94a3b8',
-        dim:       '#64748b',
-        faint:     '#475569',
-        accent:    '#6366f1',
-        accent2:   '#8b5cf6',
-        success:   '#10b981',
-        danger:    '#ef4444',
-        warn:      '#f59e0b',
-        crimson:   '#dc2626',
+        bg:        v('--bg-rgb'),
+        surface:   v('--surface-rgb'),
+        surface2:  v('--surface-2-rgb'),
+        sidebar:   v('--sidebar-rgb'),
+        hover:     v('--hover-rgb'),
+        active:    v('--active-rgb'),
+        border:    v('--border-rgb'),
+        borderhi:  v('--border-hi-rgb'),
+        text:      v('--text-rgb'),
+        muted:     v('--muted-rgb'),
+        dim:       v('--dim-rgb'),
+        faint:     v('--faint-rgb'),
+        accent:    v('--accent-rgb'),
+        accent2:   v('--accent-2-rgb'),
+        success:   v('--success-rgb'),
+        danger:    v('--danger-rgb'),
+        warn:      v('--warn-rgb'),
+        crimson:   v('--crimson-rgb'),
+        toggle:    v('--toggle-rgb'),
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
@@ -29,10 +56,11 @@ export default {
         tighter2: '-0.02em',
       },
       boxShadow: {
-        card:    '0 1px 0 0 rgba(255,255,255,0.03) inset, 0 1px 2px 0 rgba(0,0,0,0.4)',
+        card:    '0 1px 0 0 rgba(255,255,255,0.03) inset, 0 1px 2px 0 var(--shadow)',
         glow:    '0 0 32px rgba(99,102,241,0.25)',
         glowred: '0 0 32px rgba(220,38,38,0.25)',
         hero:    '0 24px 64px -16px rgba(99,102,241,0.35)',
+        soft:    '0 2px 8px var(--shadow)',
       },
       keyframes: {
         'fade-up':   { from: { opacity: 0, transform: 'translateY(4px)' }, to: { opacity: 1, transform: 'translateY(0)' } },

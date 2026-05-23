@@ -74,13 +74,17 @@ function HeatmapHero({ logs }: { logs: SessionLog[] }) {
   }
 
   const maxMins = Math.max(...cells.map(c => c.mins), 1);
+  // Heatmap intensities derived from --accent-rgb so the ramp inverts cleanly
+  // in light mode. In dark mode darker = less, brighter = more; in light mode
+  // paler accent = less, saturated accent = more. The empty cell uses the
+  // theme's surface-2 token (subtle background pill).
   const color = (mins: number) => {
-    if (mins === 0) return '#15151e';
+    if (mins === 0) return 'rgb(var(--surface-2-rgb))';
     const t = mins / maxMins;
-    if (t < 0.25) return '#312e81';
-    if (t < 0.5)  return '#4338ca';
-    if (t < 0.75) return '#6366f1';
-    return '#a5b4fc';
+    if (t < 0.25) return 'rgb(var(--accent-rgb) / 0.25)';
+    if (t < 0.5)  return 'rgb(var(--accent-rgb) / 0.5)';
+    if (t < 0.75) return 'rgb(var(--accent-rgb) / 0.75)';
+    return 'rgb(var(--accent-rgb))';
   };
 
   const CELL = 14, GAP = 3, STEP = CELL + GAP;
@@ -106,7 +110,7 @@ function HeatmapHero({ logs }: { logs: SessionLog[] }) {
       <div className="overflow-x-auto">
         <svg viewBox={`0 -20 ${W} ${H + 24}`} style={{ minWidth: W, height: H + 24 }}>
           {months.map((m, i) => (
-            <text key={i} x={m.x} y={-6} fontSize="10" fill="#64748b" fontFamily="inherit">{m.label}</text>
+            <text key={i} x={m.x} y={-6} fontSize="10" fill="rgb(var(--muted-rgb))" fontFamily="inherit">{m.label}</text>
           ))}
           {cells.map((c, i) => {
             const week = Math.floor(i / 7);
@@ -126,8 +130,14 @@ function HeatmapHero({ logs }: { logs: SessionLog[] }) {
       </div>
       <div className="flex items-center gap-1.5 mt-4 justify-end">
         <span className="text-[11px] text-faint">Less</span>
-        {['#15151e', '#312e81', '#4338ca', '#6366f1', '#a5b4fc'].map(c => (
-          <div key={c} className="w-3 h-3 rounded-sm" style={{ background: c }} />
+        {[
+          'rgb(var(--surface-2-rgb))',
+          'rgb(var(--accent-rgb) / 0.25)',
+          'rgb(var(--accent-rgb) / 0.5)',
+          'rgb(var(--accent-rgb) / 0.75)',
+          'rgb(var(--accent-rgb))',
+        ].map((c, i) => (
+          <div key={i} className="w-3 h-3 rounded-sm" style={{ background: c }} />
         ))}
         <span className="text-[11px] text-faint">More</span>
       </div>
