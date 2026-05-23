@@ -268,9 +268,9 @@ export default function Settings() {
 
           {/* Appearance */}
           <Section title="Appearance">
-            <Row label="Theme" sub="Dark by default; light mode preserved for legacy">
+            <Row label="Theme" sub="System follows your OS appearance setting.">
               <div className="flex bg-bg/60 rounded-lg p-0.5 gap-0.5 border border-border">
-                {(['dark', 'light'] as Theme[]).map(t => (
+                {(['dark', 'light', 'system'] as Theme[]).map(t => (
                   <button
                     key={t}
                     onClick={() => { setTheme(t); setThemeState(t); }}
@@ -279,7 +279,7 @@ export default function Settings() {
                       theme === t ? 'bg-accent text-white' : 'text-muted hover:text-text',
                     )}
                   >
-                    {t === 'dark' ? 'Dark' : 'Light'}
+                    {t === 'dark' ? 'Dark' : t === 'light' ? 'Light' : 'System'}
                   </button>
                 ))}
               </div>

@@ -111,9 +111,14 @@ export default function CommandPalette() {
       { id: 'nav_analytics', label: 'Open Analytics',   icon: <Icon.Chart size={14} />,     keywords: 'stats history', run: () => navigate('/analytics') },
       { id: 'nav_settings',  label: 'Open Settings',    icon: <Icon.Settings size={14} />,  keywords: 'preferences', run: () => navigate('/settings') },
       {
-        id: 'toggle_theme', label: 'Toggle Dark / Light Mode',
-        icon: <Icon.Sparkle size={14} />, keywords: 'theme appearance',
-        run: () => { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); },
+        // Cycle Dark → Light → System → Dark. The 'system' option follows the
+        // OS preference live via matchMedia (see stores/theme.ts).
+        id: 'toggle_theme', label: 'Cycle Theme (Dark / Light / System)',
+        icon: <Icon.Sparkle size={14} />, keywords: 'theme appearance dark light system',
+        run: () => {
+          const t = getTheme();
+          setTheme(t === 'dark' ? 'light' : t === 'light' ? 'system' : 'dark');
+        },
       },
       {
         id: 'export', label: 'Export Session Data',
