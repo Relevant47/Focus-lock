@@ -103,7 +103,7 @@ export default function BlockLists() {
 
         {/* Suggested */}
         <div className="card p-5">
-          <SectionHeader title="Suggested sites" hint="One-click adds to custom domains below." />
+          <SectionHeader title="Suggested domains" hint="One-click adds to custom domains below. These block website domains only — blocking desktop apps (e.g. Steam.exe, Discord.exe) is a separate feature coming later." />
           <div className="space-y-3">
             {(['Social', 'Entertainment', 'Gaming', 'News'] as const).map(group => {
               const items = SUGGESTED_GROUPED[group];
@@ -119,7 +119,7 @@ export default function BlockLists() {
                           key={site.domain}
                           onClick={() => addSuggested(site)}
                           className={cn(
-                            'inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-[12px] font-medium transition-all',
+                            'inline-flex items-center gap-2 px-2 py-1 rounded-md border text-[12px] font-medium transition-all text-left',
                             on
                               ? 'bg-accent/15 border-accent/50 text-text'
                               : 'bg-surface2 border-border text-muted hover:border-borderhi hover:text-text',
@@ -128,12 +128,15 @@ export default function BlockLists() {
                           <img
                             src={faviconUrl(site.domain, 32)}
                             alt=""
-                            width={12} height={12}
-                            className="rounded-[3px]"
+                            width={14} height={14}
+                            className="rounded-[3px] shrink-0"
                             onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
                           />
-                          {site.label}
-                          {on && <Icon.Check size={10} className="text-accent" />}
+                          <span className="flex flex-col leading-tight">
+                            <span>{site.label}</span>
+                            <span className="text-[10px] text-faint font-normal">{site.domain}</span>
+                          </span>
+                          {on && <Icon.Check size={10} className="text-accent shrink-0" />}
                         </button>
                       );
                     })}
