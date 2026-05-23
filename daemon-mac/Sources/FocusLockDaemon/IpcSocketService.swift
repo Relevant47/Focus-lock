@@ -206,9 +206,9 @@ final class IpcSocketService {
         // platform without conditionals. Write the audit event so a parent
         // can see uninstall was attempted.
         if let gate = gateOrNil(req) { return gate }
-        audit.record(ParentAuditEvents.uninstallAuthorized,
-                     detail: "platform=macos noop=true")
-        return .ok
+        auditSvc.record(ParentAuditEvents.uninstallAuthorized,
+                        detail: "platform=macos noop=true")
+        return .ok()
     }
 
     private func handleFamilySetFirewallLockdown(_ req: IpcRequest) -> IpcResponse {
@@ -220,7 +220,7 @@ final class IpcSocketService {
         if !familySvc.setFirewallLockdownEnabled(enabled) {
             return .error("Device is not paired")
         }
-        return .ok
+        return .ok()
     }
 
     private func handleFamilyRedeem(_ req: IpcRequest) -> IpcResponse {

@@ -158,7 +158,8 @@ struct DaemonStatus: Codable {
         paired: false, connected: false,
         accountId: nil, deviceId: nil, serverUrl: nil,
         lastConnectedAt: nil, lastDisconnectedAt: nil, lastError: nil,
-        activeRuleCount: 0, offlineSeconds: 0, activeRules: [])
+        activeRuleCount: 0, offlineSeconds: 0, activeRules: [],
+        firewallLockdownEnabled: false, firewallLockdownActive: false)
 }
 
 struct IpcResponse: Codable {
