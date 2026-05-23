@@ -1703,6 +1703,13 @@
     .ih-vt::before {
       content: '✓'; color: var(--green); font-weight: 700;
     }
+    .ih-scanners-label {
+      color: var(--muted); font-size: .72rem;
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .ih-scanners {
+      display: flex; flex-wrap: wrap; gap: 10px 18px;
+    }
 
     /* Footer */
     .ih-foot {
@@ -2414,10 +2421,12 @@
             <span class="ih-hash-label">SHA-256 of your download</span>
             <span id="ih-hash-value"></span>
           </div>
-          <!-- TODO: replace href with the real VirusTotal scan URL for the latest release -->
-          <a class="ih-vt" id="ih-vt" href="https://www.virustotal.com/gui/search/Focus-lock" target="_blank" rel="noopener">
-            Scanned clean on VirusTotal
-          </a>
+          <div class="ih-scanners-label">Scan the file yourself — drop it into any of these:</div>
+          <div class="ih-scanners">
+            <a class="ih-vt" href="https://www.virustotal.com/gui/home/upload" target="_blank" rel="noopener">VirusTotal</a>
+            <a class="ih-vt" href="https://metadefender.opswat.com/" target="_blank" rel="noopener">MetaDefender</a>
+            <a class="ih-vt" href="https://www.hybrid-analysis.com/" target="_blank" rel="noopener">Hybrid Analysis</a>
+          </div>
         </div>
       </div>
     </div>
