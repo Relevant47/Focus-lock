@@ -14,6 +14,17 @@ public sealed class ProcessKillService
     private readonly SessionService _session;
     private readonly FamilyEnforcementService _family;
 
+    // Processes we will NEVER kill, even if a user adds them to a blocklist.
+    // Killing winlogon/explorer/svchost would nuke the shell or take down Windows.
+    private static readonly HashSet<string> ProtectedNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "system", "idle", "smss", "csrss", "wininit", "winlogon",
+        "services", "lsass", "lsaiso", "fontdrvhost", "dwm",
+        "explorer", "svchost", "taskhostw", "runtimebroker",
+        "sihost", "ctfmon", "audiodg", "conhost",
+        "focuslockdaemon", "focuslock",
+    };
+
     public ProcessKillService(
         ILogger<ProcessKillService> log,
         SessionService session,
@@ -51,7 +62,16 @@ public sealed class ProcessKillService
         {
             try
             {
-                var nameMatch = blockedNames.Contains(proc.ProcessName.ToLowerInvariant());
+                var procName = proc.ProcessName.ToLowerInvariant();
+                if (ProtectedNames.Contains(procName)) continue;
+
+                // Skip session 0 (SYSTEM/services). Only act on interactive user sessions.
+                int sessionId;
+                try { sessionId = proc.SessionId; }
+                catch { continue; }
+                if (sessionId == 0) continue;
+
+                var nameMatch = blockedNames.Contains(procName);
 
                 bool pathMatch = false;
                 if (!nameMatch && blockedPaths.Count > 0)
