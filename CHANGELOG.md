@@ -2,6 +2,46 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.1.3] — 2026-05-23
+
+### Fixed — Daemon safety (CRITICAL — affects 1.1.2 and earlier)
+
+- **Windows daemon will no longer kill system-critical processes.** Before this release, any user who typed `explorer.exe`, `winlogon.exe`, `svchost.exe`, etc. into the "Blocked processes" textarea would have those processes killed by the daemon during a focus session — including the Windows shell itself. The kill loop now checks a hard-coded protected-name denylist before matching. The macOS daemon gained the equivalent denylist (`launchd`, `kernel_task`, `WindowServer`, `loginwindow`, `Finder`, `Dock`, etc.).
+- **Daemons now only act on interactive user sessions.** Windows: processes in session 0 (SYSTEM / services) are skipped. macOS: processes with uid 0 or under 100 (root, system service users) are skipped. Combined with the protected-name list, the daemon cannot take down core OS components even via a misconfigured rule.
+
+### Fixed — macOS app blocking actually works
+
+- **Bundle ID matching on macOS.** The macOS daemon now resolves running apps via `NSWorkspace.shared.runningApplications` and matches by `bundleIdentifier`. Previously the matcher could only see process names and full paths — `.app` packages were invisible, so blocking "Steam" on Mac silently did nothing. Now actually blocks the app.
+
+### Added — Full Light mode
+
+- **Complete light theme** — every surface, component, text colour, border, icon, and interactive element has been rebuilt around a CSS custom-property token system scoped to `[data-theme="light"]`. The old half-broken light mode (sidebar stayed dark while cards turned white) is gone. Cohesive across every screen — Dashboard, Block Lists, Profiles, Schedules, Analytics, Settings — plus every modal and the command palette.
+- **System theme option.** Settings → Appearance now has three states: Dark, Light, System. System follows the OS preference live via `matchMedia('(prefers-color-scheme: light)')` and updates if the OS theme changes mid-session. Same toggle available from the command palette as a Dark → Light → System cycle.
+- **Persistence.** Theme choice survives app restarts (stored in `localStorage` under `focuslock_theme`).
+- **Smooth transitions** between themes (200ms ease on background + colour).
+
+### Added — App-blocking picker
+
+- **New "Suggested apps" section** on Block Lists and Profiles pages. 14 curated common-distraction apps (Steam, Discord, Spotify, Slack, Battle.net, Epic Games Launcher, Riot Client, Roblox, Minecraft Launcher, OBS, Twitch desktop, WhatsApp, Telegram, Signal). One-click adds the right token per platform — process name on Windows (`Steam`), bundle ID on macOS (`com.valvesoftware.steam`).
+- **Power-user textarea kept** as before for custom `.exe` / `.app` names not in the curated list.
+
+### Changed — Block Lists UX clarity
+
+- **"Suggested Sites" renamed to "Suggested Domains"** with a subtitle clarifying these add website domains only; the separate "Suggested apps" section handles desktop app blocking.
+- **Each suggested-domain chip now shows the actual domain** underneath the label (e.g. "Reddit" with `reddit.com` below in muted text). No more guessing what each chip adds.
+
+### Fixed — Steam domain entry
+
+- The Steam suggested-domain was pointing at `steam.com`, which isn't actually Steam's domain — blocking it did approximately nothing. Now uses `store.steampowered.com`. Added a second `steamcommunity.com` entry as "Steam Community" for the discussions / profiles surface.
+
+### Fixed — Install-help modal scanners
+
+- The "scan this download" link on the landing page used to point to a useless `virustotal.com/gui/search/Focus-lock` URL that returned no results. Replaced with three working upload links — VirusTotal, MetaDefender, Hybrid Analysis — so users can verify the binary on any of three trusted services.
+
+### Changed — CI
+
+- Bumped `actions/checkout` v4 → v5, `actions/setup-node` v4 → v6, `actions/setup-dotnet` v4 → v5. All to support the Node 24 default coming June 2026 (Node 20 deprecation).
+
 ## [1.1.2] — 2026-05-23
 
 ### Added — Family controls
