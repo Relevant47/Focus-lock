@@ -6,25 +6,171 @@
 
 * { box-sizing: border-box; }
 
-:root {
-  --bg: #0a0a0f;
-  --surface: #13131a;
-  --surface-2: #1a1a24;
-  --border: #1e1e2e;
-  --border-hi: #2e2e4e;
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --dim: #64748b;
-  --accent: #6366f1;
-  --accent-2: #8b5cf6;
-  --success: #10b981;
-  --danger: #ef4444;
-  --crimson: #dc2626;
-  --warn: #f59e0b;
+/* ──────────────────────────────────────────────────────────────────────────
+   THEME TOKENS
+   Every color the app uses is a CSS custom property so toggling the
+   data-theme attribute on <html> flips the entire UI.
+
+   Two layers of variables:
+     1. "-rgb" triples — space-separated R G B values for Tailwind opacity
+        modifiers (`bg-accent/15` → `rgb(var(--accent-rgb) / 0.15)`).
+        Tailwind's color config wraps these with rgb(...) and injects the
+        <alpha-value> placeholder, so /XX class modifiers Just Work.
+     2. Plain CSS variables for everything that's referenced from raw CSS
+        (gradients, box-shadows, scrollbars). These resolve to the same
+        palette but expressed as hex so they're easy to read in devtools.
+
+   The default :root values match the dark theme so the app still renders
+   sanely if data-theme is somehow missing.
+   ────────────────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="dark"] {
+  /* -rgb triples (for Tailwind opacity modifiers) */
+  --bg-rgb:        10 10 15;
+  --surface-rgb:   19 19 26;
+  --surface-2-rgb: 26 26 36;
+  --sidebar-rgb:   14 14 21;
+  --hover-rgb:     26 26 36;
+  --active-rgb:    99 102 241;        /* base hue for nav active fill */
+  --border-rgb:    30 30 46;
+  --border-hi-rgb: 46 46 78;
+  --text-rgb:      248 250 252;
+  --muted-rgb:     148 163 184;
+  --dim-rgb:       100 116 139;
+  --faint-rgb:     71 85 105;
+  --accent-rgb:    99 102 241;
+  --accent-2-rgb:  139 92 246;
+  --success-rgb:   16 185 129;
+  --danger-rgb:    239 68 68;
+  --warn-rgb:      245 158 11;
+  --crimson-rgb:   220 38 38;
+  --toggle-rgb:    42 42 58;
+
+  /* ── spec-named tokens (design brief vocabulary) ── */
+  --bg-primary:     #0a0a0f;
+  --bg-secondary:   #13131a;
+  --bg-sidebar:     #0e0e15;
+  --bg-hover:       #1a1a24;
+  --bg-active:      rgba(99,102,241,0.18);
+  --text-primary:   #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --text-faint:     #475569;
+  --accent:         #6366f1;
+  --accent-2:       #8b5cf6;
+  --accent-hover:   #5558e3;
+  --border:         #1e1e2e;
+  --border-hi:      #2e2e4e;
+  --border-focus:   #6366f1;
+  --toggle-bg:      #2a2a3a;
+  --shadow:         rgba(0,0,0,0.4);
+  --success:        #10b981;
+  --danger:         #ef4444;
+  --crimson:        #dc2626;
+  --warn:           #f59e0b;
+
+  /* card surface — dark uses a subtle gradient */
+  --card-bg-from:   #15151e;
+  --card-bg-to:     #121219;
+  --input-bg:       #0f0f17;
+  --input-bg-focus: #11111c;
+
+  /* selection colour */
+  --selection-bg:   rgba(99,102,241,0.4);
+  --selection-fg:   #ffffff;
+
+  /* legacy aliases (raw CSS still uses these names) */
+  --bg:        var(--bg-primary);
+  --surface:   var(--bg-secondary);
+  --surface-2: var(--bg-hover);
+  --text:      var(--text-primary);
+  --muted:     var(--text-secondary);
+  --dim:       var(--text-muted);
+  --faint:     var(--text-faint);
+
+  /* session accent (overridden by [data-session] on <body>) */
   --session-accent: var(--accent);
+
+  /* scrollbar */
+  --scroll-track: transparent;
+  --scroll-thumb: #2a2a3a;
+  --scroll-thumb-hover: #3a3a52;
+}
+
+[data-theme="light"] {
+  --bg-rgb:        244 244 248;
+  --surface-rgb:   255 255 255;
+  --surface-2-rgb: 228 228 238;
+  --sidebar-rgb:   238 238 244;
+  --hover-rgb:     228 228 238;
+  --active-rgb:    221 221 248;
+  --border-rgb:    220 220 232;
+  --border-hi-rgb: 191 191 212;
+  --text-rgb:      15 15 26;
+  --muted-rgb:     90 90 114;
+  --dim-rgb:       152 152 176;
+  --faint-rgb:     180 180 200;
+  --accent-rgb:    91 79 232;
+  --accent-2-rgb:  124 111 240;
+  --success-rgb:   5 150 105;
+  --danger-rgb:    220 38 38;
+  --warn-rgb:      217 119 6;
+  --crimson-rgb:   185 28 28;
+  --toggle-rgb:    208 208 224;
+
+  --bg-primary:     #F4F4F8;
+  --bg-secondary:   #FFFFFF;
+  --bg-sidebar:     #EEEEF4;
+  --bg-hover:       #E4E4EE;
+  --bg-active:      #DDDDF8;
+  --text-primary:   #0F0F1A;
+  --text-secondary: #5A5A72;
+  --text-muted:     #9898B0;
+  --text-faint:     #B4B4C8;
+  --accent:         #5B4FE8;
+  --accent-2:       #7C6FF0;
+  --accent-hover:   #4A3FD4;
+  --border:         #DCDCE8;
+  --border-hi:      #BFBFD4;
+  --border-focus:   #5B4FE8;
+  --toggle-bg:      #D0D0E0;
+  --shadow:         rgba(0,0,0,0.06);
+  --success:        #059669;
+  --danger:         #DC2626;
+  --crimson:        #B91C1C;
+  --warn:           #D97706;
+
+  --card-bg-from:   #FFFFFF;
+  --card-bg-to:     #FFFFFF;
+  --input-bg:       #FFFFFF;
+  --input-bg-focus: #FFFFFF;
+
+  --selection-bg:   rgba(91,79,232,0.22);
+  --selection-fg:   #0F0F1A;
+
+  --bg:        var(--bg-primary);
+  --surface:   var(--bg-secondary);
+  --surface-2: var(--bg-hover);
+  --text:      var(--text-primary);
+  --muted:     var(--text-secondary);
+  --dim:       var(--text-muted);
+  --faint:     var(--text-faint);
+
+  --session-accent: var(--accent);
+
+  --scroll-track: var(--bg-primary);
+  --scroll-thumb: var(--border);
+  --scroll-thumb-hover: var(--text-muted);
 }
 
 html, body, #root { height: 100%; }
+
+html {
+  /* Smooth fade when toggling themes. Limited to colour/shadow so layout
+     changes (resize, sidebar reflow) don't get caught up in the easing. */
+  transition: background-color 200ms ease, color 200ms ease;
+}
 
 body {
   margin: 0;
@@ -37,6 +183,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   user-select: none;
   letter-spacing: -0.01em;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 @supports (font-variation-settings: normal) {
@@ -48,42 +195,48 @@ h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; }
 
 /* ── Scrollbar ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar          { width: 6px; height: 6px; }
-::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: #2a2a3a; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3a3a52; }
+::-webkit-scrollbar-track    { background: var(--scroll-track); }
+::-webkit-scrollbar-thumb    { background: var(--scroll-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
 
 /* ── Form elements ────────────────────────────────────────────────────────── */
 input[type="range"]          { accent-color: var(--accent); }
 select option                { background: var(--surface); color: var(--text); }
-::selection                  { background: rgba(99,102,241,0.4); color: #fff; }
+::selection                  { background: var(--selection-bg); color: var(--selection-fg); }
 
 /* ── Reusable utility classes ─────────────────────────────────────────────── */
 
 .tnum { font-variant-numeric: tabular-nums; }
 
 .card {
-  background: linear-gradient(180deg, #15151e 0%, #121219 100%);
+  background: linear-gradient(180deg, var(--card-bg-from) 0%, var(--card-bg-to) 100%);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow:
     0 1px 0 0 rgba(255,255,255,0.03) inset,
-    0 1px 2px 0 rgba(0,0,0,0.4);
-  transition: border-color 120ms ease-out, transform 120ms ease-out;
+    0 1px 2px 0 var(--shadow);
+  transition: border-color 120ms ease-out, transform 120ms ease-out,
+              background-color 200ms ease, box-shadow 200ms ease;
+}
+[data-theme="light"] .card {
+  /* Light-mode cards: white surface, barely-there depth shadow, no inset
+     highlight (it just adds grey noise against the bright page bg). */
+  box-shadow: 0 2px 8px var(--shadow);
 }
 .card:hover { border-color: var(--border-hi); }
 .card-interactive:hover { transform: scale(1.01); border-color: var(--border-hi); }
 
 .btn-primary {
-  background: linear-gradient(180deg, #6366f1 0%, #5558e3 100%);
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: #fff;
   border-radius: 10px;
   font-weight: 600;
   letter-spacing: -0.01em;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.15),
-    0 1px 2px rgba(0,0,0,0.4),
-    0 0 0 1px rgba(99,102,241,0.4),
-    0 8px 24px -8px rgba(99,102,241,0.5);
+    0 1px 2px var(--shadow),
+    0 0 0 1px rgb(var(--accent-rgb) / 0.4),
+    0 8px 24px -8px rgb(var(--accent-rgb) / 0.5);
   transition: transform 80ms ease-out, box-shadow 120ms ease-out, filter 120ms ease-out;
 }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
@@ -101,24 +254,27 @@ select option                { background: var(--surface); color: var(--text); }
 .btn-ghost:active:not(:disabled) { transform: scale(0.97); }
 
 .btn-danger {
-  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(180deg, var(--danger) 0%, var(--crimson) 100%);
   color: #fff;
   border-radius: 10px;
   font-weight: 600;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 0 0 1px rgba(220,38,38,0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 0 0 1px rgb(var(--crimson-rgb) / 0.4);
   transition: filter 120ms, transform 80ms;
 }
 .btn-danger:hover:not(:disabled) { filter: brightness(1.08); }
 .btn-danger:active:not(:disabled) { transform: scale(0.97); }
 
 .input-base {
-  background: #0f0f17;
+  background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
   transition: border-color 120ms ease-out, background 120ms ease-out;
 }
-.input-base:focus  { outline: none; border-color: var(--accent); background: #11111c; }
+.input-base:focus  { outline: none; border-color: var(--border-focus); background: var(--input-bg-focus); }
+.input-base::placeholder { color: var(--text-muted); }
 
 /* ── Session-active accent shift ──────────────────────────────────────────── */
 body[data-session="active"]   { --session-accent: var(--accent); }
@@ -128,7 +284,7 @@ body[data-session="friend"]   { --session-accent: var(--warn); }
 /* ── Custom toggle switch ─────────────────────────────────────────────────── */
 .switch {
   position: relative; display: inline-block; width: 36px; height: 20px;
-  background: #2a2a3a; border-radius: 999px; cursor: pointer;
+  background: var(--toggle-bg); border-radius: 999px; cursor: pointer;
   transition: background 160ms ease-out;
   flex-shrink: 0;
 }
@@ -136,31 +292,75 @@ body[data-session="friend"]   { --session-accent: var(--warn); }
   content: ''; position: absolute; top: 2px; left: 2px;
   width: 16px; height: 16px; border-radius: 999px;
   background: #fff; transition: transform 160ms ease-out;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 2px var(--shadow);
 }
 .switch[data-on="true"] { background: var(--accent); }
 .switch[data-on="true"]::after { transform: translateX(16px); }
 .switch.danger[data-on="true"] { background: var(--danger); }
 
-/* ── Active nav-item glow ─────────────────────────────────────────────────── */
+/* ── Sidebar surface + active item ────────────────────────────────────────── */
+/* Nav.tsx adds the .sidebar class so we can theme the sidebar surface in one
+   place instead of via inline Tailwind utilities. The body of the nav still
+   uses Tailwind for layout. */
+.sidebar {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+}
+[data-theme="light"] .sidebar {
+  /* Soft separator shadow on the right side — barely there, but enough to
+     lift the main content off the sidebar in light mode where borders alone
+     can read flat. */
+  box-shadow: 1px 0 0 0 var(--border), 4px 0 24px -16px var(--shadow);
+}
+
+.nav-item {
+  transition: background-color 120ms ease, color 120ms ease;
+}
+[data-theme="light"] .nav-item {
+  color: var(--text-primary);
+}
+[data-theme="light"] .nav-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Active nav item — replaces the legacy .nav-active gradient with a token
+   driven equivalent so it reads well in both themes. */
 .nav-active {
+  position: relative;
+}
+[data-theme="light"] .nav-active {
+  background: var(--bg-active);
+  color: var(--accent);
+}
+[data-theme="light"] .nav-active::before {
+  content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+  width: 3px; background: var(--accent);
+  border-radius: 2px;
+}
+[data-theme="light"] .nav-active svg { color: var(--accent); }
+/* Dark theme keeps the previous gradient glow on active items — looks
+   cooler than a flat fill on the indigo-on-near-black palette. */
+:root:not([data-theme="light"]) .nav-active,
+[data-theme="dark"] .nav-active {
   background: linear-gradient(90deg, rgba(99,102,241,0.22), rgba(139,92,246,0.06) 70%, transparent);
   color: #fff;
-  position: relative;
   box-shadow: inset 0 0 0 1px rgba(99,102,241,0.18), 0 0 24px -8px rgba(99,102,241,0.35);
 }
-.nav-active::before {
+:root:not([data-theme="light"]) .nav-active::before,
+[data-theme="dark"] .nav-active::before {
   content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
   width: 2px; background: linear-gradient(180deg, #8b5cf6, #6366f1);
   border-radius: 2px;
   box-shadow: 0 0 14px rgba(99,102,241,0.8);
 }
-.nav-active svg { color: #a5b4fc; }
+:root:not([data-theme="light"]) .nav-active svg,
+[data-theme="dark"] .nav-active svg { color: #a5b4fc; }
 
-/* Sidebar groove labels */
+/* Sidebar group labels */
 .nav-group-label {
   font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--faint); font-weight: 600;
+  color: var(--text-muted); font-weight: 600;
   padding: 0 12px; margin: 14px 0 6px;
 }
 
@@ -170,8 +370,12 @@ body[data-session="friend"]   { --session-accent: var(--warn); }
 }
 .brand-glow::after {
   content: ''; position: absolute; inset: -8px; border-radius: 999px;
-  background: radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%);
+  background: radial-gradient(circle, rgb(var(--accent-rgb) / 0.35) 0%, transparent 70%);
   filter: blur(10px); z-index: -1;
+}
+[data-theme="light"] .brand-glow::after {
+  /* lighter halo in light mode so it doesn't muddy the white surface */
+  background: radial-gradient(circle, rgb(var(--accent-rgb) / 0.18) 0%, transparent 70%);
 }
 
 /* ── Pulse dot ────────────────────────────────────────────────────────────── */
@@ -189,17 +393,9 @@ body[data-session="friend"]   { --session-accent: var(--warn); }
   -webkit-backdrop-filter: blur(12px);
   display: flex; align-items: center; justify-content: center;
 }
-
-/* ── Light theme overrides (preserved for compatibility) ──────────────────── */
-[data-theme="light"] body {
-  background: #f8fafc; color: #0f172a;
-  --bg: #f8fafc; --surface: #ffffff; --surface-2: #f1f5f9;
-  --border: #e2e8f0; --border-hi: #cbd5e1; --text: #0f172a;
-  --muted: #475569; --dim: #64748b;
+[data-theme="light"] .modal-backdrop {
+  background: rgba(15,15,26,0.32);
 }
-[data-theme="light"] .card                { background: #ffffff; }
-[data-theme="light"] ::-webkit-scrollbar-thumb { background: #cbd5e1; }
-[data-theme="light"] .input-base          { background: #ffffff; color: #0f172a; }
 
 /* ── Ambient aurora background ────────────────────────────────────────────── */
 
@@ -243,6 +439,18 @@ body[data-session="friend"]   { --session-accent: var(--warn); }
   100% { transform: translate(-220px, 140px) scale(1.2);  opacity: 0.85; }
 }
 
+/* Light mode: dial the aurora way down — bright blobs on a white background
+   look feverish. Keep the motion (it's part of the brand) but make it
+   barely-there. */
+[data-theme="light"] .aurora {
+  opacity: 0.35;
+  filter: blur(100px) saturate(1.1);
+  mix-blend-mode: multiply;
+}
+[data-theme="light"] .aurora-orb {
+  mix-blend-mode: multiply;
+}
+
 body[data-session="hardcore"] .aurora-orb-1 { background: radial-gradient(circle, rgba(220,38,38,0.50) 0%, rgba(220,38,38,0) 65%); }
 body[data-session="hardcore"] .aurora-orb-2 { background: radial-gradient(circle, rgba(239,68,68,0.40) 0%, rgba(239,68,68,0) 65%); }
 body[data-session="hardcore"] .aurora-orb-3 { background: radial-gradient(circle, rgba(251,113,133,0.25) 0%, rgba(251,113,133,0) 65%); }
@@ -254,6 +462,8 @@ body[data-session="hardcore"] .aurora-orb-3 { background: radial-gradient(circle
   opacity: 0.04; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
+/* In light mode the white-noise grain washes out the page — hide it. */
+[data-theme="light"] .grain { display: none; }
 
 /* ── Gradient text utility ────────────────────────────────────────────────── */
 
@@ -263,6 +473,14 @@ body[data-session="hardcore"] .aurora-orb-3 { background: radial-gradient(circle
   -webkit-text-fill-color: transparent;
   background-clip: text;
   color: transparent;
+}
+/* Light mode: invert so the gradient runs from primary text into accent and
+   stays legible on white. */
+[data-theme="light"] .text-gradient {
+  background: linear-gradient(180deg, var(--text-primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .text-gradient-warm {
   background: linear-gradient(180deg, #fbbf24 0%, #f97316 100%);
@@ -285,6 +503,9 @@ body[data-session="hardcore"] .aurora-orb-3 { background: radial-gradient(circle
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   pointer-events: none;
+}
+[data-theme="light"] .card-glow::before {
+  background: linear-gradient(135deg, rgb(var(--accent-rgb) / 0.28), transparent 70%);
 }
 
 /* ── Breathing ring (idle hero) ───────────────────────────────────────────── */
