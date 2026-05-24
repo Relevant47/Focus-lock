@@ -3,16 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev":               "wrangler dev",
-    "deploy":            "wrangler deploy",
-    "db:create":         "wrangler d1 create focuslock-family",
-    "db:migrate:local":  "wrangler d1 migrations apply focuslock-family --local",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create focuslock-family",
+    "db:migrate:local": "wrangler d1 migrations apply focuslock-family --local",
     "db:migrate:remote": "wrangler d1 migrations apply focuslock-family --remote",
-    "secret:set-jwt":    "wrangler secret put JWT_SECRET"
+    "secret:set-jwt": "wrangler secret put JWT_SECRET",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.0.0",
     "typescript": "^5.0.0",
+    "vitest": "^2.1.9",
     "wrangler": "^3.0.0"
   }
 }
