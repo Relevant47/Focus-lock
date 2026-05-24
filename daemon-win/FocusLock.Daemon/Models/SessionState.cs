@@ -30,7 +30,12 @@ public sealed class SessionState
     // HMAC-SHA256 of all fields above (excluding Signature, MotivationalMessage, Intention)
     public string Signature { get; set; } = string.Empty;
 
-    // Derived — not stored
+    // Derived — not stored.
+    // NOTE: these are *wall-clock* views, used only as the anchor when a session
+    // is loaded from disk after a daemon restart. The authoritative live expiry
+    // check is SessionService.ComputeIsActive()/ComputeRemainingSeconds(), which
+    // counts down on a monotonic Stopwatch so moving the system clock can't end a
+    // session early (or extend it). Don't use these for live enforcement.
     [JsonIgnore]
     public bool IsActive => DateTime.UtcNow < EndTime;
 

@@ -26,6 +26,28 @@ public sealed class SessionService
     private int _blockAttempts;
     private PomodoroState? _pomodoro;
 
+    // ── Monotonic clock anchoring (anti clock-tamper) ───────────────────────────
+    // The wall-clock EndTime is still persisted so a session survives a daemon
+    // restart / reboot (we can't reconstruct elapsed time across a process death).
+    // But *while the daemon runs*, expiry is governed by a monotonic Stopwatch so
+    // that moving the system clock — forward to end a Hardcore session early, or
+    // backward to extend it — does not change when the session actually ends.
+    //
+    // On StartSession / resume we anchor: record the monotonic timestamp and the
+    // remaining seconds at that instant. Authoritative remaining is then
+    // (remainingAtAnchor − monotonicElapsedSinceAnchor), independent of the wall
+    // clock. We additionally compare the wall clock's movement against the
+    // monotonic movement each evaluation; a large divergence is logged as a
+    // suspected clock-tamper but the monotonic value is always the one enforced.
+    private static readonly System.Diagnostics.Stopwatch MonotonicClock = System.Diagnostics.Stopwatch.StartNew();
+    private TimeSpan _anchorMonotonic;          // MonotonicClock.Elapsed captured at anchor
+    private double _remainingAtAnchorSeconds;   // wall-clock remaining captured at anchor
+    private DateTime _anchorWallClockUtc;       // UtcNow captured at anchor (tamper detection only)
+    private bool _clockTamperLogged;            // one-shot log guard per session
+    // Allowed slack between wall-clock and monotonic drift before we treat it as
+    // tampering rather than ordinary scheduler jitter / NTP nudges.
+    private const double ClockTamperToleranceSeconds = 30.0;
+
     // Friend-lock rate limiting
     private int _failedUnlockAttempts;
     private DateTime _nextUnlockAllowed = DateTime.MinValue;
@@ -74,8 +96,61 @@ public sealed class SessionService
 
     public bool IsActive
     {
-        get { lock (_lock) return _active?.IsActive ?? false; }
+        get { lock (_lock) return ComputeIsActive(); }
     }
+
+    // ── Monotonic-clock helpers ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Records the monotonic anchor for the current <see cref="_active"/> session:
+    /// the Stopwatch reading "now" and how many seconds remain off the wall clock
+    /// at this instant. Subsequent expiry checks count down from here using the
+    /// Stopwatch, so changing the system clock cannot move the end time.
+    /// </summary>
+    private void AnchorMonotonic()
+    {
+        if (_active == null) return;
+        _anchorMonotonic = MonotonicClock.Elapsed;
+        _anchorWallClockUtc = DateTime.UtcNow;
+        _remainingAtAnchorSeconds = Math.Max(0, (_active.EndTime - DateTime.UtcNow).TotalSeconds);
+        _clockTamperLogged = false;
+    }
+
+    /// <summary>
+    /// Authoritative seconds remaining for the active session, governed by the
+    /// monotonic clock and NOT the wall clock. Returns 0 when the session has run
+    /// its full duration. Also detects (and logs once) a wall-clock vs monotonic
+    /// divergence that indicates the user moved the system clock.
+    /// </summary>
+    private double ComputeRemainingSeconds()
+    {
+        if (_active == null) return 0;
+
+        var monotonicElapsed = (MonotonicClock.Elapsed - _anchorMonotonic).TotalSeconds;
+        if (monotonicElapsed < 0) monotonicElapsed = 0;   // Stopwatch never goes back, defensive only
+        var monotonicRemaining = _remainingAtAnchorSeconds - monotonicElapsed;
+
+        // Tamper detection: how far the wall clock claims we've advanced vs how
+        // far the monotonic clock actually advanced since the anchor. A real
+        // clock change shows up as a large gap; NTP/jitter stays within tolerance.
+        var wallElapsed = (DateTime.UtcNow - _anchorWallClockUtc).TotalSeconds;
+        var divergence = Math.Abs(wallElapsed - monotonicElapsed);
+        if (divergence > ClockTamperToleranceSeconds && !_clockTamperLogged)
+        {
+            _clockTamperLogged = true;
+            _log.LogWarning(
+                "System clock moved ~{Divergence:F0}s relative to the monotonic clock during session {Id} — "
+                + "enforcing the monotonic timer (clock changes cannot end a session early).",
+                divergence, _active.SessionId);
+        }
+
+        // Monotonic is authoritative while the daemon runs. (Across a restart the
+        // Stopwatch resets and we re-anchor from the persisted wall-clock EndTime
+        // in LoadPersistedSession — see the resume path.)
+        return Math.Max(0, monotonicRemaining);
+    }
+
+    private bool ComputeIsActive() => _active != null && ComputeRemainingSeconds() > 0;
 
     /// <summary>True when Pomodoro is in a non-strict break phase — blocks should be temporarily lifted.</summary>
     public bool ShouldLiftBlocksDuringBreak
@@ -110,11 +185,12 @@ public sealed class SessionService
                 ? (_nextUnlockAllowed - DateTime.UtcNow).TotalSeconds
                 : (double?)null;
             var logs = GetLogs(90);
+            var active = ComputeIsActive();
             return new DaemonStatus
             {
-                SessionActive = _active?.IsActive ?? false,
+                SessionActive = active,
                 Session = _active,
-                SecondsRemaining = _active?.IsActive == true ? _active.Remaining.TotalSeconds : null,
+                SecondsRemaining = active ? ComputeRemainingSeconds() : null,
                 PomodoroPhase = phase,
                 PomodoroSecondsRemaining = pSec,
                 BlockAttempts = _blockAttempts,
@@ -183,7 +259,7 @@ public sealed class SessionService
     {
         lock (_lock)
         {
-            if (_active?.IsActive == true)
+            if (ComputeIsActive())
                 return ("Session already active", false);
 
             _active = new SessionState
@@ -203,6 +279,7 @@ public sealed class SessionService
                 Intention = string.IsNullOrWhiteSpace(payload.Intention) ? null : payload.Intention.Trim(),
             };
             _active.Signature = Sign(_active);
+            AnchorMonotonic();
             _blockAttempts = 0;
             _failedUnlockAttempts = 0;
             _nextUnlockAllowed = DateTime.MinValue;
@@ -280,7 +357,7 @@ public sealed class SessionService
         lock (_lock)
         {
             if (_active == null) return;
-            if (!_active.IsActive)
+            if (!ComputeIsActive())
             {
                 _log.LogInformation("Session {Id} completed", _active.SessionId);
                 FinalizeSession(completed: true);
@@ -355,9 +432,16 @@ public sealed class SessionService
             if (state.IsActive)
             {
                 _active = state;
+                // Re-anchor the monotonic clock from the persisted wall-clock
+                // EndTime. Across a process restart the Stopwatch resets and we
+                // have no record of elapsed time, so the wall clock is the only
+                // available source for "how much is left" — but from this instant
+                // on, the monotonic timer governs expiry again (so dragging the
+                // clock forward after resume still can't end the session early).
+                AnchorMonotonic();
                 if (state.PomodoroConfig != null)
                     _pomodoro = new PomodoroState(state.PomodoroConfig, state.StartTime);
-                _log.LogInformation("Resumed session {Id}, {Rem:F0}s remaining", state.SessionId, state.Remaining.TotalSeconds);
+                _log.LogInformation("Resumed session {Id}, {Rem:F0}s remaining", state.SessionId, ComputeRemainingSeconds());
             }
             else
             {
