@@ -228,9 +228,11 @@ export interface FamilyStatus {
   /// Crosses 300 → audit event `family_offline_5min` is written.
   offlineSeconds: number;
   activeRules: FamilyRuleSummary[];
-  /// Opt-in: when daemon has been offline > 5min, apply per-app Windows
-  /// Firewall blocks on cached block_now process targets. Windows only;
-  /// macOS daemon stores but does not enforce the flag yet.
+  /// Opt-in: when the daemon has been offline > 5min, apply an OS-level
+  /// firewall block on top of the kill loop. Windows blocks per-EXE-path
+  /// (outbound, via netsh advfirewall); macOS blocks per-IP (a pfctl anchor
+  /// over the cached blocked domains' resolved IPs), since pf has no clean
+  /// per-process binding. Both platforms enforce when the flag is set.
   firewallLockdownEnabled: boolean;
   /// True when the daemon currently has firewall lockdown rules applied
   /// (i.e. lockdown is enabled AND triggered AND we successfully wrote rules).

@@ -1,25 +1,30 @@
 # Family Controls — Status Checkpoint
 
-**As of:** 2026-05-21
+**As of:** 2026-05-24 (updated). Original snapshot was 2026-05-21, pre-1.1.0.
 **Where to read first:** [`family-controls-design.md`](./family-controls-design.md) — the architecture and the 5 locked product decisions.
 
 This file exists so anyone (you, future-Claude, a contributor) can pick up the cross-device family-controls work without re-reading the whole project. Keep it updated as phases land.
+
+> **Update (2026-05-24):** Phases 2.3–2.5 (plus 2.6 reset-email, 2.7 data export, 2.9 rate limiting) all shipped in releases 1.1.0–1.1.3. The phase table and "known issues" below have been brought up to date. The detailed per-phase ship notes live in [`family-controls-design.md`](./family-controls-design.md#phased-build-plan). The bulk of the original "what's left to build" prose further down is kept only for historical context — treat the table here as the source of truth.
 
 ---
 
 ## What's done
 
-| Phase | Status | Where it lives | Commit |
-|-------|--------|----------------|--------|
-| Design doc + locked decisions             | ✅ | `docs/family-controls-design.md`        | `78cdac5`, `aa472bd` |
-| Phase 2.1 — server scaffold + auth slice  | ✅ | `family-server/` (auth.ts, crypto.ts)   | `fa61987` |
-| Phase 2.2 — server pairing/devices/rules/WS | ✅ | `family-server/` (pairing.ts, devices.ts, do.ts, router.ts) | `54fb6fa` |
-| Phase 2.2 — parent dashboard UI           | ✅ | `ui/src/pages/Family.tsx`, `ui/src/stores/family.ts`, `ui/src/lib/familyApi.ts` | `589129b` |
-| Phase 2.3 — child daemon WS client (Win)  | ⏭️ | `daemon-win/FocusLock.Daemon/` — does not exist yet | — |
-| Phase 2.3 — child daemon WS client (Mac)  | ⏭️ | `daemon-mac/Sources/FocusLockDaemon/` — does not exist yet | — |
-| Phase 2.3 — pairing-code entry UI in child | ⏭️ | `ui/src/pages/Family.tsx` currently parent-only — needs a child mode | — |
-| Phase 2.4 — anti-bypass hardening         | ⏭️ | monotonic clock, Safe-Mode reg, admin-uninstall, non-admin-account gate | — |
-| Phase 2.5 — polish + closed beta          | ⏭️ | onboarding flows, audit-log UI, tamper alerts | — |
+| Phase | Status | Where it lives | Shipped in |
+|-------|--------|----------------|-----------|
+| Design doc + locked decisions             | ✅ | `docs/family-controls-design.md`        | — |
+| Phase 2.1 — server scaffold + auth slice  | ✅ | `family-server/` (auth.ts, crypto.ts)   | 1.1.0 |
+| Phase 2.2 — server pairing/devices/rules/WS | ✅ | `family-server/` (pairing.ts, devices.ts, do.ts, router.ts) | 1.1.0 |
+| Phase 2.2 — parent dashboard UI           | ✅ | `ui/src/pages/Family.tsx`, `ui/src/stores/family.ts`, `ui/src/lib/familyApi.ts` | 1.1.0 |
+| Phase 2.3 — child daemon WS client (Win)  | ✅ | `daemon-win/FocusLock.Daemon/Services/CloudSyncService.cs` + `FamilyEnforcementService.cs` | 1.1.0 |
+| Phase 2.3 — child daemon WS client (Mac)  | ✅ | `daemon-mac/Sources/FocusLockDaemon/CloudSyncService.swift` + `FamilyEnforcementService.swift` | 1.1.0 |
+| Phase 2.3 — pairing-code entry UI in child | ✅ | "I have a pairing code" tab on the signed-out Family view | 1.1.0 |
+| Phase 2.4 — anti-bypass hardening         | ✅ | cron schedule eval, Safe-Mode reg, HMAC-signed caches, offline tracking, env probe | 1.1.0 |
+| Phase 2.5 — polish + closed beta          | ✅ | onboarding walkthrough, audit-log UI, tamper alerts, emergency unblock, admin-protected uninstall, firewall lockdown (Win) | 1.1.0 |
+| Phase 2.6 — real reset-password email     | ✅ | `family-server/src/email.ts` (Resend) | 1.1.2 |
+| Phase 2.7 — data export + account delete  | ✅ | `family-server/src/account.ts`, "Your data" card | 1.1.2 |
+| Phase 2.9 — login + reset rate limiting   | ✅ | `family-server/src/rateLimit.ts`, `migrations/0002_auth_rate_limits.sql` | 1.1.2 |
 
 Settings lock (formerly "Parent controls", single-device PIN — **different feature**) shipped earlier in 1.0.25 / 1.0.26 and is unrelated to family controls. Don't conflate them.
 
@@ -95,11 +100,17 @@ Read this file + `family-controls-design.md` + skim `family-server/README.md`. T
 
 ---
 
-## Known issues / TODOs (small, do whenever)
+## Known issues / TODOs
 
-- **Signup leaks account existence** via `409 Conflict`. Acceptable in beta; fix when adding email verification (then signup always returns 200 and email confirmation is the gate).
-- **Email reset link is `console.log` only.** Wire to Resend/SendGrid/Postmark when ready to onboard real beta users. Add a `RESEND_API_KEY` Worker secret.
-- **No rate limiting yet** on `/auth/login` or `/pair/redeem`. Cloudflare's built-in WAF covers brute-force at the IP level. Add per-account/per-code limits before public launch (D1 + KV counter pattern).
-- **WS push doesn't reach the parent UI** — only child gets pushed rules. Parent UI polls devices every 30s. Phase 2.4 polish: parent WS to `/parent/ws` so device-online state updates instantly.
-- **No tests yet.** Add Vitest + miniflare for the Worker once Phase 2.3 lands.
-- **Account data export ("GDPR" button)** flagged in design doc but not built. Bolt in during Phase 2.5.
+Still open:
+
+- **Signup leaks account existence** via `409 Conflict` (`auth.ts`). Acceptable in beta; fix when adding email verification (then signup always returns 200 and email confirmation is the gate).
+- **`/pair/redeem` rate limiting** — added 2026-05-24 (per-IP + per-code, reusing the `rateLimit.ts` sliding-window pattern). Login/reset got per-email limits in 1.1.2. ✅
+- **WS push doesn't reach the parent UI** — only the child gets pushed rules. Parent UI polls devices every 30s. Possible polish: a parent WS to `/parent/ws` so device-online state updates instantly.
+- **Tests** — first Vitest suite for the Worker's auth / rate-limit / pairing logic added 2026-05-24 and wired into CI. Still no daemon-side (`dotnet test` / `swift test`) coverage, and no shared cron vectors across the two daemons.
+
+Resolved (kept for history):
+
+- **Email reset link** — was `console.log` only; now sends via Resend (`email.ts`), shipped 1.1.2. Operator must set the `RESEND_API_KEY` Worker secret.
+- **Login / reset-request rate limiting** — shipped 1.1.2 (`rateLimit.ts`).
+- **Account data export + delete ("GDPR" button)** — shipped 1.1.2 (`account.ts`).

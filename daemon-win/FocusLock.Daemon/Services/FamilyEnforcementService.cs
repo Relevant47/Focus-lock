@@ -9,13 +9,13 @@ namespace FocusLock.Daemon.Services;
 /// union view that the enforcement loop can apply alongside any active focus
 /// session.
 ///
-/// Phase 2.3 semantics:
+/// Rule semantics:
 ///   • <c>block_now</c>  → blocked domains + processes added to the union.
 ///   • <c>unblock_all</c> → kill-switch that empties the union and suppresses
 ///                          family-side enforcement until the rule is removed.
-///   • <c>schedule</c>   → stored and surfaced in status, but cron evaluation
-///                          is deferred to Phase 2.4 (server still owns the
-///                          state; we just don't react yet).
+///   • <c>schedule</c>   → cron-evaluated every tick (see <see cref="CronEvaluator"/>);
+///                          a matching window contributes the rule's domains and
+///                          processes to the same union as <c>block_now</c>.
 ///
 /// Persistence: rules are cached to <c>family-rules.json</c> so a daemon
 /// restart re-applies the last-known state before the WebSocket reconnects.
