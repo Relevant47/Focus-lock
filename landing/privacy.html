@@ -28,19 +28,19 @@
   <nav><a href="/">← Back to FocusLock</a></nav>
 
   <h1>Privacy Policy</h1>
-  <p class="date">Last updated: May 2026</p>
+  <p class="date">Last updated: May 24, 2026</p>
 
   <div class="highlight">
-    <p><strong>Short version:</strong> FocusLock collects nothing. No account, no telemetry, no analytics, no payment data. Everything stays on your device. The only external request is to check for software updates.</p>
+    <p><strong>Short version:</strong> The core FocusLock app collects nothing — no account, no telemetry, no analytics, no payment data. Everything stays on your device. The one exception is the optional <strong>Family Controls</strong> feature: if you use it, you create an account and a small amount of data about each paired device is stored on our family-controls server so a parent can manage a child's device. If you never use Family Controls, none of that applies.</p>
   </div>
 
-  <h2>1. What data we collect</h2>
-  <p>FocusLock collects <strong>no personal data whatsoever</strong>. All application data — your focus profiles, session history, block lists, analytics, and settings — is stored locally on your device in:</p>
+  <h2>1. What the core app collects</h2>
+  <p>Used on its own, FocusLock collects <strong>no personal data whatsoever</strong>. All application data — your focus profiles, session history, block lists, analytics, and settings — is stored locally on your device in:</p>
   <ul>
     <li>Windows: <code>%ProgramData%\FocusLock\</code></li>
     <li>macOS: <code>/Library/Application Support/FocusLock/</code></li>
   </ul>
-  <p>This data never leaves your device.</p>
+  <p>This data never leaves your device. There is no account, no sign-in, and nothing is uploaded.</p>
 
   <h2>2. Software updates</h2>
   <p>FocusLock periodically checks for updates by contacting our update server and the GitHub API. This request includes:</p>
@@ -53,19 +53,31 @@
   <h2>3. No telemetry</h2>
   <p>FocusLock has <strong>no crash reporting, telemetry, analytics, or tracking</strong> of any kind. We receive no data about how you use the application, which sites you block, or how long your sessions are. The full source code is public on <a href="https://github.com/Relevant47/focus-lock" target="_blank">GitHub</a> — you can verify this yourself.</p>
 
-  <h2>4. No account required</h2>
-  <p>FocusLock does not require an account, email address, or any personal information to download or use. There is no registration process.</p>
+  <h2>4. Family Controls (optional)</h2>
+  <p>Family Controls is an opt-in feature that lets a parent on one device block apps and websites on a child's device. To make this work, the two devices coordinate through a hosted server (the "family server"). <strong>This is the only part of FocusLock that stores any data off your device, and it is only used if you choose to use Family Controls.</strong> If you never sign up for or pair a device with Family Controls, nothing here applies and no account or server is involved.</p>
+  <p>When you use Family Controls, the family server stores:</p>
+  <ul>
+    <li><strong>Account information</strong> — the parent's email address and a securely hashed password (the password itself is never stored in plain text).</li>
+    <li><strong>Paired-device information</strong> — for each child device you pair: its hostname/computer name, operating system and version, the dates it was paired and last seen, and the IP address it most recently connected from.</li>
+    <li><strong>Block rules</strong> — the apps, website domains, and schedules a parent has chosen to enforce on a device.</li>
+    <li><strong>An activity log</strong> — a record of family-controls events (such as a device being paired or unpaired, a block being applied, sign-in attempts, and tamper or offline alerts), including the IP address and time of each event.</li>
+  </ul>
+  <p>What the family server does <strong>not</strong> store: your browsing history, the contents of your screen, keystrokes, or which specific sites a child actually visited. FocusLock records <em>what was blocked</em>, never <em>what was viewed</em> — it is a blocking tool, not surveillance.</p>
+  <p>This data is stored on Cloudflare infrastructure (the family server runs on Cloudflare Workers and D1). You can <strong>export everything tied to your account as JSON</strong> or <strong>permanently delete your account</strong> (which cascades to all paired devices, rules, and activity history) from the Family tab in the app at any time. The family server is itself open-source and part of the public repository, so you can audit exactly what it stores — or run your own server instead of ours.</p>
 
-  <h2>5. No payments</h2>
-  <p>FocusLock is completely free. We do not process payments and we do not collect any financial information.</p>
+  <h2>5. No account required for the core app</h2>
+  <p>Downloading and using FocusLock as a personal distraction blocker does not require an account, email address, or any personal information. There is no registration process. An account is only created if you choose to use Family Controls (see section 4).</p>
 
-  <h2>6. Children's privacy</h2>
-  <p>FocusLock does not knowingly collect any information from anyone, including children.</p>
+  <h2>6. No payments</h2>
+  <p>FocusLock is completely free. We do not process payments and we do not collect any financial information. (The hosted Family Controls server may become a paid option in the future; if that happens, this policy will be updated to describe any payment processing.)</p>
 
-  <h2>7. Changes to this policy</h2>
+  <h2>7. Children's privacy</h2>
+  <p>The core FocusLock app does not collect information from anyone, including children. Family Controls is designed for a parent or guardian to manage a child's device, and the limited device information described in section 4 (hostname, OS, last-seen time, IP address, and which apps/sites are blocked) is collected only when a parent sets up and uses that feature. We do not collect browsing history, message contents, or other personal details about a child. A parent or guardian who sets up Family Controls is responsible for any consent required for managing their child's device.</p>
+
+  <h2>8. Changes to this policy</h2>
   <p>If we make material changes to this policy, we will update the "Last updated" date above. Changes will also be reflected in the GitHub repository.</p>
 
-  <h2>8. Contact</h2>
+  <h2>9. Contact</h2>
   <p>Privacy questions: <a href="mailto:me@oscarpetrikas.com">me@oscarpetrikas.com</a> or open an issue on <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank">GitHub</a>.</p>
 
   <footer>© 2026 FocusLock · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></footer>
