@@ -10,6 +10,7 @@ import {
   badRequest,
   clientIp,
   conflict,
+  humanMinutes,
   isValidEmail,
   json,
   requireAuth,
@@ -137,11 +138,6 @@ export async function resetRequest(req: Request, env: Env): Promise<Response> {
   }
   // Same response regardless of whether the email exists, to prevent enumeration.
   return json({ message: 'If that email is registered, a reset link has been sent.' });
-}
-
-function humanMinutes(seconds: number): string {
-  const m = Math.max(1, Math.ceil(seconds / 60));
-  return m === 1 ? '1 minute' : `${m} minutes`;
 }
 
 export async function resetConfirm(req: Request, env: Env): Promise<Response> {

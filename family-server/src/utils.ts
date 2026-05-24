@@ -69,6 +69,13 @@ export async function requireDeviceAuth(req: Request, env: Env): Promise<DeviceA
   return { deviceId: did, accountId: sub };
 }
 
+/// Renders a retry-after duration as a friendly "N minute(s)" string for the
+/// user-facing 429 messages. Always at least 1 minute.
+export function humanMinutes(seconds: number): string {
+  const m = Math.max(1, Math.ceil(seconds / 60));
+  return m === 1 ? '1 minute' : `${m} minutes`;
+}
+
 export async function sha256Hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
   return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');

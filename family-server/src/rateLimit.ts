@@ -44,6 +44,21 @@ export const RESET_POLICY: RateLimitPolicy = {
   blockSeconds: 60 * 60,    // 1 hour
 };
 
+// Pairing-code redeem is unauthenticated and brute-forceable: 6-digit codes
+// (a 1M space) with a 10-min TTL. Two keys guard it (see pairing.ts):
+//   • per-IP  — stops one host spraying many codes at once.
+//   • per-code — stops a distributed attempt at guessing one specific code,
+//                 independent of source IP. A code only lives 10 min, so a
+//                 small cap here makes online guessing of a given code
+//                 effectively impossible.
+// Tuned looser than login so a parent fat-fingering a real code a couple of
+// times isn't locked out, but still far below the ~1M tries a brute needs.
+export const PAIR_POLICY: RateLimitPolicy = {
+  maxAttempts: 10,
+  windowSeconds: 10 * 60,   // 10 minutes (matches the pairing-code TTL)
+  blockSeconds: 30 * 60,    // 30 minutes
+};
+
 export interface RateLimitState {
   blocked: boolean;
   /// Seconds the caller should wait before the key unblocks. 0 when not blocked.
@@ -125,3 +140,5 @@ export async function recordSuccess(env: Env, key: string): Promise<void> {
 
 export function loginKey(email: string): string { return `login:${email.toLowerCase()}`; }
 export function resetKey(email: string): string { return `reset:${email.toLowerCase()}`; }
+export function pairIpKey(ip: string): string { return `pair-ip:${ip}`; }
+export function pairCodeKey(code: string): string { return `pair-code:${code}`; }
