@@ -186,6 +186,19 @@ public sealed class SessionService
             if (_active?.IsActive == true)
                 return ("Session already active", false);
 
+            // A session that has run past its EndTime but hasn't been finalized
+            // yet (e.g. the Worker tick hasn't fired) leaves _active non-null
+            // while IsActive is false. Finalize it now so it's logged as
+            // completed and the on-disk state is cleared, rather than silently
+            // overwriting it below. This keeps a single source of truth: if a
+            // session is genuinely active StartSession is rejected above; if it
+            // has expired it's properly retired here before the new one starts.
+            if (_active != null && !_active.IsActive)
+            {
+                _log.LogInformation("Retiring expired session {Id} before starting a new one", _active.SessionId);
+                FinalizeSession(completed: true);
+            }
+
             _active = new SessionState
             {
                 ProfileId = payload.ProfileId,
