@@ -227,7 +227,57 @@
 
   <div class="timeline" id="timeline">
 
-    <!-- ───── 2026-05-22 (latest) ───── -->
+    <!-- ───── 2026-05-23 (latest) ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 23, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.3</span>
+      </div>
+      <div class="entry-body">
+        <h2>Critical daemon-safety fixes · macOS app blocking · full Light mode</h2>
+        <ul>
+          <li><strong>Critical safety fix — the daemon will no longer kill system-critical processes.</strong> Before this release, typing something like <span style="font-family:monospace;color:var(--accent)">explorer.exe</span> into the blocked-processes list could make the daemon kill the Windows shell itself during a session. The kill loop now checks a hard-coded protected-name denylist first, and only acts on interactive user sessions (Windows session 0 and macOS system users are skipped). The macOS daemon gained the equivalent denylist (<span style="font-family:monospace;color:var(--accent)">launchd</span>, <span style="font-family:monospace;color:var(--accent)">WindowServer</span>, <span style="font-family:monospace;color:var(--accent)">Finder</span>, <span style="font-family:monospace;color:var(--accent)">Dock</span>, and more). <strong>Affects everyone on 1.1.2 and earlier — update.</strong></li>
+          <li><strong>macOS app blocking actually works now.</strong> The macOS daemon resolves running apps via <span style="font-family:monospace;color:var(--accent)">NSWorkspace</span> and matches by bundle ID, so blocking <span style="font-family:monospace;color:var(--accent)">.app</span> packages (Steam, Discord, etc.) finally does something — previously it could only see process names and paths.</li>
+          <li><strong>Full Light mode.</strong> Every surface, component, colour, border, and icon has been rebuilt around a proper token system. The old half-broken light mode (dark sidebar, white cards) is gone. Settings → Appearance now has Dark / Light / System, with System following the OS preference live.</li>
+          <li><strong>App-blocking picker.</strong> A new "Suggested apps" section on Block Lists and Profiles with 14 curated common distractions (Steam, Discord, Spotify, Slack, Roblox, OBS, and more) — one click adds the right token per platform (process name on Windows, bundle ID on macOS). The custom textarea stays for anything not on the list.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-23 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 23, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.2</span>
+      </div>
+      <div class="entry-body">
+        <h2>Family Controls — password reset email, data export, rate limiting</h2>
+        <ul>
+          <li><strong>Real forgot-password email.</strong> Reset requests now send an actual reset link by email instead of only logging it server-side. The response is the same whether or not the email is registered, so it can't be used to discover which emails have accounts. A "Forgot password?" button on the login form opens the flow.</li>
+          <li><strong>Data portability.</strong> A new "Your data" card on the parent dashboard: <em>Export as JSON</em> downloads a full dump of your account, devices, rules, and activity history (secrets and IP addresses stripped); <em>Delete account</em> requires re-entering your password plus typing a confirmation phrase, then permanently removes everything and cascades to every paired device.</li>
+          <li><strong>Login &amp; reset rate limiting.</strong> Five failed logins in 15 minutes triggers a 30-minute cooldown; three reset requests in an hour triggers a 60-minute cooldown. Attempts on non-existent emails are counted the same way so the limit can't be used to enumerate accounts, and a successful login clears the counter.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-22 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 22, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.1</span>
+      </div>
+      <div class="entry-body">
+        <h2>Family tab actually ships this time</h2>
+        <ul>
+          <li>v1.1.0's release build forgot to pass the family-server URL into the packaged app, so the Family tab was hidden in the shipped artifacts even though the backend was live. The release workflow now bakes the URL in correctly. Forks that don't set it still get the Family tab hidden, exactly like the 1.0.x line — so this isn't a behaviour change for self-hosters.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-22 ───── -->
     <article class="entry" data-type="app">
       <div class="entry-meta">
         <div class="entry-date">May 22, 2026</div>
