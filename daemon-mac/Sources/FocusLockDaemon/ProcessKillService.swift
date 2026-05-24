@@ -28,7 +28,10 @@ final class ProcessKillService {
     }
 
     func poll() {
-        let sessionProcs = (session.active?.isActive == true)
+        // Use the service-level isActive (monotonic-clock governed) rather than
+        // the raw wall-clock SessionState.isActive, so a clock change can't make
+        // the kill loop stop enforcing early.
+        let sessionProcs = session.isActive
             ? (session.active?.blockedProcesses ?? [])
             : []
         let (_, familyProcs) = family.union()

@@ -60,6 +60,27 @@ final class SessionService {
     private var _blockAttempts = 0
     private var _pomodoro: PomodoroState?
 
+    // ── Monotonic clock anchoring (anti clock-tamper) ───────────────────────────
+    // Mirror of the Windows daemon's SessionService monotonic logic. The wall-
+    // clock endTime is still persisted so a session survives a daemon restart /
+    // reboot (we can't reconstruct elapsed time across a process death), but while
+    // the daemon runs, expiry is governed by a monotonic clock so moving the
+    // system clock — forward to end a Hardcore session early, or back to extend it
+    // — cannot change when the session actually ends.
+    //
+    // On startSession / resume we anchor: record the monotonic timestamp and the
+    // remaining seconds at that instant. Authoritative remaining is then
+    // (remainingAtAnchor − monotonicElapsedSinceAnchor). We also compare the wall
+    // clock's movement against the monotonic movement; a large divergence is
+    // logged once as suspected tampering, but the monotonic value is enforced.
+    private var _anchorMonotonicSeconds: Double = 0     // monotonicNow() at anchor
+    private var _remainingAtAnchorSeconds: Double = 0   // wall-clock remaining at anchor
+    private var _anchorWallClock = Date()               // Date() at anchor (tamper detection only)
+    private var _clockTamperLogged = false              // one-shot log guard per session
+    // Slack between wall-clock and monotonic drift before we treat it as tampering
+    // rather than ordinary scheduler jitter / NTP nudges.
+    private static let clockTamperToleranceSeconds = 30.0
+
     // Friend-lock rate limiting
     private var _failedUnlockAttempts = 0
     private var _nextUnlockAllowed = Date.distantPast
@@ -71,6 +92,13 @@ final class SessionService {
         _signingKey = Self.loadOrCreateKey()
         verifyBinaryHash()
         _active = Self.loadPersistedSession(key: _signingKey)
+        if _active != nil {
+            // Re-anchor the monotonic clock from the persisted wall-clock endTime.
+            // Across a process restart there's no record of elapsed time, so the
+            // wall clock is the only available source for "how much is left" — but
+            // from this instant on, the monotonic timer governs expiry again.
+            anchorMonotonic()
+        }
         if let a = _active, a.pomodoroConfig != nil {
             _pomodoro = PomodoroState(config: a.pomodoroConfig!, sessionStart: a.startTime)
         }
@@ -91,8 +119,55 @@ final class SessionService {
     }
 
     var active: SessionState? { lock.withLock { _active } }
-    var isActive: Bool { lock.withLock { _active?.isActive ?? false } }
+    var isActive: Bool { lock.withLock { computeIsActive() } }
     var blockAttempts: Int { lock.withLock { _blockAttempts } }
+
+    // ── Monotonic-clock helpers ─────────────────────────────────────────────────
+
+    /// Seconds from a monotonic source that cannot be moved by changing the wall
+    /// clock. Uses clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) to match the proven,
+    /// CI-validated pattern in CloudSyncService — mach_continuous_time isn't
+    /// bridged into Swift in this SDK setup (see CloudSyncService.swift).
+    private static func monotonicNow() -> Double {
+        return Double(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)) / 1_000_000_000.0
+    }
+
+    /// Records the monotonic anchor for the current `_active` session. Caller must
+    /// hold `lock`.
+    private func anchorMonotonic() {
+        guard let active = _active else { return }
+        _anchorMonotonicSeconds = Self.monotonicNow()
+        _anchorWallClock = Date()
+        _remainingAtAnchorSeconds = max(0, active.endTime.timeIntervalSinceNow)
+        _clockTamperLogged = false
+    }
+
+    /// Authoritative seconds remaining, governed by the monotonic clock (not the
+    /// wall clock). Returns 0 once the full duration has elapsed. Caller must hold
+    /// `lock`.
+    private func computeRemainingSeconds() -> Double {
+        guard _active != nil else { return 0 }
+
+        var monotonicElapsed = Self.monotonicNow() - _anchorMonotonicSeconds
+        if monotonicElapsed < 0 { monotonicElapsed = 0 }   // never goes back; defensive
+        let monotonicRemaining = _remainingAtAnchorSeconds - monotonicElapsed
+
+        // Tamper detection: wall-clock vs monotonic movement since the anchor.
+        let wallElapsed = Date().timeIntervalSince(_anchorWallClock)
+        let divergence = abs(wallElapsed - monotonicElapsed)
+        if divergence > Self.clockTamperToleranceSeconds && !_clockTamperLogged {
+            _clockTamperLogged = true
+            fputs("[security] System clock moved ~\(Int(divergence))s relative to the monotonic clock "
+                + "during session \(_active?.sessionId ?? "?") — enforcing the monotonic timer "
+                + "(clock changes cannot end a session early).\n", stderr)
+        }
+
+        return max(0, monotonicRemaining)
+    }
+
+    private func computeIsActive() -> Bool {
+        _active != nil && computeRemainingSeconds() > 0
+    }
 
     /// True when in a non-strict Pomodoro break — blocks should be temporarily lifted.
     var shouldLiftBlocksDuringBreak: Bool {
@@ -109,10 +184,11 @@ final class SessionService {
         lock.withLock {
             let rateRemaining = _nextUnlockAllowed > Date() ? _nextUnlockAllowed.timeIntervalSinceNow : nil
             let logs = getLogs(limit: 90)
+            let sessionIsActive = computeIsActive()
             return DaemonStatus(
-                sessionActive: _active?.isActive ?? false,
+                sessionActive: sessionIsActive,
                 session: _active,
-                secondsRemaining: _active?.isActive == true ? _active?.remaining : nil,
+                secondsRemaining: sessionIsActive ? computeRemainingSeconds() : nil,
                 pomodoroPhase: _pomodoro?.phase,
                 pomodoroSecondsRemaining: _pomodoro?.secondsRemaining,
                 blockAttempts: _blockAttempts,
@@ -163,7 +239,7 @@ final class SessionService {
 
     func startSession(_ payload: StartSessionPayload) -> (String, Bool) {
         lock.withLock {
-            guard !(_active?.isActive ?? false) else { return ("Session already active", false) }
+            guard !computeIsActive() else { return ("Session already active", false) }
 
             let trimmedIntention = payload.intention?.trimmingCharacters(in: .whitespacesAndNewlines)
             var state = SessionState(
@@ -181,6 +257,7 @@ final class SessionService {
             )
             state.signature = sign(state, key: _signingKey)
             _active = state
+            anchorMonotonic()
             _blockAttempts = 0
             _failedUnlockAttempts = 0
             _nextUnlockAllowed = .distantPast
@@ -223,8 +300,8 @@ final class SessionService {
 
     func tick() {
         lock.withLock {
-            guard let active = _active else { return }
-            if !active.isActive {
+            guard _active != nil else { return }
+            if !computeIsActive() {
                 finalizeSession(completed: true)
             }
             _pomodoro?.tick(now: Date())

@@ -26,6 +26,11 @@ struct SessionState: Codable {
     var intention: String?
     var signature: String = ""
 
+    // NOTE: these are *wall-clock* views, used only as the anchor when a session
+    // is loaded from disk after a daemon restart. The authoritative live expiry
+    // check is SessionService.computeIsActive()/computeRemainingSeconds(), which
+    // counts down on a monotonic clock so moving the system clock can't end a
+    // session early (or extend it). Don't use these for live enforcement.
     var isActive: Bool { Date() < endTime }
     var remaining: TimeInterval { endTime.timeIntervalSinceNow }
 }
