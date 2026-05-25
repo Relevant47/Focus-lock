@@ -186,7 +186,7 @@ final class InterceptHttpService {
         let secs = Int(remaining) % 60
         let timeStr = String(format: "%02d:%02d", mins, secs)
         let attempts = status.blockAttempts
-        let attemptsLabel = attempts == 1 ? "1 block intercepted" : "\(attempts) blocks intercepted"
+        let attemptsLabel = attempts == 1 ? "block intercepted" : "blocks intercepted"
         let streak = status.currentStreak
 
         // Session name from profile lookup.
