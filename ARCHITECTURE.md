@@ -202,7 +202,7 @@ token = base64url("<expiryUnixSeconds>.<HMAC-SHA256(tokenKey, expiryUnixSeconds)
 
 ### Rate limiting
 
-Failed PIN attempts follow the same ladder as friend-lock: 0s → 10s → 30s → 60s → 5min. Reset on successful verify.
+Failed PIN attempts follow the same ladder as friend-lock: 10s → 30s → 60s → 5min. Reset on successful verify.
 
 ### Audit log
 

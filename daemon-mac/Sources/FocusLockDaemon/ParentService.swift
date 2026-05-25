@@ -363,10 +363,9 @@ final class ParentService {
 
     private static func backoffSeconds(_ attempts: Int) -> Int {
         switch attempts {
-        case 1: return 0
-        case 2: return 10
-        case 3: return 30
-        case 4: return 60
+        case 1: return 10
+        case 2: return 30
+        case 3: return 60
         default: return 300
         }
     }
