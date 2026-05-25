@@ -390,10 +390,9 @@ public sealed class ParentService
 
     private static int BackoffSeconds(int attempts) => attempts switch
     {
-        1 => 0,
-        2 => 10,
-        3 => 30,
-        4 => 60,
+        1 => 10,
+        2 => 30,
+        3 => 60,
         _ => 300,
     };
 
