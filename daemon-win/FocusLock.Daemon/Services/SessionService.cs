@@ -362,6 +362,8 @@ public sealed class SessionService
             else
             {
                 _log.LogInformation("Persisted session {Id} has expired — cleaning up", state.SessionId);
+                _active = state;
+                _blockAttempts = 0;
                 FinalizeSession(completed: true);
             }
         }
