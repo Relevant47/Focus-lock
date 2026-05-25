@@ -47,8 +47,7 @@ final class HostsService {
         } else {
             let clean = p.trimmingCharacters(in: CharacterSet(charactersIn: "*."))
             result.insert(clean)
-            result.insert("www.\(clean)")
-            result.insert("m.\(clean)")
+            Self.commonSubdomains.forEach { result.insert("\($0).\(clean)") }
         }
     }
 
