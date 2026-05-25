@@ -46,7 +46,7 @@ public sealed class InterceptHttpService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         var listener = new HttpListener();
-        listener.Prefixes.Add("http://+:80/");
+        listener.Prefixes.Add("http://127.0.0.1:80/");
         try
         {
             listener.Start();
