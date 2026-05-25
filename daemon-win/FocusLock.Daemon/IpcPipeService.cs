@@ -196,6 +196,8 @@ public sealed class IpcPipeService : BackgroundService
     private DaemonStatus BuildStatus()
     {
         var status = _session.GetStatus();
+        status.Version = System.Reflection.Assembly.GetExecutingAssembly()
+            .GetName().Version?.ToString(3) ?? status.Version;
         status.ParentControls = new ParentControlsState
         {
             Enabled = _parent.IsEnabled,

@@ -139,8 +139,10 @@ struct ParentControlsState: Codable {
     var graceMinutes: Int
 }
 
+let daemonVersion = "1.1.3"
+
 struct DaemonStatus: Codable {
-    var version: String = "1.0.0"
+    var version: String = daemonVersion
     var sessionActive: Bool
     var session: SessionState?
     var secondsRemaining: Double?
