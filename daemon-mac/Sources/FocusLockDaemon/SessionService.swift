@@ -70,9 +70,18 @@ final class SessionService {
     init() {
         _signingKey = Self.loadOrCreateKey()
         verifyBinaryHash()
-        _active = Self.loadPersistedSession(key: _signingKey)
-        if let a = _active, a.pomodoroConfig != nil {
-            _pomodoro = PomodoroState(config: a.pomodoroConfig!, sessionStart: a.startTime)
+        if let state = Self.loadPersistedSession(key: _signingKey) {
+            if state.isActive {
+                _active = state
+                if let cfg = state.pomodoroConfig {
+                    _pomodoro = PomodoroState(config: cfg, sessionStart: state.startTime)
+                }
+            } else {
+                // Session expired while the daemon was offline — log it as completed
+                // and delete the stale state file instead of silently discarding it.
+                _active = state
+                finalizeSession(completed: true)
+            }
         }
     }
 
@@ -330,9 +339,9 @@ final class SessionService {
         guard let data = try? Data(contentsOf: statePath) else { return nil }
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
-        guard let state = try? dec.decode(SessionState.self, from: data) else { return nil }
-        guard state.isActive else { return nil }
-        return state
+        // Return the decoded session regardless of expiry; the caller decides
+        // whether to resume it (still active) or finalize it (expired).
+        return try? dec.decode(SessionState.self, from: data)
     }
 
     private func hashToken(_ token: String) -> String {
