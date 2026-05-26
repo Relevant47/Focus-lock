@@ -11,6 +11,9 @@ import CommandPalette from './components/CommandPalette';
 import AchievementToast from './components/AchievementToast';
 import Aurora from './components/Aurora';
 import ParentUnlockModal from './components/ParentUnlockModal';
+import SurveyNudge from './components/SurveyNudge';
+import SurveyModal from './components/SurveyModal';
+import { useSurvey } from './stores/survey';
 import Dashboard from './pages/Dashboard';
 import BlockLists from './pages/BlockLists';
 import Profiles from './pages/Profiles';
@@ -45,11 +48,26 @@ export default function App() {
   const { showOnboarding, complete } = useOnboarding();
   const [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]);
   const prevSessionActive = useRef(false);
+  const surveyInit = useSurvey((s) => s.init);
+  const surveyEvaluate = useSurvey((s) => s.evaluate);
+  const surveyModalOpen = useSurvey((s) => s.modalOpen);
 
   useEffect(() => {
     init();
+    surveyInit();
     applyTheme(getTheme());
-  }, [init]);
+  }, [init, surveyInit]);
+
+  // Re-evaluate the survey nudge whenever daemon state changes. The trigger
+  // itself enforces "never during an active block" + the 5-session / 7-day rule.
+  useEffect(() => {
+    surveyEvaluate({
+      completedSessions: logs.filter((l) => l.completed).length,
+      sessionActive: !!status?.sessionActive,
+      pomodoroPhase: status?.pomodoroPhase ?? null,
+      appVersion: status?.version ?? null,
+    });
+  }, [status, logs, surveyEvaluate]);
 
   // Body data-session attribute drives the accent shift across the app.
   useEffect(() => {
@@ -95,6 +113,8 @@ export default function App() {
         <CommandPalette />
         <AchievementToast queue={achievementQueue} onDismiss={dismissAchievement} />
         <ParentUnlockModal />
+        <SurveyNudge />
+        {surveyModalOpen && <SurveyModal />}
       </div>
     </BrowserRouter>
   );
