@@ -188,7 +188,7 @@ final class SessionService {
                 motivationalMessage: payload.motivationalMessage,
                 intention: (trimmedIntention?.isEmpty == false) ? trimmedIntention : nil
             )
-            state.signature = sign(state, key: _signingKey)
+            state.signature = Self.sign(state, key: _signingKey)
             _active = state
             _blockAttempts = 0
             _failedUnlockAttempts = 0
@@ -319,7 +319,7 @@ final class SessionService {
         return key
     }
 
-    private func sign(_ s: SessionState, key: SymmetricKey) -> String {
+    private static func sign(_ s: SessionState, key: SymmetricKey) -> String {
         let parts: [String] = [
             s.sessionId,
             s.startTime.iso8601,
@@ -339,9 +339,27 @@ final class SessionService {
         guard let data = try? Data(contentsOf: statePath) else { return nil }
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
+        guard let state = try? dec.decode(SessionState.self, from: data) else { return nil }
+
+        // Verify the HMAC signature. A mismatch means session.json was tampered with
+        // on disk — discard the state instead of loading it. Enforcing an attacker's
+        // edited block list (or a flipped hardcoreMode) would defeat the HMAC entirely.
+        let expected = Array(sign(state, key: key).utf8)
+        let actual = Array(state.signature.utf8)
+        guard expected.count == actual.count else {
+            fputs("[security] Session state signature mismatch — tampered session.json discarded, not loaded\n", stderr)
+            return nil
+        }
+        var diff: UInt8 = 0
+        for i in 0..<expected.count { diff |= expected[i] ^ actual[i] }
+        guard diff == 0 else {
+            fputs("[security] Session state signature mismatch — tampered session.json discarded, not loaded\n", stderr)
+            return nil
+        }
+
         // Return the decoded session regardless of expiry; the caller decides
         // whether to resume it (still active) or finalize it (expired).
-        return try? dec.decode(SessionState.self, from: data)
+        return state
     }
 
     private func hashToken(_ token: String) -> String {
