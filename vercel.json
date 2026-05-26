@@ -1,5 +1,8 @@
 {
   "outputDirectory": "landing",
+  "crons": [
+    { "path": "/api/survey/newsletter-retry", "schedule": "0 3 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
