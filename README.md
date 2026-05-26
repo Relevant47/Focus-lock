@@ -221,17 +221,19 @@ npx wrangler deploy
 
 ## Deploying the landing page
 
-The `landing/` directory is a fully self-contained static site. Deploy it anywhere:
+The site is deployed on **Vercel**, configured by `vercel.json` at the repo root:
+it serves `landing/` as the static output and applies the security headers (HSTS,
+X-Frame-Options, etc.). The `api/` directory holds the Vercel serverless functions
+(`download`, `get-reviews`, `submit-review`, `subscribe`) that back the site — these
+require Vercel, so deploy the whole repo, not just `landing/`.
 
-**Netlify:** drag and drop the `landing/` folder at app.netlify.com
-
-**Vercel:**
 ```bash
 npm i -g vercel
-vercel landing/
+vercel            # from the repo root; vercel.json handles the rest
 ```
 
-**GitHub Pages:** push `landing/` contents to a `gh-pages` branch.
+The static `landing/` HTML/CSS/JS can be hosted on any static host, but the review and
+subscribe features won't work without the `api/` functions running on Vercel.
 
 ---
 
