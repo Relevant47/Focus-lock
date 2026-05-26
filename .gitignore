@@ -5,9 +5,12 @@ update-server/node_modules/
 family-server/node_modules/
 family-server/.wrangler/
 family-server/.dev.vars
+dashboard/node_modules/
 
 # Build outputs
 ui/dist/
+dashboard/dist/
+landing/admin/
 ui/src-tauri/target/
 daemon-win/FocusLock.Daemon/bin/
 daemon-win/FocusLock.Daemon/obj/

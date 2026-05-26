@@ -1,7 +1,11 @@
 {
   "outputDirectory": "landing",
+  "buildCommand": "cd dashboard && npm install && npm run build",
   "crons": [
     { "path": "/api/survey/newsletter-retry", "schedule": "0 3 * * *" }
+  ],
+  "rewrites": [
+    { "source": "/admin/:path*", "destination": "/admin/index.html" }
   ],
   "headers": [
     {
