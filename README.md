@@ -286,11 +286,12 @@ Admin dashboard (dashboard/) ────► stats / export (admin JWT) ─► s
 - **Newsletter:** the final step embeds Beehiiv's **inline subscribe form** via an iframe to
   [`landing/newsletter-embed.html`](landing/newsletter-embed.html) (which carries the dashboard
   embed `<script>`). Beehiiv collects the email directly, so **we store no newsletter PII and
-  need no Beehiiv API key**. `vercel.json` exempts that one page from the site-wide
+  need no Beehiiv API key**. The iframe URL carries `utm_source=in-app-survey` so signups are
+  tagged for segmentation. `vercel.json` exempts that one page from the site-wide
   `X-Frame-Options: DENY` and sets `frame-ancestors` so the desktop webview can frame it. To
   update the form, edit it in Beehiiv and paste the new embed code between the `BEEHIIV` markers.
-  The server-side `api/survey/newsletter.ts` route, the `newsletter-retry` cron, and the
-  `newsletter_optins` table are a **legacy API path**, unused by this flow (see env-var note).
+  Newsletter signup numbers live in the **Beehiiv dashboard** (not ours); the admin dashboard's
+  "Newsletter" card links there.
 - **Privacy:** disclosed in [`landing/privacy.html`](landing/privacy.html). The survey is
   opt-in, anonymous, and self-deletable (Settings → Feedback → "Delete my response").
 
@@ -301,10 +302,9 @@ Admin dashboard (dashboard/) ────► stats / export (admin JWT) ─► s
 | `SUPABASE_URL` | existing | no | Supabase REST/auth base URL |
 | `SUPABASE_SECRET_KEY` | existing | **yes** | Service-role key — server-side reads/writes (bypasses RLS) |
 | `SUPABASE_ANON_KEY` | **add** | no | Publishable/anon key — dashboard magic-link auth + JWT verification |
-| `BEEHIIV_API_KEY` | legacy | **yes** | Only for the server-side `api/survey/newsletter.ts` / `api/subscribe.js` paths. The in-app survey now uses the Beehiiv **embed** (needs no key), so this is optional. |
-| `BEEHIIV_PUBLICATION_ID` | legacy | no | As above — only used by the API subscribe paths, not the embed. |
+| `BEEHIIV_API_KEY` | optional | **yes** | Only for the landing-page `api/subscribe.js` form. The in-app survey uses the Beehiiv **embed** and needs no key. |
+| `BEEHIIV_PUBLICATION_ID` | optional | no | As above — only used by `api/subscribe.js`, not the embed. |
 | `ADMIN_EMAILS` | **add** | no | Comma-separated allowlist for dashboard access (e.g. `you@example.com`) |
-| `CRON_SECRET` | **add** | **yes** | Bearer token Vercel sends to the `newsletter-retry` cron |
 | `RATELIMIT_SALT` | optional | yes | Salt for hashing submitter IPs (defaults to a constant if unset) |
 
 > The Vercel CLI/MCP can't write env vars here — add them in **Project → Settings →

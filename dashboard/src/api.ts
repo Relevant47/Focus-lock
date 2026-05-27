@@ -4,9 +4,8 @@
 export interface Stats {
   generatedAt: string;
   snapshot: Record<string, any> | null;
-  live: { responses: number; completed: number; promptsShown: number; optins: number; subscribed: number };
+  live: { responses: number; completed: number; promptsShown: number };
   responseRate: number | null;
-  newsletterConversion: number | null;
   trend: { date: string; total: number; avgNps: number | null }[];
 }
 
