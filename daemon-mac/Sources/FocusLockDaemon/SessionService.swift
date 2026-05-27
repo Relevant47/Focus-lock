@@ -216,7 +216,7 @@ final class SessionService {
                     return ("Too many failed attempts — wait \(wait)s", false)
                 }
                 let providedHash = hashToken(provided)
-                guard providedHash == tokenHash else {
+                guard Self.constantTimeEquals(providedHash, tokenHash) else {
                     _failedUnlockAttempts += 1
                     let backoff = backoffSeconds(_failedUnlockAttempts)
                     _nextUnlockAllowed = Date().addingTimeInterval(Double(backoff))
@@ -365,6 +365,18 @@ final class SessionService {
     private func hashToken(_ token: String) -> String {
         let digest = SHA256.hash(data: Data(token.trimmingCharacters(in: .whitespaces).utf8))
         return Data(digest).hexString
+    }
+
+    // Constant-time comparison of two secret-bearing strings (e.g. token hashes),
+    // mirroring the Windows daemon's CryptographicOperations.FixedTimeEquals. Avoids
+    // the early-return timing oracle of Swift's `==`.
+    private static func constantTimeEquals(_ a: String, _ b: String) -> Bool {
+        let lhs = Array(a.utf8)
+        let rhs = Array(b.utf8)
+        guard lhs.count == rhs.count else { return false }
+        var diff: UInt8 = 0
+        for i in 0..<lhs.count { diff |= lhs[i] ^ rhs[i] }
+        return diff == 0
     }
 
     private func backoffSeconds(_ attempts: Int) -> Int {
