@@ -13,6 +13,9 @@ export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [openText, setOpenText] = useState<OpenTextRow[]>([]);
   const [err, setErr] = useState('');
+  // Login-form-specific error so we can show inline and let the user retry,
+  // separate from the dead-end `err` we use for the loading-data path.
+  const [loginErr, setLoginErr] = useState('');
 
   // Auth lifecycle: pick up an existing session and react to the magic-link return.
   useEffect(() => {
@@ -49,8 +52,25 @@ export default function App() {
   }, [phase, session]);
 
   async function sendMagicLink() {
+    setLoginErr('');
     const sb = await getSupabase();
-    await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}/admin/analytics` } });
+    // shouldCreateUser:false makes Supabase reject unknown emails immediately
+    // (no email sent, no auth.users row created). Combined with the project-level
+    // "Allow new user signups" toggle being off, this enforces the admin
+    // allowlist at the auth layer rather than discovering it post-click.
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${location.origin}/admin/analytics`,
+        shouldCreateUser: false,
+      },
+    });
+    if (error) {
+      // We deliberately don't surface the raw Supabase error text — it can leak
+      // whether the email exists. Same message regardless of cause.
+      setLoginErr("That email isn't authorized for admin access.");
+      return;
+    }
     setPhase('sent');
   }
 
@@ -75,7 +95,9 @@ export default function App() {
         ) : (
           <>
             <input type="email" placeholder="you@example.com" value={email}
-              onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && email && sendMagicLink()} />
+              onChange={(e) => { setEmail(e.target.value); setLoginErr(''); }}
+              onKeyDown={(e) => e.key === 'Enter' && email && sendMagicLink()} />
+            {loginErr && <p className="note" style={{ color: '#f87171', marginTop: 8 }}>{loginErr}</p>}
             <button className="btn btn-primary" style={{ width: '100%' }} disabled={!email} onClick={sendMagicLink}>
               Email me a sign-in link
             </button>
