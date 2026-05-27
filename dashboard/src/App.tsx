@@ -118,7 +118,7 @@ export default function App() {
         <Stat label="Total responses" value={String(stats.live.responses)} />
         <Stat label="Response rate" value={pct(stats.responseRate)} hint="completed ÷ prompts shown" />
         <Stat label="Avg NPS" value={m.avg_nps != null ? String(m.avg_nps) : '—'} />
-        <Stat label="Newsletter conv." value={pct(stats.newsletterConversion)} hint="subscribed ÷ completed" />
+        <Stat label="Newsletter" value="Beehiiv ↗" href="https://app.beehiiv.com/subscribers" hint="signups tracked in beehiiv" />
       </div>
 
       <div className="grid">
@@ -141,11 +141,13 @@ export default function App() {
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({ label, value, hint, href }: { label: string; value: string; hint?: string; href?: string }) {
   return (
     <div className="stat">
       <div className="label">{label}</div>
-      <div className="value">{value}</div>
+      <div className="value">
+        {href ? <a href={href} target="_blank" rel="noopener" style={{ color: 'inherit', textDecoration: 'none' }}>{value}</a> : value}
+      </div>
       {hint && <div className="sub" style={{ color: '#475569', fontSize: '0.7rem', marginTop: 4 }}>{hint}</div>}
     </div>
   );

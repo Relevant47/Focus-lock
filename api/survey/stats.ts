@@ -57,14 +57,12 @@ export default async function handler(req: Req, res: Res) {
   }
 
   // summary
-  const [snapRes, trendRes, responses, completed, promptsShown, optins, subscribed] = await Promise.all([
+  const [snapRes, trendRes, responses, completed, promptsShown] = await Promise.all([
     fetch(`${SB}/rest/v1/survey_stats_daily?select=snapshot_date,metrics&order=snapshot_date.desc&limit=1`, { headers: sbHeaders }),
     fetch(`${SB}/rest/v1/survey_stats_daily?select=snapshot_date,metrics&order=snapshot_date.asc&limit=90`, { headers: sbHeaders }),
     count('survey_responses?select=id'),
     count('survey_responses?completed_at=not.is.null&select=id'),
     count('survey_prompts_shown?event=eq.shown&select=id'),
-    count('newsletter_optins?select=id'),
-    count('newsletter_optins?beehiiv_status=eq.subscribed&select=id'),
   ]);
 
   const snapRows = snapRes.ok ? await snapRes.json() : [];
@@ -79,9 +77,8 @@ export default async function handler(req: Req, res: Res) {
   return res.status(200).json({
     generatedAt: new Date().toISOString(),
     snapshot,
-    live: { responses, completed, promptsShown, optins, subscribed },
+    live: { responses, completed, promptsShown },
     responseRate: promptsShown > 0 ? completed / promptsShown : null,
-    newsletterConversion: completed > 0 ? subscribed / completed : null,
     trend,
   });
 }

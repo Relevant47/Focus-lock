@@ -7,8 +7,10 @@ const ENV_URL: string | undefined = (import.meta as any).env?.VITE_SURVEY_API_UR
 export const surveyApiUrl: string = ENV_URL ?? 'https://focuslock.app';
 
 /** Hosted page that renders the Beehiiv inline subscribe form; iframed by the
- *  survey's newsletter step so the signup happens in-app with no API key. */
-export const newsletterEmbedUrl = `${surveyApiUrl}/newsletter-embed.html`;
+ *  survey's newsletter step so the signup happens in-app with no API key. The UTM
+ *  params are read by Beehiiv's attribution.js on that page, tagging each signup
+ *  with source=in-app-survey for segmentation. */
+export const newsletterEmbedUrl = `${surveyApiUrl}/newsletter-embed.html?utm_source=in-app-survey&utm_medium=app&utm_campaign=in-app-survey`;
 
 export class SurveyApiError extends Error {
   constructor(public status: number, message: string) {
