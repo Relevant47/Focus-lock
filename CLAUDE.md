@@ -51,3 +51,24 @@ There is **no automated test suite**. Verify changes by building each affected c
 - The canonical GitHub repo is `github.com/Relevant47/focus-lock`. URLs to `Relevant47` throughout `landing/`, `ui/src/pages/Settings.tsx`, and the update server are real — don't "fix" them. Forking means a project-wide find-replace of `Relevant47`.
 - The `ui/` app version (`package.json` `version`) is the user-facing app version; bump it for releases.
 - Secrets/keys (updater key, signing certs) are supplied at build/release time, never committed — see README "Building for release" and the GitHub Secrets table.
+
+## Where to see survey + newsletter data
+
+The in-app survey ships data to two places. There is no third place — don't go hunting for one.
+
+**Live host:** the public site runs on `https://focus-lock-sable.vercel.app` (the Vercel-assigned alias; Vercel project `focus-lock` / `prj_KOtxCyLv3XMSiDnitmLYbtw5ymtT`). The apex `focuslock.app` is the planned eventual domain but **isn't registered yet** — references to it in `README.md`, `docs/family-controls-design.md`, `family-server/src/types.ts`, and `vercel.json`'s CSP are aspirational and stay until the domain is bought (then they activate without code changes). Don't point client code at `focuslock.app` until DNS exists.
+
+**Survey analytics dashboard:** `https://focus-lock-sable.vercel.app/admin/analytics`
+- Supabase magic-link auth → email must be in the `ADMIN_EMAILS` env var on Vercel (comma-separated), or you get 403.
+- Top cards (Total responses, Response rate, Avg NPS) hit Supabase live; charts come from the nightly `survey_stats_daily` snapshot refreshed by pg_cron. For a fresh snapshot on demand: `select refresh_survey_stats();` in the Supabase SQL editor.
+- "Export CSV" button dumps raw rows. Open-feedback section has a word cloud + Min-NPS / time-range filters.
+- Source: `dashboard/src/App.tsx`. API: `api/survey/stats.ts` (`?view=summary` and `?view=opentext`) + `api/survey/export.ts`.
+
+**Newsletter signups:** `https://app.beehiiv.com/subscribers`
+- Signups go straight from `landing/newsletter-embed.html` (Beehiiv inline embed iframe'd into the survey) to Beehiiv — we store zero newsletter PII server-side. The `newsletter_optins` table and `api/survey/newsletter*.ts` endpoints have been retired.
+- The embed URL carries `utm_source=in-app-survey&utm_medium=app&utm_campaign=in-app-survey`, so filtering on that in Beehiiv isolates survey-flow signups vs. landing-page signups.
+- `vercel.json` exempts `/newsletter-embed.html` from the site-wide `X-Frame-Options: DENY` and adds a `frame-ancestors` CSP covering Tauri origins + the live vercel.app host + the planned apex. Don't collapse those two header rules back into one.
+
+**Desktop app → API base URL:** `ui/src/lib/surveyApi.ts` defaults to `https://focus-lock-sable.vercel.app`; override with `VITE_SURVEY_API_URL` at build time. When the apex is bought, flip the default (or set the env var on the release pipeline) — until then, do NOT change it back to `focuslock.app` or the survey will silently fail on every shipped client.
+
+**Raw tables (Supabase project `ipmmmebtsbhplcmwkflh`):** `survey_responses` (one row per finished response), `survey_prompts_shown` (denominator for response-rate), `survey_stats_daily` (nightly snapshots).
