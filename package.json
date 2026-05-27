@@ -1,0 +1,9 @@
+{
+  "name": "focus-lock-functions",
+  "private": true,
+  "type": "module",
+  "description": "Root package for the Vercel serverless functions in api/. The site (landing) and dashboard build via vercel.json; this exists so the api/*.ts functions get @types/node when Vercel type-checks them.",
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}
