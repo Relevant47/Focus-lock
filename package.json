@@ -1,8 +1,7 @@
 {
   "name": "focus-lock-functions",
   "private": true,
-  "type": "module",
-  "description": "Root package for the Vercel serverless functions in api/. The site (landing) and dashboard build via vercel.json; this exists so the api/*.ts functions get @types/node when Vercel type-checks them.",
+  "description": "Root package for the Vercel serverless functions in api/. The site (landing) and dashboard build via vercel.json; this exists so the api/*.ts functions get @types/node when Vercel type-checks them. Note: do NOT add \"type\": \"module\" — it flips the bundled functions to ESM, which breaks the extensionless relative import of shared/survey at runtime (ERR_MODULE_NOT_FOUND).",
   "devDependencies": {
     "@types/node": "^24.0.0"
   }
