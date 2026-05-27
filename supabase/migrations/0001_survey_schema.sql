@@ -86,3 +86,16 @@ alter table public.survey_prompts_shown    enable row level security;
 alter table public.newsletter_optins       enable row level security;
 alter table public.survey_stats_daily      enable row level security;
 alter table public.survey_submit_ratelimit enable row level security;
+
+-- Grants: tables created via raw SQL / the Supabase MCP run as `postgres`, which in
+-- this project does NOT inherit Supabase's default DML grants for service_role. Without
+-- these grants the Vercel functions (which authenticate with the secret key → service_role)
+-- get "permission denied" on insert and the API returns 500 — even though service_role
+-- bypasses RLS. anon/authenticated are intentionally granted nothing (no direct client access).
+grant select, insert, update, delete on
+  public.survey_responses,
+  public.survey_prompts_shown,
+  public.newsletter_optins,
+  public.survey_stats_daily,
+  public.survey_submit_ratelimit
+to service_role;
