@@ -8,6 +8,7 @@ import { Page, PageHeader, Toggle, Pill } from '../components/ui';
 import { Icon } from '../components/Icons';
 import { cn } from '../lib/cn';
 import { AUDIT_EVENT_LABEL, formatAuditTime } from '../lib/auditEvents';
+import { useSurvey } from '../stores/survey';
 
 // ── Section primitive ────────────────────────────────────────────────────────
 function Section({
@@ -133,6 +134,18 @@ export default function Settings() {
   // The plain-text key is held in memory only, never persisted in the UI.
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [revealedKeyCopied, setRevealedKeyCopied] = useState(false);
+
+  // Feedback / survey
+  const openSurvey = useSurvey((s) => s.openFromSettings);
+  const surveyResponseId = useSurvey((s) => s.ss.responseId);
+  const deleteMyResponse = useSurvey((s) => s.deleteMyResponse);
+  const [surveyDeleting, setSurveyDeleting] = useState(false);
+  const [surveyDeleted, setSurveyDeleted] = useState(false);
+  async function handleDeleteSurvey() {
+    setSurveyDeleting(true);
+    try { await deleteMyResponse(); setSurveyDeleted(true); } catch { /* surface nothing — best effort */ }
+    finally { setSurveyDeleting(false); }
+  }
 
   const parentEnabled = !!status?.parentControls?.enabled;
   const parentGraceMinutes = status?.parentControls?.graceMinutes ?? 5;
@@ -284,6 +297,22 @@ export default function Settings() {
                 ))}
               </div>
             </Row>
+          </Section>
+
+          {/* Feedback / Survey */}
+          <Section title="Feedback" hint="Tell us how you use FocusLock — it directly shapes what we build next.">
+            <Row label="Send feedback / take the survey" sub="Anonymous, ~2 minutes. Optional newsletter opt-in at the end.">
+              <button onClick={openSurvey} className="btn-ghost px-4 py-2 text-sm inline-flex items-center gap-2">
+                <Icon.Sparkle size={15} /> Take survey
+              </button>
+            </Row>
+            {surveyResponseId && (
+              <Row label="Your survey response" sub="Stored anonymously. You can withdraw it at any time.">
+                <button onClick={handleDeleteSurvey} disabled={surveyDeleting} className="btn-ghost px-4 py-2 text-sm text-danger">
+                  {surveyDeleting ? 'Removing…' : surveyDeleted ? 'Removed' : 'Delete my response'}
+                </button>
+              </Row>
+            )}
           </Section>
 
           {/* Friend Lock */}

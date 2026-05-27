@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Subscribe — FocusLock</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; padding: 0; background: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #e7e9ee;
+      padding: 4px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 460px; margin: 0 auto; }
+    /* Beehiiv's inline embed brings its own styling; this only frames it tidily.
+       The fallback below is shown until the real embed code is pasted in. */
+    .fallback {
+      border: 1px solid #2a2d36; border-radius: 12px; padding: 22px 20px; text-align: center;
+      background: #15171d;
+    }
+    .fallback p { color: #9aa0ad; font-size: 13px; line-height: 1.55; margin: 0 0 16px; }
+    .fallback a {
+      display: inline-block; text-decoration: none; font-weight: 600; font-size: 14px;
+      color: #fff; background: #5b6cff; padding: 10px 20px; border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!--
+      ============================================================================
+      BEEHIIV INLINE SUBSCRIBE FORM (no API key needed — clears the Stripe gate)
+      The two <script> tags below are the embed code from the beehiiv dashboard:
+          Subscribers → Subscribe forms → <form> → Get embed code
+      data-beehiiv-form is the form's id. NOTE: editing the form in beehiiv can
+      generate a NEW embed code — if so, re-copy it and replace the tags below.
+      The <noscript> block is a graceful fallback to the hosted subscribe page.
+      ============================================================================
+    -->
+    <!-- BEEHIIV:START -->
+    <script async src="https://subscribe-forms.beehiiv.com/v3/loader.js" data-beehiiv-form="817cef0d-2b5c-400e-a0b1-23b30ae6c979"></script>
+    <script type="text/javascript" async src="https://subscribe-forms.beehiiv.com/attribution.js"></script>
+    <noscript>
+      <div class="fallback">
+        <p>Get occasional updates about FocusLock and new apps from the same developer. No spam — unsubscribe anytime.</p>
+        <a href="https://oscar-petrikas.beehiiv.com/subscribe?utm_source=in-app-survey&utm_medium=app&utm_campaign=in-app-survey" target="_blank" rel="noopener">Subscribe →</a>
+      </div>
+    </noscript>
+    <!-- BEEHIIV:END -->
+  </div>
+</body>
+</html>
