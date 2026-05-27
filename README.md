@@ -265,12 +265,11 @@ with an optional Beehiiv newsletter opt-in, plus a protected admin dashboard.
 Desktop app (ui/)                  Vercel functions (api/survey/*)        Supabase
 ─────────────────                  ───────────────────────────────       ─────────
 SurveyNudge ─┐                     submit ──────────┐
-SurveyModal ─┼─► surveyApi.ts ───► newsletter ──┐   ├─► survey_responses
-Settings   ──┘   (POST JSON)       prompt-event │   │   survey_prompts_shown
-                                   delete       │   └─► survey_submit_ratelimit
-                                                └─────► newsletter_optins ──► Beehiiv
+SurveyModal ─┼─► surveyApi.ts ───► prompt-event ────┼─► survey_responses
+Settings   ──┘   (POST JSON)       delete           │   survey_prompts_shown
+            └─► newsletter-embed.html (iframe) ──┐   └─► survey_submit_ratelimit
+                                                 └─────► Beehiiv inline form (no API key)
 Admin dashboard (dashboard/) ────► stats / export (admin JWT) ─► survey_stats_daily
-                                   newsletter-retry (cron) ────► retries pending opt-ins
 ```
 
 - **Single source of truth:** [`shared/survey.ts`](shared/survey.ts) defines every
@@ -282,6 +281,14 @@ Admin dashboard (dashboard/) ────► stats / export (admin JWT) ─► s
   `localStorage`; submissions are anonymous, keyed to a random install id.
 - **Schema:** [`supabase/migrations/`](supabase/migrations) — applied via the Supabase MCP.
   RLS is deny-by-default; all access goes through the Vercel functions using the service key.
+- **Newsletter:** the final step embeds Beehiiv's **inline subscribe form** via an iframe to
+  [`landing/newsletter-embed.html`](landing/newsletter-embed.html) (which carries the dashboard
+  embed `<script>`). Beehiiv collects the email directly, so **we store no newsletter PII and
+  need no Beehiiv API key**. `vercel.json` exempts that one page from the site-wide
+  `X-Frame-Options: DENY` and sets `frame-ancestors` so the desktop webview can frame it. To
+  update the form, edit it in Beehiiv and paste the new embed code between the `BEEHIIV` markers.
+  The server-side `api/survey/newsletter.ts` route, the `newsletter-retry` cron, and the
+  `newsletter_optins` table are a **legacy API path**, unused by this flow (see env-var note).
 - **Privacy:** disclosed in [`landing/privacy.html`](landing/privacy.html). The survey is
   opt-in, anonymous, and self-deletable (Settings → Feedback → "Delete my response").
 
@@ -292,8 +299,8 @@ Admin dashboard (dashboard/) ────► stats / export (admin JWT) ─► s
 | `SUPABASE_URL` | existing | no | Supabase REST/auth base URL |
 | `SUPABASE_SECRET_KEY` | existing | **yes** | Service-role key — server-side reads/writes (bypasses RLS) |
 | `SUPABASE_ANON_KEY` | **add** | no | Publishable/anon key — dashboard magic-link auth + JWT verification |
-| `BEEHIIV_API_KEY` | existing | **yes** | Beehiiv subscribe calls |
-| `BEEHIIV_PUBLICATION_ID` | existing | no | Beehiiv publication |
+| `BEEHIIV_API_KEY` | legacy | **yes** | Only for the server-side `api/survey/newsletter.ts` / `api/subscribe.js` paths. The in-app survey now uses the Beehiiv **embed** (needs no key), so this is optional. |
+| `BEEHIIV_PUBLICATION_ID` | legacy | no | As above — only used by the API subscribe paths, not the embed. |
 | `ADMIN_EMAILS` | **add** | no | Comma-separated allowlist for dashboard access (e.g. `you@example.com`) |
 | `CRON_SECRET` | **add** | **yes** | Bearer token Vercel sends to the `newsletter-retry` cron |
 | `RATELIMIT_SALT` | optional | yes | Salt for hashing submitter IPs (defaults to a constant if unset) |
