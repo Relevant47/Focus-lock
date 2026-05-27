@@ -4,7 +4,7 @@ import { SURVEY_SECTIONS, type Question } from '@shared/survey';
 import { useSurvey } from '../stores/survey';
 import { PLATFORM } from '../lib/platform';
 import { COUNTRIES } from '../lib/countries';
-import { SurveyApiError } from '../lib/surveyApi';
+import { SurveyApiError, newsletterEmbedUrl } from '../lib/surveyApi';
 import { Icon } from './Icons';
 import { cn } from '../lib/cn';
 
@@ -21,8 +21,6 @@ function loadDraft(): Draft {
   return { step: 0, answers: {} };
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export default function SurveyModal() {
   const initial = useMemo(loadDraft, []);
   const [step, setStep] = useState(initial.step);
@@ -32,7 +30,6 @@ export default function SurveyModal() {
 
   const close = useSurvey((s) => s.closeModal);
   const submit = useSurvey((s) => s.submit);
-  const subscribe = useSurvey((s) => s.subscribe);
 
   const sections = SURVEY_SECTIONS;
   const section = sections[step];
@@ -62,10 +59,10 @@ export default function SurveyModal() {
     return answers[q.showIf.field] === q.showIf.equals;
   }
 
-  // The newsletter step gates "Continue/Submit" only when the user opted in.
-  const wantsNewsletter = answers.newsletter === 'yes' && !isUnder18;
-  const newsletterReady = !wantsNewsletter || (EMAIL_RE.test(answers.__email || '') && answers.__consent === true);
-  const canAdvance = !isLast || newsletterReady;
+  // Beehiiv handles the newsletter signup inline (its own embedded form), so the
+  // survey submission is never gated on it — the user can subscribe or not and
+  // still finish. We no longer capture the email ourselves (no PII on our side).
+  const canAdvance = true;
 
   function next() {
     if (!isLast) { setStep((s) => s + 1); return; }
@@ -77,13 +74,10 @@ export default function SurveyModal() {
     setPhase('submitting');
     setErrMsg('');
     const payload: Answers = { ...answers, os_detected: PLATFORM };
-    // Strip transient/non-column keys.
+    // Strip transient/non-column keys (newsletter is handled by the inline Beehiiv form).
     delete payload.newsletter; delete payload.__email; delete payload.__consent;
     try {
       await submit(payload);
-      if (wantsNewsletter) {
-        try { await subscribe(answers.__email); } catch { /* survey already saved; newsletter retries server-side */ }
-      }
       localStorage.removeItem(DRAFT_KEY);
       setPhase('done');
     } catch (e) {
@@ -275,14 +269,30 @@ function NewsletterField({ answers, isUnder18, onSet }: { answers: Answers; isUn
       </div>
       {answers.newsletter === 'yes' && (
         <div className="space-y-2">
-          <input className="input-base px-3 py-2 text-sm w-full" type="email" placeholder="you@example.com"
-            value={answers.__email || ''} onChange={(e) => onSet('__email', e.target.value)} />
-          <label className="flex items-start gap-2 text-xs text-muted cursor-pointer">
-            <input type="checkbox" className="mt-0.5" checked={answers.__consent === true} onChange={(e) => onSet('__consent', e.target.checked)} />
-            <span>I agree to receive occasional emails about FocusLock and new apps from the same developers. Unsubscribe anytime.</span>
-          </label>
+          <p className="text-xs text-muted">
+            Pop your email in below — sign-up is handled securely by Beehiiv. It’s separate from the survey,
+            so you can subscribe and still submit (or skip it).
+          </p>
+          <BeehiivEmbed />
         </div>
       )}
+    </div>
+  );
+}
+
+/** The newsletter signup is the Beehiiv inline form, hosted on a page we serve and
+ *  framed here so it renders in-app. Beehiiv collects the email directly — we never
+ *  see or store it — which keeps PII off our side entirely. */
+function BeehiivEmbed() {
+  return (
+    <div className="rounded-lg overflow-hidden border border-border bg-surface2">
+      <iframe
+        src={newsletterEmbedUrl}
+        title="Subscribe to FocusLock updates"
+        loading="lazy"
+        className="w-full block"
+        style={{ height: 400, border: 0 }}
+      />
     </div>
   );
 }
