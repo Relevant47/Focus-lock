@@ -33,6 +33,32 @@ function getScheduleHour(expr: string): number | null {
   return isNaN(h) ? null : h;
 }
 
+// minute, hour, day-of-month, month, day-of-week
+const CRON_FIELD_RANGES: [number, number][] = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 7]];
+
+function isValidCronField(field: string, min: number, max: number): boolean {
+  return field.split(',').every(term => {
+    if (term === '') return false;
+    const [range, step, ...rest] = term.split('/');
+    if (rest.length > 0) return false;
+    if (step !== undefined && (!/^\d+$/.test(step) || Number(step) < 1)) return false;
+    if (range === '*') return true;
+    const bounds = range.split('-');
+    if (bounds.length > 2) return false;
+    return bounds.every(b => {
+      if (!/^\d+$/.test(b)) return false;
+      const n = Number(b);
+      return n >= min && n <= max;
+    });
+  });
+}
+
+function isValidCron(expr: string): boolean {
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length !== 5) return false;
+  return parts.every((p, i) => isValidCronField(p, CRON_FIELD_RANGES[i][0], CRON_FIELD_RANGES[i][1]));
+}
+
 // ── Form ─────────────────────────────────────────────────────────────────────
 function ScheduleForm({ initial, onSave, onCancel }: {
   initial: ScheduledSession; onSave: (s: ScheduledSession) => Promise<void>; onCancel: () => void;
@@ -49,6 +75,7 @@ function ScheduleForm({ initial, onSave, onCancel }: {
   async function handleSave() {
     if (!form.label.trim()) { setError('Label is required'); return; }
     if (!form.profileId)   { setError('Select a profile'); return; }
+    if (!isValidCron(form.cronExpression)) { setError('Invalid cron expression — use format: minute hour day month weekday'); return; }
     setSaving(true); setError('');
     try { await onSave(form); }
     catch (e) { setError(e instanceof Error ? e.message : 'Save failed'); }
