@@ -27,7 +27,12 @@ public sealed class SessionState
     // Intention is NOT signed — it's user-supplied text, not a security boundary.
     public string? Intention { get; set; }
 
-    // HMAC-SHA256 of all fields above (excluding Signature, MotivationalMessage, Intention)
+    // Running distraction-attempt counter. Persisted alongside the session so it
+    // survives a daemon restart, but excluded from the HMAC payload (same precedent
+    // as MotivationalMessage + Intention) — a running counter, not a block-defining field.
+    public int BlockAttempts { get; set; }
+
+    // HMAC-SHA256 of all fields above (excluding Signature, MotivationalMessage, Intention, BlockAttempts)
     public string Signature { get; set; } = string.Empty;
 
     // Derived — not stored

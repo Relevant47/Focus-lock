@@ -24,6 +24,11 @@ struct SessionState: Codable {
     var motivationalMessage: String?
     // Intention is NOT signed — user-supplied text, not a security boundary.
     var intention: String?
+    // Running distraction-attempt counter. Persisted so it survives a daemon
+    // restart, but excluded from the HMAC payload (same precedent as
+    // motivationalMessage + intention). Optional so older session files that
+    // predate this field decode cleanly (treated as 0).
+    var blockAttempts: Int?
     var signature: String = ""
 
     var isActive: Bool { Date() < endTime }
