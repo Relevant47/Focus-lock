@@ -28,7 +28,11 @@ final class ProcessKillService {
     }
 
     func poll() {
-        let sessionProcs = (session.active?.isActive == true)
+        // Session app-blocks are lifted during a non-strict Pomodoro break, mirroring
+        // how the hosts-file path drops session domains during the break. Family rules
+        // still apply — a parent-side block isn't lifted by the user's own break.
+        let liftBreak = session.shouldLiftBlocksDuringBreak
+        let sessionProcs = (session.active?.isActive == true && !liftBreak)
             ? (session.active?.blockedProcesses ?? [])
             : []
         let (_, familyProcs) = family.union()

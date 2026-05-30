@@ -38,7 +38,11 @@ public sealed class ProcessKillService
     public void Poll()
     {
         var state = _session.Active;
-        var sessionProcs = (state != null && state.IsActive) ? state.BlockedProcesses : new List<string>();
+        // Session app-blocks are lifted during a non-strict Pomodoro break, mirroring
+        // how the hosts-file path drops session domains during the break. Family rules
+        // still apply — a parent-side block isn't lifted by the user's own break.
+        var liftBreak = _session.ShouldLiftBlocksDuringBreak;
+        var sessionProcs = (state != null && state.IsActive && !liftBreak) ? state.BlockedProcesses : new List<string>();
         var (_, familyProcs) = _family.GetUnion();
 
         if (sessionProcs.Count == 0 && familyProcs.Count == 0) return;
