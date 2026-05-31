@@ -22,10 +22,13 @@ export interface SessionState {
   blockedDomains: string[];
   blockedProcesses: string[];  // exe name or full path
   allowlistedDomains: string[];
-  pomodoroConfig: PomodoroConfig | null;
-  motivationalMessage?: string | null;
+  unlockTokenHash?: string | null;  // sha256-hex of friend-lock token, or null
+  pomodoroConfig: PomodoroConfig | null;        // not signed
+  motivationalMessage?: string | null;          // not signed
   intention?: string | null;   // user's "what will you focus on?" — not signed
-  signature: string; // HMAC-SHA256 of everything above (excluding motivationalMessage + intention)
+  // Signed payload (HMAC-SHA256): sessionId | startTime | endTime | hardcoreMode |
+  //   blockedDomains(csv) | blockedProcesses(csv) | allowlistedDomains(csv) | unlockTokenHash
+  signature: string;
 }
 
 // ── Focus Profile ─────────────────────────────────────────────────────────────
