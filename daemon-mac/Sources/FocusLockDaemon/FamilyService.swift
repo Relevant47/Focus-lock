@@ -138,9 +138,9 @@ final class FamilyService {
     }
 
     /// Toggle the opt-in firewall-lockdown flag on the persisted config.
-    /// Returns false if the device isn't paired. macOS daemon currently has
-    /// no pfctl enforcement of the flag — it just round-trips through the
-    /// stored config so a future implementation can pick it up.
+    /// Returns false if the device isn't paired. This method only stores the
+    /// flag — actual pfctl enforcement is driven by `FirewallLockdownService`,
+    /// which reads `cfg.firewallLockdownEnabled` on its own evaluation tick.
     func setFirewallLockdownEnabled(_ enabled: Bool) -> Bool {
         lock.lock()
         guard var cfg = config else { lock.unlock(); return false }
