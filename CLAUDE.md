@@ -67,8 +67,27 @@ The in-app survey ships data to two places. There is no third place — don't go
 **Newsletter signups:** `https://app.beehiiv.com/subscribers`
 - Signups go straight from `landing/newsletter-embed.html` (Beehiiv inline embed iframe'd into the survey) to Beehiiv — we store zero newsletter PII server-side. The `newsletter_optins` table and `api/survey/newsletter*.ts` endpoints have been retired.
 - The embed URL carries `utm_source=in-app-survey&utm_medium=app&utm_campaign=in-app-survey`, so filtering on that in Beehiiv isolates survey-flow signups vs. landing-page signups.
-- `vercel.json` exempts `/newsletter-embed.html` from the site-wide `X-Frame-Options: DENY` and adds a `frame-ancestors` CSP covering Tauri origins + the live vercel.app host + the planned apex. Don't collapse those two header rules back into one.
+- `vercel.json` exempts `/newsletter-embed.html` from the site-wide `X-Frame-Options: DENY` and adds a `frame-ancestors` CSP covering Tauri origins + the live vercel.app host + the apex (`https://tryfocuslock.com`). Don't collapse those two header rules back into one.
 
 **Desktop app → API base URL:** `ui/src/lib/surveyApi.ts` defaults to `https://tryfocuslock.com`; override with `VITE_SURVEY_API_URL` at build time (e.g. preview deployments or self-builds). Already-shipped clients on 1.1.4 and earlier still talk to the Vercel alias — the alias remains live, so they keep working without an update.
 
 **Raw tables (Supabase project `ipmmmebtsbhplcmwkflh`):** `survey_responses` (one row per finished response), `survey_prompts_shown` (denominator for response-rate), `survey_stats_daily` (nightly snapshots).
+
+## Domain, DNS, and email
+
+**Registrar:** `tryfocuslock.com` is registered at **Spaceship**. The originally-planned `focuslock.app` was unavailable at purchase; we settled on `tryfocuslock.com` as the public apex.
+
+**DNS provider:** **Cloudflare** (nameservers `marlowe.ns.cloudflare.com` + `wilson.ns.cloudflare.com` — moved off Spaceship's `launch1/2.spaceship.net`). All DNS records are managed in the Cloudflare dashboard, not at Spaceship. Cloudflare account billing email: `me@oscarpetrikas.com`.
+
+**A record → Vercel:** `@  A  216.198.79.1`. **Set to "DNS only" (gray cloud), NOT proxied** — Vercel runs its own edge/CDN/SSL, and Cloudflare proxying on top double-proxies and breaks Vercel caching, analytics, and certificate handling. If a future record needs Cloudflare features (WAF, etc.) flip just that one to proxied; leave the apex alone.
+
+**Email Routing (inbound only):** Cloudflare Email Routing is enabled. `hello@tryfocuslock.com` and a catch-all (`*@tryfocuslock.com`) both forward to `me@oscarpetrikas.com`. Cloudflare auto-manages 5 records to make this work — 3 MX (`route1/2/3.mx.cloudflare.net`), 1 DKIM TXT (`cf2024-1._domainkey`), 1 SPF TXT (`v=spf1 include:_spf.mx.cloudflare.net ~all`). **Do not edit those manually in Cloudflare DNS** — disable Email Routing first if you need to change MX provider.
+
+**Outbound email is NOT set up yet.** Cloudflare Email Routing is inbound-only. The user currently reads forwarded mail in Apple Mail via Spacemail-hosted `me@oscarpetrikas.com` and replies *from* that personal address (not from `hello@`). The deferred work to unlock proper outbound:
+1. Verify `tryfocuslock.com` in Resend (adds DKIM/SPF/return-path records — Cloudflare auto-handles them).
+2. Set `EMAIL_FROM="FocusLock <hello@tryfocuslock.com>"` as a `wrangler secret` on the family-server worker so PIN-recovery / password-reset emails stop coming from the `onboarding@resend.dev` sandbox sender (see `docs/family-controls-design.md` Phase 2.6).
+3. Add Resend's SMTP credentials to Apple Mail as an outgoing-only account so manual replies appear from `hello@tryfocuslock.com`.
+
+Until step 1 happens, do NOT change `EMAIL_FROM` from the default — Resend will reject sends from an unverified domain.
+
+**Public contact page:** `landing/contact.html` is the canonical contact surface (linked from the index footer's "Project" column + bottom row, and from `changelog.html`). It points to `hello@tryfocuslock.com`. The contact addresses in `landing/privacy.html` § 8, `landing/terms.html` § 8, `landing/reset.html`, and `docs/family-controls-beta.md` all now use `hello@tryfocuslock.com`. The personal `me@oscarpetrikas.com` reference only remains in `scripts/setup-claude-memory.sh` (developer identity, not product contact).
