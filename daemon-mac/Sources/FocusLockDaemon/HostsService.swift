@@ -88,10 +88,15 @@ final class HostsService {
     private func flushDns() {
         // Flush macOS DNS cache
         run("/usr/bin/dscacheutil", ["-flushcache"])
-        run("/bin/kill", ["-HUP", mDNSResponderPid()])
+        // Skip the HUP when mDNSResponder isn't running — otherwise the previous
+        // "1" fallback would signal launchd (PID 1) and cause it to re-evaluate
+        // its configuration.
+        if let pid = mDNSResponderPid() {
+            run("/bin/kill", ["-HUP", pid])
+        }
     }
 
-    private func mDNSResponderPid() -> String {
+    private func mDNSResponderPid() -> String? {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/ps")
         task.arguments = ["-ax", "-o", "pid,comm"]
@@ -101,10 +106,14 @@ final class HostsService {
         let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         for line in out.components(separatedBy: "\n") {
             if line.contains("mDNSResponder") && !line.contains("Helper") {
-                return line.trimmingCharacters(in: .whitespaces).components(separatedBy: " ").first ?? "1"
+                let pid = line.trimmingCharacters(in: .whitespaces)
+                    .components(separatedBy: " ").first
+                // Reject PID 1 (launchd) defensively: we never want to HUP it.
+                if let pid, !pid.isEmpty, pid != "1" { return pid }
+                return nil
             }
         }
-        return "1"
+        return nil
     }
 
     @discardableResult
