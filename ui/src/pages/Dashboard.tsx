@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useDaemon } from '../stores/daemon';
-import { useBlockList, resolveBlockList, isBlockListEmpty } from '../stores/blocklist';
+import { useBlockList, resolveBlockList } from '../stores/blocklist';
 import { CATEGORY_DOMAINS, type StartSessionPayload } from '../types';
 import { Icon } from '../components/Icons';
 import { Page, Pill, Toggle } from '../components/ui';
@@ -207,14 +207,27 @@ export default function Dashboard() {
 
   function askIntention() {
     setError('');
-    // Guard the custom path: starting a "No profile" session with an empty
-    // global block list would block nothing — point the user at Block Lists
-    // rather than silently running a no-op session (the original YouTube bug).
-    if (!profile && isBlockListEmpty(defaultBlockList)) {
-      setError('Your block list is empty. Add domains or categories on the Block Lists page, or pick a profile.');
+    // Defensive: the idle view structurally doesn't render when sessionActive,
+    // but daemon status can lag a tick on natural session expiry → user click,
+    // and we'd rather show a clear message than have the daemon reject.
+    if (status?.sessionActive) {
+      setError('A session is already running. End it early or wait it out.');
       return;
     }
     const payload = buildPayload();
+    // No-op session guard — applies to BOTH paths now:
+    //   • custom (no profile)  → user hasn't configured anything on Block Lists
+    //   • profile-based         → the picked profile has no categories, domains,
+    //                              or apps; we used to silently start it
+    // Either way, starting would block nothing and look broken (the "YouTube
+    // still opens" complaint). The daemon also rejects this — see
+    // SessionService.StartSession — but we surface it here without a round-trip.
+    if (payload.blockedDomains.length === 0 && payload.blockedProcesses.length === 0) {
+      setError(profile
+        ? `"${profile.name}" has no blocked sites or apps. Edit it on the Profiles page.`
+        : 'Your block list is empty. Add domains or categories on the Block Lists page, or pick a profile.');
+      return;
+    }
     setPendingPayload(payload);
     // Hardcore = interpose the no-going-back confirmation before the intention prompt.
     if (payload.hardcoreMode) setShowHardcoreConfirm(true);
@@ -244,6 +257,11 @@ export default function Dashboard() {
   async function handleQuickStart(pid: string) {
     const p = profiles.find(x => x.id === pid);
     if (!p) return;
+    setError('');
+    if (status?.sessionActive) {
+      setError('A session is already running. End it early or wait it out.');
+      return;
+    }
     const payload: StartSessionPayload = {
       profileId: p.id,
       durationMinutes: p.defaultDurationMinutes,
@@ -256,6 +274,13 @@ export default function Dashboard() {
       hardcoreMode: p.hardcoreMode,
       pomodoroConfig: p.pomodoroConfig,
     };
+    // Same no-op session guard as askIntention — Quick Start chips bypass the
+    // form, so an empty profile would otherwise sail through to the daemon
+    // (which now rejects it, but a UI message is friendlier than a thrown error).
+    if (payload.blockedDomains.length === 0 && payload.blockedProcesses.length === 0) {
+      setError(`"${p.name}" has no blocked sites or apps. Edit it on the Profiles page.`);
+      return;
+    }
     // Quick-start respects the profile's hardcore setting verbatim — but
     // hardcore profiles still get the lock-in confirmation, no exceptions.
     setPendingPayload(payload);

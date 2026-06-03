@@ -7,6 +7,7 @@ import { SUGGESTED_APPS, type SuggestedApp } from '../lib/suggestedApps';
 import { IS_MACOS } from '../lib/platform';
 import { Page, PageHeader, SectionHeader } from '../components/ui';
 import { Icon } from '../components/Icons';
+import ActiveSessionBanner from '../components/ActiveSessionBanner';
 import { cn } from '../lib/cn';
 
 /** What string we push to the processes textarea for a given suggested app,
@@ -127,6 +128,10 @@ export default function BlockLists() {
   const domainCount = Array.from(selectedCats).reduce(
     (acc, cat) => acc + (CATEGORY_DOMAINS[cat]?.length ?? 0), 0
   ) + customDomains.split('\n').filter(Boolean).length;
+  // Quick Block needs *something* to block — but a process-only session is
+  // valid (e.g. just kill Steam.exe), so count both buckets when deciding
+  // whether to disable the button.
+  const processCount = customProcesses.split('\n').map(s => s.trim()).filter(Boolean).length;
 
   async function handleQuickBlock() {
     if (status?.sessionActive) return;
@@ -154,6 +159,7 @@ export default function BlockLists() {
   return (
     <Page className="p-8">
       <div className="max-w-4xl mx-auto space-y-6">
+        <ActiveSessionBanner />
         <PageHeader title="Block Lists" sub="Configure what to block — start a quick session without creating a profile." />
 
         {/* Suggested */}
@@ -331,6 +337,12 @@ export default function BlockLists() {
             <p className="text-xs text-muted mt-0.5">
               {domainCount > 0 ? `${domainCount} domains selected` : 'Pick a category, suggested site, or add custom rules above.'}
             </p>
+            {/* Browsers cache live connections + DNS independently of the OS,
+                so an already-open YouTube tab can keep loading even after the
+                hosts file is rewritten. A browser restart drops both. */}
+            <p className="text-[11px] text-faint mt-1">
+              Tip: restart your browser after starting a session — open tabs may still hold cached connections.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <select
@@ -344,7 +356,8 @@ export default function BlockLists() {
             {error && <p className="text-xs text-danger">{error}</p>}
             <button
               onClick={handleQuickBlock}
-              disabled={busy || !connected || status?.sessionActive || domainCount === 0}
+              disabled={busy || !connected || status?.sessionActive || domainCount + processCount === 0}
+              title={status?.sessionActive ? 'A session is running. End it early or wait it out.' : undefined}
               className="btn-primary px-4 py-2 text-sm flex items-center gap-1.5"
             >
               <Icon.Play size={12} />
