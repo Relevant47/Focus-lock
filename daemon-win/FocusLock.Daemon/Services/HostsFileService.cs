@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 using FocusLock.Daemon.Models;
 using Microsoft.Extensions.Logging;
 
@@ -15,8 +16,26 @@ public sealed class HostsFileService
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
             @"drivers\etc\hosts");
 
-    private const string BlockMarkerStart = "# ── FocusLock START ──";
-    private const string BlockMarkerEnd   = "# ── FocusLock END ──";
+    // ASCII-only markers. Pre-v1.1.6 these had Unicode em-dashes (──) but the
+    // file is written with `Encoding.ASCII`, which silently turns them into `?`
+    // on disk. The next Apply's `IndexOf(...)` searched for the (still-Unicode)
+    // in-memory marker, never matched the corrupted on-disk form, and appended
+    // a fresh block instead of replacing — one new block per 30s re-enforce
+    // tick. Issue #62 (113 duplicates observed on a real dev box).
+    private const string BlockMarkerStart = "# FocusLock START";
+    private const string BlockMarkerEnd   = "# FocusLock END";
+
+    // Permissive regex: matches the canonical ASCII markers AND the legacy
+    // em-dashed AND ASCII-corrupted (`# ?? FocusLock START ??`) forms, so
+    // boxes that accumulated duplicates pre-v1.1.6 self-heal on the first
+    // Apply with this code. Strips ALL occurrences in one pass — also fixes
+    // the first-match-only limitation the Swift side had via `range(of:)`.
+    private static readonly Regex BlockSectionRegex = new(
+        @"#[^\r\n]*FocusLock[^\r\n]*START[^\r\n]*\r?\n.*?#[^\r\n]*FocusLock[^\r\n]*END[^\r\n]*\r?\n?",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex BlankRunRegex = new(
+        @"(\r?\n){3,}", RegexOptions.Compiled);
 
     private readonly ILogger<HostsFileService> _log;
 
@@ -105,43 +124,45 @@ public sealed class HostsFileService
 
     private void WriteBlock(List<string> domains)
     {
-        // Read current file, strip our old block
         var original = File.Exists(HostsPath)
             ? File.ReadAllText(HostsPath)
             : string.Empty;
 
-        var sb = new StringBuilder();
-
-        // Preserve everything outside our markers
-        var startIdx = original.IndexOf(BlockMarkerStart, StringComparison.Ordinal);
-        var endIdx   = original.IndexOf(BlockMarkerEnd, StringComparison.Ordinal);
-
-        if (startIdx >= 0 && endIdx > startIdx)
-        {
-            sb.Append(original[..startIdx].TrimEnd());
-            var after = original[(endIdx + BlockMarkerEnd.Length)..].TrimStart('\r', '\n');
-            if (after.Length > 0) sb.AppendLine().Append(after);
-        }
-        else
-        {
-            sb.Append(original.TrimEnd());
-        }
+        var cleaned = StripFocusLockBlocks(original);
 
         if (domains.Count == 0)
         {
-            // Nothing to add — just clean up
-            File.WriteAllText(HostsPath, sb.ToString(), Encoding.ASCII);
+            File.WriteAllText(HostsPath, cleaned.Length > 0 ? cleaned + "\r\n" : string.Empty, Encoding.ASCII);
             return;
         }
 
-        sb.AppendLine().AppendLine();
+        var sb = new StringBuilder();
+        if (cleaned.Length > 0)
+        {
+            sb.Append(cleaned);
+            sb.AppendLine();
+            sb.AppendLine();
+        }
         sb.AppendLine(BlockMarkerStart);
-        sb.AppendLine("# Managed by FocusLock — do not edit manually");
+        sb.AppendLine("# Managed by FocusLock - do not edit manually");
         foreach (var d in domains.OrderBy(x => x))
             sb.AppendLine($"127.0.0.1 {d}");
-        sb.Append(BlockMarkerEnd);
+        sb.AppendLine(BlockMarkerEnd);
 
         File.WriteAllText(HostsPath, sb.ToString(), Encoding.ASCII);
+    }
+
+    /// <summary>
+    /// Strip every FocusLock-tagged section from the input — current ASCII
+    /// markers, legacy em-dashed markers, ASCII-mojibaked leftovers,
+    /// duplicates, the lot. Pure function; exposed internal so unit tests can
+    /// verify the regex without going through the file system.
+    /// </summary>
+    internal static string StripFocusLockBlocks(string input)
+    {
+        var cleaned = BlockSectionRegex.Replace(input, string.Empty);
+        cleaned = BlankRunRegex.Replace(cleaned, "\r\n\r\n");
+        return cleaned.TrimEnd();
     }
 
     private void FlushDns()
