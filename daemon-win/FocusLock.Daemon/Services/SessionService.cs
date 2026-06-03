@@ -117,7 +117,17 @@ public sealed class SessionService
 
     public void IncrementBlockAttempt()
     {
-        lock (_lock) _blockAttempts++;
+        lock (_lock)
+        {
+            _blockAttempts++;
+            // Persist the running count so it survives a daemon restart / reboot.
+            // The signature is unaffected (blockAttempts is not part of the payload).
+            if (_active != null)
+            {
+                _active.BlockAttempts = _blockAttempts;
+                Persist();
+            }
+        }
     }
 
     public DaemonStatus GetStatus()
@@ -409,6 +419,7 @@ public sealed class SessionService
             if (state.IsActive)
             {
                 _active = state;
+                _blockAttempts = state.BlockAttempts;
                 if (state.PomodoroConfig != null)
                     _pomodoro = new PomodoroState(state.PomodoroConfig, state.StartTime);
                 _log.LogInformation("Resumed session {Id}, {Rem:F0}s remaining", state.SessionId, state.Remaining.TotalSeconds);
@@ -417,7 +428,7 @@ public sealed class SessionService
             {
                 _log.LogInformation("Persisted session {Id} has expired — cleaning up", state.SessionId);
                 _active = state;
-                _blockAttempts = 0;
+                _blockAttempts = state.BlockAttempts;
                 FinalizeSession(completed: true);
             }
         }

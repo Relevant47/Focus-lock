@@ -71,6 +71,9 @@ final class SessionService {
         _signingKey = Self.loadOrCreateKey()
         verifyBinaryHash()
         if let state = Self.loadPersistedSession(key: _signingKey) {
+            // Restore the persisted distraction-attempt count so a session that
+            // expired (or resumes) across a restart keeps an accurate focus score.
+            _blockAttempts = state.blockAttempts ?? 0
             if state.isActive {
                 _active = state
                 if let cfg = state.pomodoroConfig {
@@ -112,7 +115,17 @@ final class SessionService {
         }
     }
 
-    func incrementBlockAttempt() { lock.withLock { _blockAttempts += 1 } }
+    func incrementBlockAttempt() {
+        lock.withLock {
+            _blockAttempts += 1
+            // Persist the running count so it survives a daemon restart / reboot.
+            // The signature is unaffected (blockAttempts is not part of the payload).
+            if _active != nil {
+                _active?.blockAttempts = _blockAttempts
+                if let state = _active { persist(state) }
+            }
+        }
+    }
 
     func getStatus() -> DaemonStatus {
         lock.withLock {

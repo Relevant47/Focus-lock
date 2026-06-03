@@ -25,7 +25,8 @@ export interface SessionState {
   pomodoroConfig: PomodoroConfig | null;
   motivationalMessage?: string | null;
   intention?: string | null;   // user's "what will you focus on?" — not signed
-  signature: string; // HMAC-SHA256 of everything above (excluding motivationalMessage + intention)
+  blockAttempts?: number;      // running distraction-attempt counter, persisted so it survives a daemon restart — not signed (like motivationalMessage + intention); absent in older session files (treated as 0)
+  signature: string; // HMAC-SHA256 of everything above (excluding motivationalMessage + intention + blockAttempts)
 }
 
 // ── Focus Profile ─────────────────────────────────────────────────────────────
