@@ -2,6 +2,25 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.1.6] — 2026-06-03
+
+### Fixed — YouTube (and other DoH-enabled sites) get blocked on macOS too
+
+- **The Windows-only DoH fix from v1.1.5 now has a macOS mirror.** On Mac the equivalent of HKLM Group Policy is the **managed-preferences plist** — the daemon writes `DnsOverHttpsMode = "off"` into the preference domains for Chrome / Edge / Brave and `DNSOverHTTPS = {Enabled = false, Locked = true}` for Firefox during a session, with the original values backed up to `/Library/Application Support/FocusLock/doh_backup.json` and restored byte-perfect on session end. Same lifecycle as the Windows version — re-applied every 30s on the enforcement tick, restored from `SessionService.finalizeSession`.
+- The browser-restart caveat documented in v1.1.5 still applies — open tabs hold live TCP connections that survive the policy change; a browser restart drops them.
+
+### Fixed — Hosts file no longer accumulates duplicate FocusLock blocks (#62)
+
+- **Two independent bugs were piling up FocusLock-tagged sections on every re-enforce tick.** On a real dev box, **113 duplicate sections** of the same domain had accumulated over time. The root causes:
+  - **Windows**: the markers contained Unicode em-dashes (`# ── FocusLock START ──`) but the file was written with `Encoding.ASCII`, which silently turns em-dashes into `?` on disk. The next `Apply()` searched for the still-Unicode in-memory marker via `IndexOf`, never matched the corrupted on-disk form, and appended a fresh block instead of replacing — one new block per 30s tick.
+  - **macOS**: UTF-8 preserved the em-dashes correctly, but `String.range(of:)` only finds the **first** match. Any duplicate (from a race, restart edge case, or older buggy version) survived forever.
+- **Fix on both platforms:** markers are now ASCII-only (`# FocusLock START` / `# FocusLock END`), and the strip logic uses a permissive regex that matches the canonical markers, the legacy em-dashed markers, and ASCII-mojibaked leftovers — **all** in one pass. Boxes with pre-v1.1.6 accumulation self-heal on the first Apply under this code: 113 → 1 → fresh.
+
+### Internal
+
+- 8 new xUnit tests on the Windows side cover the strip logic against canonical, legacy em-dash, ASCII-mojibaked, 113-duplicate, mixed-marker, no-FocusLock, empty-input, and excess-blank-line cases. All 20 daemon tests pass (12 existing DoH + empty-payload + 8 new strip).
+- Pure-string strip helpers (`HostsFileService.StripFocusLockBlocks` / `HostsService.stripFocusLockBlocks`) so the logic is testable without touching the actual hosts file.
+
 ## [1.1.5] — 2026-06-03
 
 ### Fixed — YouTube (and other DoH-enabled sites) actually get blocked now (Windows)
