@@ -261,7 +261,7 @@ Parent dashboard shows for each child device:
 - New static `landing/reset.html` reads `?token=` from the URL, POSTs to `/auth/reset-confirm`, shows the result. Hardcoded production worker URL — forks edit it.
 - Desktop UI gained a `ForgotPasswordButton` on the login form → modal → submit → "if registered, link is on its way" copy.
 - **Operator step:** `wrangler secret put RESEND_API_KEY` against the prod worker. Until done, the worker logs `[reset-email] (no RESEND_API_KEY set)` and the email never actually sends. Key uploaded 2026-05-22.
-- **Sandbox-sender limit:** `onboarding@resend.dev` only delivers to the email used to sign up for Resend. Verifying a custom domain in Resend (`focuslock.app` or similar) lifts this; rotate the key at the same time.
+- **Sandbox-sender limit:** `onboarding@resend.dev` only delivers to the email used to sign up for Resend. Verifying a custom domain in Resend (`tryfocuslock.com`) lifts this; rotate the key at the same time.
 
 **Phase 2.9 — Login + reset-request rate limiting** ✅ shipped 2026-05-22
 - New `auth_rate_limits` table (`migrations/0002_auth_rate_limits.sql`) with `key TEXT PRIMARY KEY`, attempts counter, window start, and a blocked-until timestamp. Same key used whether the email exists or not — otherwise a 429 vs 401 would leak account existence.

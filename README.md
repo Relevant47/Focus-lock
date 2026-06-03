@@ -247,7 +247,7 @@ subscribe features won't work without the `api/` functions running on Vercel.
 - [ ] Add all GitHub Secrets for CI/CD
 - [ ] Purchase Windows EV code signing certificate (DigiCert/Sectigo, ~$300/yr)
 - [ ] Enroll in Apple Developer Program ($99/yr), create Developer ID cert
-- [ ] Register domain (focuslock.app or similar)
+- [x] Register domain (tryfocuslock.com)
 - [ ] Deploy landing page + privacy/terms pages
 - [ ] Set up support email
 - [ ] Push `v1.0.0` tag to trigger first release build

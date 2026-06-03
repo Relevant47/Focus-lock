@@ -56,7 +56,7 @@ There is **no automated test suite**. Verify changes by building each affected c
 
 The in-app survey ships data to two places. There is no third place — don't go hunting for one.
 
-**Live host:** the public site runs on `https://focus-lock-sable.vercel.app` (the Vercel-assigned alias; Vercel project `focus-lock` / `prj_KOtxCyLv3XMSiDnitmLYbtw5ymtT`). The apex `focuslock.app` is the planned eventual domain but **isn't registered yet** — references to it in `README.md`, `docs/family-controls-design.md`, `family-server/src/types.ts`, and `vercel.json`'s CSP are aspirational and stay until the domain is bought (then they activate without code changes). Don't point client code at `focuslock.app` until DNS exists.
+**Live host:** the public site runs on `https://tryfocuslock.com` (the registered apex; Vercel project `focus-lock` / `prj_KOtxCyLv3XMSiDnitmLYbtw5ymtT`). The Vercel-assigned alias `https://focus-lock-sable.vercel.app` still works as a backup and remains in `vercel.json`'s CSP alongside the apex. The original first-choice domain `focuslock.app` was unavailable at purchase time — all `focuslock.app` references have been removed from the codebase.
 
 **Survey analytics dashboard:** `https://focus-lock-sable.vercel.app/admin/analytics`
 - Supabase magic-link auth → email must be in the `ADMIN_EMAILS` env var on Vercel (comma-separated), or you get 403.
@@ -69,6 +69,6 @@ The in-app survey ships data to two places. There is no third place — don't go
 - The embed URL carries `utm_source=in-app-survey&utm_medium=app&utm_campaign=in-app-survey`, so filtering on that in Beehiiv isolates survey-flow signups vs. landing-page signups.
 - `vercel.json` exempts `/newsletter-embed.html` from the site-wide `X-Frame-Options: DENY` and adds a `frame-ancestors` CSP covering Tauri origins + the live vercel.app host + the planned apex. Don't collapse those two header rules back into one.
 
-**Desktop app → API base URL:** `ui/src/lib/surveyApi.ts` defaults to `https://focus-lock-sable.vercel.app`; override with `VITE_SURVEY_API_URL` at build time. When the apex is bought, flip the default (or set the env var on the release pipeline) — until then, do NOT change it back to `focuslock.app` or the survey will silently fail on every shipped client.
+**Desktop app → API base URL:** `ui/src/lib/surveyApi.ts` defaults to `https://tryfocuslock.com`; override with `VITE_SURVEY_API_URL` at build time (e.g. preview deployments or self-builds). Already-shipped clients on 1.1.4 and earlier still talk to the Vercel alias — the alias remains live, so they keep working without an update.
 
 **Raw tables (Supabase project `ipmmmebtsbhplcmwkflh`):** `survey_responses` (one row per finished response), `survey_prompts_shown` (denominator for response-rate), `survey_stats_daily` (nightly snapshots).

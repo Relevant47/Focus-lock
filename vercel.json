@@ -21,7 +21,7 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self' tauri: https://tauri.localhost http://tauri.localhost https://focus-lock-sable.vercel.app https://focuslock.app" }
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self' tauri: https://tauri.localhost http://tauri.localhost https://focus-lock-sable.vercel.app https://tryfocuslock.com" }
       ]
     }
   ]

@@ -2,6 +2,12 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [Unreleased]
+
+### Changed — Apex domain
+
+- Registered `tryfocuslock.com` as the official apex (the originally-planned `focuslock.app` was unavailable). The desktop survey API now defaults to `https://tryfocuslock.com`; `vercel.json` CSP allows the new apex; family-server Resend/from-address examples and design docs updated. The `focus-lock-sable.vercel.app` Vercel alias is still live, so already-shipped clients keep working without an update.
+
 ## [1.1.4] — 2026-05-27
 
 ### Added — In-app survey

@@ -6,7 +6,7 @@ export interface Env {
   // (dev / self-host without email yet).
   RESEND_API_KEY?: string;
   /// Override "FocusLock <onboarding@resend.dev>" once a custom domain is
-  /// verified in Resend, e.g. "FocusLock <hello@focuslock.app>".
+  /// verified in Resend, e.g. "FocusLock <hello@tryfocuslock.com>".
   EMAIL_FROM?: string;
   /// Base URL for the password-reset landing page. The worker appends
   /// `?token=<jwt>` to this when sending the email. Defaults to the Vercel
