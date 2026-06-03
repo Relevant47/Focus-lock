@@ -84,7 +84,7 @@ We're especially interested in:
 ## How to report
 
 - **GitHub issues** for reproducible bugs: <https://github.com/Relevant47/focus-lock/issues>
-- **Direct email** for anything you'd rather not put in public: me@oscarpetrikas.com
+- **Direct email** for anything you'd rather not put in public: hello@tryfocuslock.com
 - **What helps most:** the platform (Windows / macOS), the version (Settings → Daemon shows it), exactly what you did, what you expected, what actually happened. Screenshots welcome.
 
 ## Privacy + data we hold
