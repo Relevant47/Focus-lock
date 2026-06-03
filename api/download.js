@@ -10,10 +10,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'invalid_os' });
   }
 
+  // Authenticated GitHub API calls get 5,000 req/hr per token instead of the
+  // 60 req/hr unauthenticated limit shared across the Vercel egress IP pool.
+  // GITHUB_TOKEN is optional so local dev still works.
+  const ghToken = process.env.GITHUB_TOKEN;
   let release;
   try {
     const resp = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-      headers: { Accept: 'application/vnd.github.v3+json' },
+      headers: {
+        Accept: 'application/vnd.github.v3+json',
+        ...(ghToken ? { Authorization: `Bearer ${ghToken}` } : {}),
+      },
     });
     if (resp.status === 404) return res.json({ ok: false, error: 'no_release' });
     if (!resp.ok) return res.json({ ok: false, error: 'api_error' });

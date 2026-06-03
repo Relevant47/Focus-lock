@@ -16,6 +16,11 @@
 interface Env {
   GITHUB_OWNER: string;
   GITHUB_REPO: string;
+  // Optional fine-grained PAT (public-repo read). Authenticated requests get
+  // 5,000 req/hr per token vs. 60 req/hr unauthenticated. The 5-minute cache
+  // header already softens the rate-limit impact, but a Cloudflare edge IP
+  // pool can still hit 60/hr under a traffic event. Set with `wrangler secret`.
+  GITHUB_TOKEN?: string;
 }
 
 interface GitHubRelease {
@@ -82,6 +87,7 @@ export default {
       headers: {
         'User-Agent': 'FocusLock-UpdateServer/1.0',
         'Accept': 'application/vnd.github.v3+json',
+        ...(env.GITHUB_TOKEN ? { Authorization: `Bearer ${env.GITHUB_TOKEN}` } : {}),
       },
     });
 
