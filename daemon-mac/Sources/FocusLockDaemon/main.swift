@@ -2,7 +2,8 @@ import Foundation
 
 fputs("[focuslock] Daemon starting\n", stderr)
 
-let sessionSvc       = SessionService()
+let dohSvc           = BrowserDohPolicyService()
+let sessionSvc       = SessionService(doh: dohSvc)
 let profileSvc       = ProfileService()
 let auditSvc         = ParentAuditService()
 let parentSvc        = ParentService(audit: auditSvc)
