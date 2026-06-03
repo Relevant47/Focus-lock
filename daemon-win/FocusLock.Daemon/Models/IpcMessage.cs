@@ -130,7 +130,7 @@ public sealed class IpcResponse
 
 public sealed class DaemonStatus
 {
-    public string Version { get; set; } = "1.0.0";
+    public string Version { get; set; } = "1.1.3";
     public bool SessionActive { get; set; }
     public SessionState? Session { get; set; }
     public double? SecondsRemaining { get; set; }

@@ -2,6 +2,19 @@
 
 All notable changes to FocusLock will be documented here.
 
+## [1.1.4] — 2026-05-27
+
+### Added — In-app survey
+
+- **Settings → Feedback → "Take survey"** opens a 2-minute optional survey with NPS, demographics, usage patterns, and free-text "What do you like most / least" prompts. Results are stored anonymously in Supabase and feed the admin analytics dashboard. Submitting once locks the entry to prevent dupes; you can delete your response any time from the same Settings panel.
+- **Smart nudge.** A small bottom-right banner suggests the survey after 5 completed focus sessions or 7 days of use, hard-capped at 3 lifetime appearances. Never interrupts an active block or pomodoro work phase. "Maybe later" snoozes 7 days, "No thanks" snoozes 60 days.
+- **Inline newsletter opt-in** at the end of the survey — sends signups directly to Beehiiv via an embedded form (no email leaves FocusLock except to Beehiiv if you choose to subscribe).
+- **Privacy:** the survey is anonymous; an `install_id` (UUID v4 generated client-side) prevents duplicate submissions but isn't linked to any identifying data. Privacy policy updated to disclose the new optional collection. Full schema documented in `README.md`.
+
+### Fixed — Survey API host
+
+- The desktop client's default survey API host pointed at the not-yet-registered `focuslock.app` domain. Defaults now resolve to the live Vercel alias so survey submissions actually reach the server. `VITE_SURVEY_API_URL` override remains available for self-builders.
+
 ## [1.1.3] — 2026-05-23
 
 ### Fixed — Daemon safety (CRITICAL — affects 1.1.2 and earlier)

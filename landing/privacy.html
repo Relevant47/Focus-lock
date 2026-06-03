@@ -31,42 +31,43 @@
   <p class="date">Last updated: May 2026</p>
 
   <div class="highlight">
-    <p><strong>Short version:</strong> FocusLock collects nothing. No account, no telemetry, no analytics, no payment data. Everything stays on your device. The only external request is to check for software updates.</p>
+    <p><strong>Short version:</strong> Your focus data stays on your device — no account, no background tracking of your activity. The one exception is entirely optional and entirely up to you: if you choose to take our in-app survey, your <strong>anonymous</strong> answers are sent to us, and an email address is sent only if you separately opt into our newsletter. You can skip the survey, and you can delete your response at any time.</p>
   </div>
 
-  <h2>1. What data we collect</h2>
-  <p>FocusLock collects <strong>no personal data whatsoever</strong>. All application data — your focus profiles, session history, block lists, analytics, and settings — is stored locally on your device in:</p>
+  <h2>1. What stays on your device</h2>
+  <p>Your focus profiles, session history, block lists, in-app statistics, and settings are stored <strong>locally</strong> on your device and are never transmitted to us:</p>
   <ul>
     <li>Windows: <code>%ProgramData%\FocusLock\</code></li>
     <li>macOS: <code>/Library/Application Support/FocusLock/</code></li>
   </ul>
-  <p>This data never leaves your device.</p>
+  <p>We have no access to any of it. FocusLock has no crash reporting and does not track which sites you block, how long you focus, or how you use the app day to day. The full source code is public on <a href="https://github.com/Relevant47/focus-lock" target="_blank">GitHub</a> — you can verify this yourself.</p>
 
   <h2>2. Software updates</h2>
-  <p>FocusLock periodically checks for updates by contacting our update server and the GitHub API. This request includes:</p>
+  <p>FocusLock periodically checks for updates by contacting our update server and the GitHub API. This request includes your operating system and CPU architecture (e.g. "windows-x86_64") and your current FocusLock version number. No personally identifiable information is included. Your IP address is visible to the update server as part of the normal HTTP request, but it is not logged or stored.</p>
+
+  <h2>3. Optional in-app survey</h2>
+  <p>From time to time FocusLock may invite you to take a short, <strong>voluntary survey</strong> about how you use it (for example: age range, profession, country, how you found FocusLock, what you block, and feedback). You can decline, and declining never affects how the app works.</p>
   <ul>
-    <li>Your operating system and CPU architecture (e.g. "windows-x86_64")</li>
-    <li>Your current FocusLock version number</li>
+    <li><strong>It's anonymous.</strong> We do not ask for your name and we do not link answers to your identity. Submissions are associated only with a random identifier generated on your device, which exists solely to avoid asking you twice and to measure how many people respond.</li>
+    <li><strong>Product analytics.</strong> So we can understand response rates and where people drop off, the app records when the survey prompt is shown, dismissed, started, abandoned, or completed, tied to that same random identifier. This is the only usage analytics FocusLock collects, and it only concerns the survey itself.</li>
+    <li><strong>Where it goes.</strong> Survey responses are stored in our database (Supabase) and used only to improve FocusLock and decide what to build next.</li>
+    <li><strong>You can erase it.</strong> A "Delete my response" option is available in Settings after you submit, and removes your submission from our database.</li>
   </ul>
-  <p>No personally identifiable information is included. Your IP address is visible to the update server as part of the normal HTTP request, but it is not logged or stored.</p>
 
-  <h2>3. No telemetry</h2>
-  <p>FocusLock has <strong>no crash reporting, telemetry, analytics, or tracking</strong> of any kind. We receive no data about how you use the application, which sites you block, or how long your sessions are. The full source code is public on <a href="https://github.com/Relevant47/focus-lock" target="_blank">GitHub</a> — you can verify this yourself.</p>
+  <h2>4. Optional newsletter</h2>
+  <p>At the end of the survey you may choose to receive occasional email updates. <strong>Only if you opt in and confirm consent</strong> do we collect your email address. It is sent to our newsletter provider, <a href="https://www.beehiiv.com" target="_blank">Beehiiv</a> (a third-party processor), and is kept separate from your anonymous survey answers. Every email includes an unsubscribe link, and you can unsubscribe at any time.</p>
 
-  <h2>4. No account required</h2>
-  <p>FocusLock does not require an account, email address, or any personal information to download or use. There is no registration process.</p>
-
-  <h2>5. No payments</h2>
-  <p>FocusLock is completely free. We do not process payments and we do not collect any financial information.</p>
+  <h2>5. No account, no payments</h2>
+  <p>FocusLock does not require an account to download or use, and it is completely free — we do not process payments or collect financial information.</p>
 
   <h2>6. Children's privacy</h2>
-  <p>FocusLock does not knowingly collect any information from anyone, including children.</p>
+  <p>The survey is anonymous for everyone. If a respondent indicates they are under 18, the newsletter email opt-in is not offered, so no identifiable contact information is ever collected from a minor.</p>
 
   <h2>7. Changes to this policy</h2>
   <p>If we make material changes to this policy, we will update the "Last updated" date above. Changes will also be reflected in the GitHub repository.</p>
 
   <h2>8. Contact</h2>
-  <p>Privacy questions: <a href="mailto:me@oscarpetrikas.com">me@oscarpetrikas.com</a> or open an issue on <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank">GitHub</a>.</p>
+  <p>Privacy questions, or to request deletion of survey or newsletter data: <a href="mailto:me@oscarpetrikas.com">me@oscarpetrikas.com</a> or open an issue on <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank">GitHub</a>.</p>
 
   <footer>© 2026 FocusLock · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></footer>
 </div>

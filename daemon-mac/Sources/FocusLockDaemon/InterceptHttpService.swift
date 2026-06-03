@@ -50,7 +50,7 @@ final class InterceptHttpService {
         var addr = sockaddr_in()
         addr.sin_family = sa_family_t(AF_INET)
         addr.sin_port = UInt16(80).bigEndian
-        addr.sin_addr.s_addr = INADDR_ANY
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
 
         let bindResult = withUnsafePointer(to: &addr) { ptr in
             ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sptr in
@@ -186,7 +186,7 @@ final class InterceptHttpService {
         let secs = Int(remaining) % 60
         let timeStr = String(format: "%02d:%02d", mins, secs)
         let attempts = status.blockAttempts
-        let attemptsLabel = attempts == 1 ? "1 block intercepted" : "\(attempts) blocks intercepted"
+        let attemptsLabel = attempts == 1 ? "block intercepted" : "blocks intercepted"
         let streak = status.currentStreak
 
         // Session name from profile lookup.

@@ -46,7 +46,7 @@ public sealed class InterceptHttpService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         var listener = new HttpListener();
-        listener.Prefixes.Add("http://+:80/");
+        listener.Prefixes.Add("http://127.0.0.1:80/");
         try
         {
             listener.Start();
@@ -174,7 +174,7 @@ public sealed class InterceptHttpService : BackgroundService
         var qEnc = HttpUtility.HtmlEncode(quote);
         var aEnc = HttpUtility.HtmlEncode(author ?? string.Empty);
         var sEnc = HttpUtility.HtmlEncode(sessionName);
-        var attemptsLabel = attempts == 1 ? "1 block intercepted" : $"{attempts} blocks intercepted";
+        var attemptsLabel = attempts == 1 ? "block intercepted" : "blocks intercepted";
         var authorRow = string.IsNullOrEmpty(author) ? string.Empty : $"<p class=\"quote-author\">— {aEnc}</p>";
 
         return $$$"""

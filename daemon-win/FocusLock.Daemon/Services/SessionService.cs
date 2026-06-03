@@ -393,14 +393,17 @@ public sealed class SessionService
             var state = JsonSerializer.Deserialize<SessionState>(json);
             if (state == null) return;
 
-            // Verify signature — tampering triggers re-lock, not bypass
+            // Verify signature. A mismatch means session.json was tampered with on disk:
+            // discard the state instead of re-signing it. Re-signing would make the daemon
+            // enforce the attacker's edited block list (or a flipped hardcoreMode), defeating
+            // the HMAC entirely. Refusing to load a tampered file is the safe response.
             var expected = Sign(state);
             if (!CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(state.Signature),
                 Encoding.UTF8.GetBytes(expected)))
             {
-                _log.LogWarning("Session state signature mismatch — re-locking");
-                state.Signature = expected;
+                _log.LogWarning("Session state signature mismatch — tampered session.json discarded, not loaded");
+                return;
             }
 
             if (state.IsActive)
@@ -413,6 +416,8 @@ public sealed class SessionService
             else
             {
                 _log.LogInformation("Persisted session {Id} has expired — cleaning up", state.SessionId);
+                _active = state;
+                _blockAttempts = 0;
                 FinalizeSession(completed: true);
             }
         }

@@ -99,8 +99,8 @@ public sealed class HostsFileService
         // Plain domain: add root + common subdomains
         var clean = pattern.TrimStart('*', '.');
         result.Add(clean);
-        result.Add("www." + clean);
-        result.Add("m." + clean);
+        foreach (var sub in CommonSubdomains)
+            result.Add($"{sub}.{clean}");
     }
 
     private void WriteBlock(List<string> domains)

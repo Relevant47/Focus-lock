@@ -221,17 +221,19 @@ npx wrangler deploy
 
 ## Deploying the landing page
 
-The `landing/` directory is a fully self-contained static site. Deploy it anywhere:
+The site is deployed on **Vercel**, configured by `vercel.json` at the repo root:
+it serves `landing/` as the static output and applies the security headers (HSTS,
+X-Frame-Options, etc.). The `api/` directory holds the Vercel serverless functions
+(`download`, `get-reviews`, `submit-review`, `subscribe`) that back the site — these
+require Vercel, so deploy the whole repo, not just `landing/`.
 
-**Netlify:** drag and drop the `landing/` folder at app.netlify.com
-
-**Vercel:**
 ```bash
 npm i -g vercel
-vercel landing/
+vercel            # from the repo root; vercel.json handles the rest
 ```
 
-**GitHub Pages:** push `landing/` contents to a `gh-pages` branch.
+The static `landing/` HTML/CSS/JS can be hosted on any static host, but the review and
+subscribe features won't work without the `api/` functions running on Vercel.
 
 ---
 
@@ -251,6 +253,89 @@ vercel landing/
 - [ ] Push `v1.0.0` tag to trigger first release build
 - [ ] Test the full install flow on a clean VM
 - [ ] Launch
+
+---
+
+## In-app survey & analytics
+
+A voluntary, anonymous in-app survey collects demographics, usage, and feedback,
+with an optional Beehiiv newsletter opt-in, plus a protected admin dashboard.
+
+### How it fits together
+
+```
+Desktop app (ui/)                  Vercel functions (api/survey/*)        Supabase
+─────────────────                  ───────────────────────────────       ─────────
+SurveyNudge ─┐                     submit ──────────┐
+SurveyModal ─┼─► surveyApi.ts ───► prompt-event ────┼─► survey_responses
+Settings   ──┘   (POST JSON)       delete           │   survey_prompts_shown
+            └─► newsletter-embed.html (iframe) ──┐   └─► survey_submit_ratelimit
+                                                 └─────► Beehiiv inline form (no API key)
+Admin dashboard (dashboard/) ────► stats / export (admin JWT) ─► survey_stats_daily
+```
+
+- **Single source of truth:** [`shared/survey.ts`](shared/survey.ts) defines every
+  question, its option values (which match the Postgres enums), and `validateSubmission`.
+  The UI form, the dashboard labels, and the API validation all import it.
+- **Trigger:** [`ui/src/lib/surveyTrigger.ts`](ui/src/lib/surveyTrigger.ts) (pure, unit-tested)
+  surfaces the nudge after **5+ completed sessions OR 7+ days**, never during an active
+  block, snoozes 7d/60d on dismiss, and hard-caps at **3 prompts ever**. State persists in
+  `localStorage`; submissions are anonymous, keyed to a random install id.
+- **Schema:** [`supabase/migrations/`](supabase/migrations) — applied via the Supabase MCP.
+  RLS is deny-by-default; all access goes through the Vercel functions using the service key.
+- **Newsletter:** the final step embeds Beehiiv's **inline subscribe form** via an iframe to
+  [`landing/newsletter-embed.html`](landing/newsletter-embed.html) (which carries the dashboard
+  embed `<script>`). Beehiiv collects the email directly, so **we store no newsletter PII and
+  need no Beehiiv API key**. The iframe URL carries `utm_source=in-app-survey` so signups are
+  tagged for segmentation. `vercel.json` exempts that one page from the site-wide
+  `X-Frame-Options: DENY` and sets `frame-ancestors` so the desktop webview can frame it. To
+  update the form, edit it in Beehiiv and paste the new embed code between the `BEEHIIV` markers.
+  Newsletter signup numbers live in the **Beehiiv dashboard** (not ours); the admin dashboard's
+  "Newsletter" card links there.
+- **Privacy:** disclosed in [`landing/privacy.html`](landing/privacy.html). The survey is
+  opt-in, anonymous, and self-deletable (Settings → Feedback → "Delete my response").
+
+### Environment variables (Vercel project `focus-lock`)
+
+| Var | New? | Secret? | Purpose |
+|-----|------|---------|---------|
+| `SUPABASE_URL` | existing | no | Supabase REST/auth base URL |
+| `SUPABASE_SECRET_KEY` | existing | **yes** | Service-role key — server-side reads/writes (bypasses RLS) |
+| `SUPABASE_ANON_KEY` | **add** | no | Publishable/anon key — dashboard magic-link auth + JWT verification |
+| `BEEHIIV_API_KEY` | optional | **yes** | Only for the landing-page `api/subscribe.js` form. The in-app survey uses the Beehiiv **embed** and needs no key. |
+| `BEEHIIV_PUBLICATION_ID` | optional | no | As above — only used by `api/subscribe.js`, not the embed. |
+| `ADMIN_EMAILS` | **add** | no | Comma-separated allowlist for dashboard access (e.g. `you@example.com`) |
+| `RATELIMIT_SALT` | optional | yes | Salt for hashing submitter IPs (defaults to a constant if unset) |
+
+> The Vercel CLI/MCP can't write env vars here — add them in **Project → Settings →
+> Environment Variables** (or `vercel env add`). The dashboard reads `SUPABASE_URL` +
+> `SUPABASE_ANON_KEY` at runtime via `/api/survey/config`, so it needs no build-time env.
+
+### Admin dashboard
+
+Built by `dashboard/` into `landing/admin/` (via `vercel.json` `buildCommand`) and served at
+**`/admin/analytics`**. Sign in with a magic link sent to an `ADMIN_EMAILS` address; data
+endpoints reject any other account. Locally: `cd dashboard && npm install && npm run dev`.
+
+### Adding or changing a survey question
+
+1. Add/edit the question in `SURVEY_SECTIONS` in [`shared/survey.ts`](shared/survey.ts)
+   (`id`, `type`, `prompt`, `options` as `{ value, label }`, `skippable`, etc.). The form
+   and validation update automatically.
+2. Add a matching column to `survey_responses` via a new migration in `supabase/migrations/`
+   (apply it through the Supabase MCP). Single-selects use a Postgres enum whose values must
+   equal the `option.value`s; multi-selects use a `text[]` column (no enum needed).
+3. For dashboard charts, add the field to `refresh_survey_stats()` (migration `0002`) and a
+   `<Card>` in `dashboard/src/App.tsx`.
+4. Update the CSV `COLUMNS` list in `api/survey/export.ts`.
+
+### Advanced visualization (Looker Studio)
+
+The dashboard covers day-to-day needs, but for ad-hoc analysis: use the **Export CSV** button
+(admin only) to download all responses, then in [Looker Studio](https://lookerstudio.google.com)
+create a data source via **File Upload** and point it at the CSV (re-upload to refresh). For a
+live connection, Looker's **PostgreSQL connector** can read the Supabase database directly using
+the connection details in Supabase → Project Settings → Database (use a read-only role).
 
 ---
 

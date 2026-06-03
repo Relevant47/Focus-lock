@@ -70,9 +70,18 @@ final class SessionService {
     init() {
         _signingKey = Self.loadOrCreateKey()
         verifyBinaryHash()
-        _active = Self.loadPersistedSession(key: _signingKey)
-        if let a = _active, a.pomodoroConfig != nil {
-            _pomodoro = PomodoroState(config: a.pomodoroConfig!, sessionStart: a.startTime)
+        if let state = Self.loadPersistedSession(key: _signingKey) {
+            if state.isActive {
+                _active = state
+                if let cfg = state.pomodoroConfig {
+                    _pomodoro = PomodoroState(config: cfg, sessionStart: state.startTime)
+                }
+            } else {
+                // Session expired while the daemon was offline — log it as completed
+                // and delete the stale state file instead of silently discarding it.
+                _active = state
+                finalizeSession(completed: true)
+            }
         }
     }
 
@@ -179,7 +188,7 @@ final class SessionService {
                 motivationalMessage: payload.motivationalMessage,
                 intention: (trimmedIntention?.isEmpty == false) ? trimmedIntention : nil
             )
-            state.signature = sign(state, key: _signingKey)
+            state.signature = Self.sign(state, key: _signingKey)
             _active = state
             _blockAttempts = 0
             _failedUnlockAttempts = 0
@@ -207,7 +216,7 @@ final class SessionService {
                     return ("Too many failed attempts — wait \(wait)s", false)
                 }
                 let providedHash = hashToken(provided)
-                guard providedHash == tokenHash else {
+                guard Self.constantTimeEquals(providedHash, tokenHash) else {
                     _failedUnlockAttempts += 1
                     let backoff = backoffSeconds(_failedUnlockAttempts)
                     _nextUnlockAllowed = Date().addingTimeInterval(Double(backoff))
@@ -310,7 +319,7 @@ final class SessionService {
         return key
     }
 
-    private func sign(_ s: SessionState, key: SymmetricKey) -> String {
+    private static func sign(_ s: SessionState, key: SymmetricKey) -> String {
         let parts: [String] = [
             s.sessionId,
             s.startTime.iso8601,
@@ -331,13 +340,43 @@ final class SessionService {
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
         guard let state = try? dec.decode(SessionState.self, from: data) else { return nil }
-        guard state.isActive else { return nil }
+
+        // Verify the HMAC signature. A mismatch means session.json was tampered with
+        // on disk — discard the state instead of loading it. Enforcing an attacker's
+        // edited block list (or a flipped hardcoreMode) would defeat the HMAC entirely.
+        let expected = Array(sign(state, key: key).utf8)
+        let actual = Array(state.signature.utf8)
+        guard expected.count == actual.count else {
+            fputs("[security] Session state signature mismatch — tampered session.json discarded, not loaded\n", stderr)
+            return nil
+        }
+        var diff: UInt8 = 0
+        for i in 0..<expected.count { diff |= expected[i] ^ actual[i] }
+        guard diff == 0 else {
+            fputs("[security] Session state signature mismatch — tampered session.json discarded, not loaded\n", stderr)
+            return nil
+        }
+
+        // Return the decoded session regardless of expiry; the caller decides
+        // whether to resume it (still active) or finalize it (expired).
         return state
     }
 
     private func hashToken(_ token: String) -> String {
         let digest = SHA256.hash(data: Data(token.trimmingCharacters(in: .whitespaces).utf8))
         return Data(digest).hexString
+    }
+
+    // Constant-time comparison of two secret-bearing strings (e.g. token hashes),
+    // mirroring the Windows daemon's CryptographicOperations.FixedTimeEquals. Avoids
+    // the early-return timing oracle of Swift's `==`.
+    private static func constantTimeEquals(_ a: String, _ b: String) -> Bool {
+        let lhs = Array(a.utf8)
+        let rhs = Array(b.utf8)
+        guard lhs.count == rhs.count else { return false }
+        var diff: UInt8 = 0
+        for i in 0..<lhs.count { diff |= lhs[i] ^ rhs[i] }
+        return diff == 0
     }
 
     private func backoffSeconds(_ attempts: Int) -> Int {

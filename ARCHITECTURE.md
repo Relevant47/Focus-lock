@@ -202,7 +202,7 @@ token = base64url("<expiryUnixSeconds>.<HMAC-SHA256(tokenKey, expiryUnixSeconds)
 
 ### Rate limiting
 
-Failed PIN attempts follow the same ladder as friend-lock: 0s → 10s → 30s → 60s → 5min. Reset on successful verify.
+Failed PIN attempts follow the same ladder as friend-lock: 10s → 30s → 60s → 5min. Reset on successful verify.
 
 ### Audit log
 
@@ -302,7 +302,7 @@ Example: `0 9 * * 1-5` = weekdays at 9:00 AM
 
 ```powershell
 cd daemon-win/FocusLock.Daemon
-dotnet publish -c Release -r win-x64 --self-contained false -o publish/
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/
 ```
 
 ### macOS daemon
