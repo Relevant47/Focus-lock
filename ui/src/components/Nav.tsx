@@ -74,9 +74,14 @@ export default function Nav() {
           <div className="leading-none">
             <h1 className="text-[16px] font-bold tracking-tighter2 text-gradient">FocusLock</h1>
             <div className="flex items-center gap-1.5 mt-1">
-              <span className={cn('w-1.5 h-1.5 rounded-full', connected ? 'bg-success' : 'bg-danger')} />
+              <span className={cn(
+                'w-1.5 h-1.5 rounded-full',
+                !connected ? 'bg-danger'
+                  : sessionActive ? cn('animate-soft-pulse', hardcore ? 'bg-crimson' : friendLock ? 'bg-warn' : 'bg-accent')
+                  : 'bg-success',
+              )} />
               <span className="text-[10px] text-faint tnum">
-                {connected ? `v${status?.version ?? '…'}` : 'No daemon'}
+                {!connected ? 'No daemon' : sessionActive ? 'Focusing' : `v${status?.version ?? '…'}`}
               </span>
             </div>
           </div>
@@ -113,26 +118,38 @@ export default function Nav() {
         ))}
       </div>
 
-      {/* Session footer */}
+      {/* Active-session indicator — always visible from every page while a
+          session runs, with the live countdown. Colour-keyed to the session
+          type (accent / hardcore-crimson / friend-lock-amber). */}
       {sessionActive && (
-        <div className="mt-6 mx-2 p-3 rounded-xl border border-border bg-hover/50">
-          <div className="flex items-center gap-2 mb-1.5">
+        <div className={cn(
+          'mt-6 mx-2 p-3 rounded-xl border',
+          hardcore   ? 'border-crimson/40 bg-crimson/10'
+            : friendLock ? 'border-warn/40 bg-warn/10'
+            : 'border-accent/40 bg-accent/10',
+        )}>
+          <div className="flex items-center gap-2 mb-1">
             <span className={cn(
-              'w-1.5 h-1.5 rounded-full pulse-dot animate-soft-pulse',
+              'w-2 h-2 rounded-full pulse-dot animate-soft-pulse',
               hardcore ? 'bg-crimson text-crimson' : friendLock ? 'bg-warn text-warn' : 'bg-accent text-accent',
             )} />
             <span className={cn(
-              'text-[10px] uppercase tracking-wider font-semibold',
+              'text-[10px] uppercase tracking-[0.15em] font-bold',
               hardcore ? 'text-crimson' : friendLock ? 'text-warn' : 'text-accent',
             )}>
               {hardcore ? 'Hardcore' : friendLock ? 'Friend lock' : 'Focusing'}
             </span>
+            {hardcore && <Icon.Lock size={11} className="text-crimson ml-auto" />}
           </div>
           {status?.secondsRemaining != null && (
-            <p className="text-base font-mono tnum text-text">{fmtClock(status.secondsRemaining)}</p>
+            <p className={cn(
+              'text-2xl font-bold font-mono tnum leading-none',
+              hardcore ? 'text-crimson' : friendLock ? 'text-warn' : 'text-accent',
+            )}>{fmtClock(status.secondsRemaining)}</p>
           )}
+          <p className="text-[10px] text-faint mt-1">remaining</p>
           {(status?.currentStreak ?? 0) > 0 && (
-            <p className="flex items-center gap-1 text-[11px] text-warn mt-1">
+            <p className="flex items-center gap-1 text-[11px] text-warn mt-2">
               <Icon.Flame size={11} />
               <span className="tnum">{status?.currentStreak}d streak</span>
             </p>
@@ -140,9 +157,14 @@ export default function Nav() {
         </div>
       )}
 
-      {/* Daily goal widget */}
-      {!sessionActive && (
+      {/* Idle state — a clear "READY" badge so the absence of a session is
+          unmistakable, distinct from the active indicator above. */}
+      {!sessionActive && connected && (
         <div className="mt-6 mx-2 p-3 rounded-xl border border-border bg-hover/50">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-success" />
+            <span className="text-[10px] uppercase tracking-[0.15em] font-bold text-success">Ready</span>
+          </div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] uppercase tracking-wider text-faint font-semibold">Today</span>
             <span className="text-[11px] text-muted tnum">{mins}m / {goal}m</span>

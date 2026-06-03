@@ -3,8 +3,31 @@ import Foundation
 /// Writes blocked domains into /etc/hosts and flushes DNS.
 final class HostsService {
     private static let hostsPath = "/etc/hosts"
-    private static let markerStart = "# ── FocusLock START ──"
-    private static let markerEnd   = "# ── FocusLock END ──"
+
+    // ASCII-clean markers (mirrors daemon-win after the v1.1.6 fix). Legacy
+    // Unicode em-dashed markers (`# ── FocusLock START ──`) still exist on
+    // users' hosts files from prior versions; the strip regex below is
+    // permissive enough to clean them up on first Apply with this code.
+    // See issue #62.
+    private static let markerStart = "# FocusLock START"
+    private static let markerEnd   = "# FocusLock END"
+
+    // Permissive regex: matches the canonical ASCII markers, legacy
+    // em-dashed markers, and any text decoration around the FocusLock START /
+    // FocusLock END anchors. Strips ALL occurrences in one pass — Foundation's
+    // String.range(of:) returns only the first match, which meant any
+    // duplicate FocusLock section (from a race, a daemon restart edge case,
+    // or simply old buggy versions) would survive forever. NSRegularExpression
+    // replaces all matches in `stringByReplacingMatches`.
+    private static let blockSectionRegex = try! NSRegularExpression(
+        pattern: #"#[^\r\n]*FocusLock[^\r\n]*START[^\r\n]*\r?\n[\s\S]*?#[^\r\n]*FocusLock[^\r\n]*END[^\r\n]*\r?\n?"#,
+        options: []
+    )
+
+    private static let blankRunRegex = try! NSRegularExpression(
+        pattern: #"(\r?\n){3,}"#,
+        options: []
+    )
 
     func apply(_ session: SessionState) {
         apply(blocked: session.blockedDomains, allowed: session.allowlistedDomains)
@@ -53,45 +76,52 @@ final class HostsService {
 
     private func writeBlock(_ domains: [String]) {
         let original = (try? String(contentsOfFile: Self.hostsPath, encoding: .utf8)) ?? ""
-        var out = ""
-
-        // Strip existing FocusLock block
-        if let startRange = original.range(of: Self.markerStart),
-           let endRange   = original.range(of: Self.markerEnd) {
-            out = String(original[original.startIndex..<startRange.lowerBound])
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let afterEnd = original[endRange.upperBound...]
-            let afterTrimmed = afterEnd.drop(while: { $0.isNewline })
-            if !afterTrimmed.isEmpty {
-                out += "\n" + afterTrimmed
-            }
-        } else {
-            out = original.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        let cleaned = Self.stripFocusLockBlocks(original)
 
         if domains.isEmpty {
-            try? (out + "\n").write(toFile: Self.hostsPath, atomically: true, encoding: .utf8)
+            let body = cleaned.isEmpty ? "" : cleaned + "\n"
+            try? body.write(toFile: Self.hostsPath, atomically: true, encoding: .utf8)
             return
         }
 
-        out += "\n\n"
+        var out = cleaned
+        if !out.isEmpty { out += "\n\n" }
         out += Self.markerStart + "\n"
-        out += "# Managed by FocusLock — do not edit manually\n"
+        out += "# Managed by FocusLock - do not edit manually\n"
         for d in domains {
             out += "127.0.0.1 \(d)\n"
         }
-        out += Self.markerEnd
+        out += Self.markerEnd + "\n"
 
         try? out.write(toFile: Self.hostsPath, atomically: true, encoding: .utf8)
+    }
+
+    /// Strip every FocusLock-tagged section from the input — current ASCII
+    /// markers, legacy em-dashed markers, duplicates, the lot. Pure function
+    /// so tests can verify the regex without touching /etc/hosts.
+    static func stripFocusLockBlocks(_ input: String) -> String {
+        var cleaned = replaceAll(in: input, regex: Self.blockSectionRegex, with: "")
+        cleaned = replaceAll(in: cleaned, regex: Self.blankRunRegex, with: "\n\n")
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func replaceAll(in input: String, regex: NSRegularExpression, with template: String) -> String {
+        let range = NSRange(input.startIndex..., in: input)
+        return regex.stringByReplacingMatches(in: input, options: [], range: range, withTemplate: template)
     }
 
     private func flushDns() {
         // Flush macOS DNS cache
         run("/usr/bin/dscacheutil", ["-flushcache"])
-        run("/bin/kill", ["-HUP", mDNSResponderPid()])
+        // Skip the HUP when mDNSResponder isn't running — otherwise the previous
+        // "1" fallback would signal launchd (PID 1) and cause it to re-evaluate
+        // its configuration.
+        if let pid = mDNSResponderPid() {
+            run("/bin/kill", ["-HUP", pid])
+        }
     }
 
-    private func mDNSResponderPid() -> String {
+    private func mDNSResponderPid() -> String? {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/ps")
         task.arguments = ["-ax", "-o", "pid,comm"]
@@ -101,10 +131,14 @@ final class HostsService {
         let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         for line in out.components(separatedBy: "\n") {
             if line.contains("mDNSResponder") && !line.contains("Helper") {
-                return line.trimmingCharacters(in: .whitespaces).components(separatedBy: " ").first ?? "1"
+                let pid = line.trimmingCharacters(in: .whitespaces)
+                    .components(separatedBy: " ").first
+                // Reject PID 1 (launchd) defensively: we never want to HUP it.
+                if let pid, !pid.isEmpty, pid != "1" { return pid }
+                return nil
             }
         }
-        return "1"
+        return nil
     }
 
     @discardableResult

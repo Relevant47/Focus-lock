@@ -63,6 +63,27 @@ export async function loadAccountExport(db: D1Database, accountId: string): Prom
   };
 }
 
+// ── reset-token single-use tracking ────────────────────────────────────────
+
+/// Records that a reset-token `jti` has been consumed. Idempotent at the
+/// PRIMARY KEY level — a second insert with the same jti throws, which is
+/// how `isResetJtiUsed` callers detect a replay.
+export async function markResetJtiUsed(
+  db: D1Database,
+  jti: string,
+  expiresAtMs: number,
+): Promise<void> {
+  await db.prepare(
+    'INSERT INTO used_reset_tokens (jti, consumed_at, expires_at) VALUES (?, ?, ?)',
+  ).bind(jti, new Date().toISOString(), expiresAtMs).run();
+}
+
+export async function isResetJtiUsed(db: D1Database, jti: string): Promise<boolean> {
+  const row = await db.prepare('SELECT 1 FROM used_reset_tokens WHERE jti = ?')
+    .bind(jti).first();
+  return row !== null;
+}
+
 // ── audit log ──────────────────────────────────────────────────────────────
 
 export async function logAudit(

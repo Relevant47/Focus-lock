@@ -5,6 +5,7 @@ import { CATEGORY_LABELS, type FocusProfile, type BlockCategory, type PomodoroCo
 import { Page, PageHeader, Pill, Toggle } from '../components/ui';
 import { Icon } from '../components/Icons';
 import EmptyState from '../components/EmptyState';
+import ActiveSessionBanner from '../components/ActiveSessionBanner';
 import { cn } from '../lib/cn';
 import { SUGGESTED_APPS, type SuggestedApp } from '../lib/suggestedApps';
 import { IS_MACOS } from '../lib/platform';
@@ -307,6 +308,7 @@ export default function Profiles() {
   return (
     <Page className="p-8">
       <div className="max-w-3xl mx-auto space-y-5">
+        <ActiveSessionBanner />
         <PageHeader
           title="Focus Profiles"
           sub="Reusable blocking configurations"

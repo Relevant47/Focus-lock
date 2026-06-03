@@ -59,6 +59,7 @@ final class SessionService {
     private var _signingKey: SymmetricKey
     private var _blockAttempts = 0
     private var _pomodoro: PomodoroState?
+    private let _doh: BrowserDohPolicyService?
 
     // Friend-lock rate limiting
     private var _failedUnlockAttempts = 0
@@ -67,10 +68,14 @@ final class SessionService {
     // Hardcore cooldown
     private var _hardcoreCooldownUntil: Date?
 
-    init() {
+    init(doh: BrowserDohPolicyService? = nil) {
+        _doh = doh
         _signingKey = Self.loadOrCreateKey()
         verifyBinaryHash()
         if let state = Self.loadPersistedSession(key: _signingKey) {
+            // Restore the persisted distraction-attempt count so a session that
+            // expired (or resumes) across a restart keeps an accurate focus score.
+            _blockAttempts = state.blockAttempts ?? 0
             if state.isActive {
                 _active = state
                 if let cfg = state.pomodoroConfig {
@@ -112,7 +117,17 @@ final class SessionService {
         }
     }
 
-    func incrementBlockAttempt() { lock.withLock { _blockAttempts += 1 } }
+    func incrementBlockAttempt() {
+        lock.withLock {
+            _blockAttempts += 1
+            // Persist the running count so it survives a daemon restart / reboot.
+            // The signature is unaffected (blockAttempts is not part of the payload).
+            if _active != nil {
+                _active?.blockAttempts = _blockAttempts
+                if let state = _active { persist(state) }
+            }
+        }
+    }
 
     func getStatus() -> DaemonStatus {
         lock.withLock {
@@ -173,6 +188,12 @@ final class SessionService {
     func startSession(_ payload: StartSessionPayload) -> (String, Bool) {
         lock.withLock {
             guard !(_active?.isActive ?? false) else { return ("Session already active", false) }
+            // No-op session guard — mirrors the C# daemon. Refuse a session
+            // whose payload would block nothing rather than silently running a
+            // session that looks active to the UI but enforces zero rules.
+            guard !(payload.blockedDomains.isEmpty && payload.blockedProcesses.isEmpty) else {
+                return ("Session must block at least one site or app", false)
+            }
 
             let trimmedIntention = payload.intention?.trimmingCharacters(in: .whitespacesAndNewlines)
             var state = SessionState(
@@ -258,6 +279,11 @@ final class SessionService {
         _active = nil
         _pomodoro = nil
         try? FileManager.default.removeItem(at: Self.statePath)
+
+        // Restore browser DoH policy to whatever the user had before the
+        // session — the paired apply() at session start backed it up to
+        // /Library/Application Support/FocusLock/doh_backup.json.
+        _doh?.restore()
     }
 
     private func calculateScore(completed: Bool) -> Int {

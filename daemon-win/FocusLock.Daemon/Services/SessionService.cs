@@ -12,14 +12,21 @@ namespace FocusLock.Daemon.Services;
 /// </summary>
 public sealed class SessionService
 {
-    private static readonly string StateDir = Path.Combine(
+    private static readonly string DefaultStateDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
         "FocusLock");
 
-    private static readonly string StatePath = Path.Combine(StateDir, "session.json");
-    private static readonly string KeyPath = Path.Combine(StateDir, "daemon.key");
+    // Instance paths so tests can redirect persistence to a temp directory
+    // without touching %ProgramData% (which a non-elevated test user cannot
+    // write to). Production code uses the DefaultStateDir.
+    private readonly string _stateDir;
+    private readonly string StatePath;
+    private readonly string KeyPath;
+    private readonly string HashPath;
+    private readonly string LogPath;
 
     private readonly ILogger<SessionService> _log;
+    private readonly BrowserDohPolicyService? _doh;
     private readonly object _lock = new();
     private SessionState? _active;
     private byte[] _signingKey = Array.Empty<byte>();
@@ -34,15 +41,27 @@ public sealed class SessionService
     private DateTime? _hardcoreCooldownUntil;
 
     public SessionService(ILogger<SessionService> log)
+        : this(log, doh: null, stateDir: null) { }
+
+    public SessionService(ILogger<SessionService> log, BrowserDohPolicyService? doh)
+        : this(log, doh, stateDir: null) { }
+
+    // Test seam: stateDir overrides the default %ProgramData%\FocusLock path
+    // so unit tests can keep their state inside a per-test temp directory.
+    internal SessionService(ILogger<SessionService> log, BrowserDohPolicyService? doh, string? stateDir)
     {
         _log = log;
-        Directory.CreateDirectory(StateDir);
+        _doh = doh;
+        _stateDir = stateDir ?? DefaultStateDir;
+        StatePath = Path.Combine(_stateDir, "session.json");
+        KeyPath = Path.Combine(_stateDir, "daemon.key");
+        HashPath = Path.Combine(_stateDir, "daemon.hash");
+        LogPath = Path.Combine(_stateDir, "sessions.jsonl");
+        Directory.CreateDirectory(_stateDir);
         LoadOrCreateKey();
         VerifyBinaryHash();
         LoadPersistedSession();
     }
-
-    private static readonly string HashPath = Path.Combine(StateDir, "daemon.hash");
 
     private void VerifyBinaryHash()
     {
@@ -98,7 +117,17 @@ public sealed class SessionService
 
     public void IncrementBlockAttempt()
     {
-        lock (_lock) _blockAttempts++;
+        lock (_lock)
+        {
+            _blockAttempts++;
+            // Persist the running count so it survives a daemon restart / reboot.
+            // The signature is unaffected (blockAttempts is not part of the payload).
+            if (_active != null)
+            {
+                _active.BlockAttempts = _blockAttempts;
+                Persist();
+            }
+        }
     }
 
     public DaemonStatus GetStatus()
@@ -185,6 +214,26 @@ public sealed class SessionService
         {
             if (_active?.IsActive == true)
                 return ("Session already active", false);
+
+            // Defence in depth: the UI also refuses no-op sessions, but the
+            // daemon is the source of truth — a third-party IPC caller or a
+            // bypassed UI guard would otherwise start a session that blocks
+            // nothing at all.
+            if (payload.BlockedDomains.Count == 0 && payload.BlockedProcesses.Count == 0)
+                return ("Session must block at least one site or app", false);
+
+            // A session that has run past its EndTime but hasn't been finalized
+            // yet (e.g. the Worker tick hasn't fired) leaves _active non-null
+            // while IsActive is false. Finalize it now so it's logged as
+            // completed and the on-disk state is cleared, rather than silently
+            // overwriting it below. This keeps a single source of truth: if a
+            // session is genuinely active StartSession is rejected above; if it
+            // has expired it's properly retired here before the new one starts.
+            if (_active != null && !_active.IsActive)
+            {
+                _log.LogInformation("Retiring expired session {Id} before starting a new one", _active.SessionId);
+                FinalizeSession(completed: true);
+            }
 
             _active = new SessionState
             {
@@ -312,6 +361,18 @@ public sealed class SessionService
 
         if (File.Exists(StatePath))
             File.Delete(StatePath);
+
+        // Restore browser DoH policy to whatever the user had before the
+        // session — the paired Apply() at session start backed it up to
+        // %ProgramData%\FocusLock\doh_backup.json.
+        try
+        {
+            _doh?.Restore();
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "DoH restore failed during session finalize");
+        }
     }
 
     private int CalculateScore(bool completed)
@@ -358,6 +419,7 @@ public sealed class SessionService
             if (state.IsActive)
             {
                 _active = state;
+                _blockAttempts = state.BlockAttempts;
                 if (state.PomodoroConfig != null)
                     _pomodoro = new PomodoroState(state.PomodoroConfig, state.StartTime);
                 _log.LogInformation("Resumed session {Id}, {Rem:F0}s remaining", state.SessionId, state.Remaining.TotalSeconds);
@@ -366,7 +428,7 @@ public sealed class SessionService
             {
                 _log.LogInformation("Persisted session {Id} has expired — cleaning up", state.SessionId);
                 _active = state;
-                _blockAttempts = 0;
+                _blockAttempts = state.BlockAttempts;
                 FinalizeSession(completed: true);
             }
         }
@@ -424,8 +486,6 @@ public sealed class SessionService
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
-
-    private static readonly string LogPath = Path.Combine(StateDir, "sessions.jsonl");
 
     private void AppendLog(SessionLog log)
     {

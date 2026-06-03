@@ -8,6 +8,59 @@ All notable changes to FocusLock will be documented here.
 
 - Registered `tryfocuslock.com` as the official apex (the originally-planned `focuslock.app` was unavailable). The desktop survey API now defaults to `https://tryfocuslock.com`; `vercel.json` CSP allows the new apex; family-server Resend/from-address examples and design docs updated. The `focus-lock-sable.vercel.app` Vercel alias is still live, so already-shipped clients keep working without an update.
 
+### Added — Contact page
+
+- `landing/contact.html` is the new public contact surface, pointing to `hello@tryfocuslock.com` (Cloudflare Email Routing forwards everything `@tryfocuslock.com` to the personal inbox). Linked from the index footer and changelog footer. The contact references in `privacy.html`, `terms.html`, `reset.html`, and `docs/family-controls-beta.md` were rewired from `me@oscarpetrikas.com` to `hello@tryfocuslock.com`.
+
+## [1.1.6] — 2026-06-03
+
+### Fixed — YouTube (and other DoH-enabled sites) get blocked on macOS too
+
+- **The Windows-only DoH fix from v1.1.5 now has a macOS mirror.** On Mac the equivalent of HKLM Group Policy is the **managed-preferences plist** — the daemon writes `DnsOverHttpsMode = "off"` into the preference domains for Chrome / Edge / Brave and `DNSOverHTTPS = {Enabled = false, Locked = true}` for Firefox during a session, with the original values backed up to `/Library/Application Support/FocusLock/doh_backup.json` and restored byte-perfect on session end. Same lifecycle as the Windows version — re-applied every 30s on the enforcement tick, restored from `SessionService.finalizeSession`.
+- The browser-restart caveat documented in v1.1.5 still applies — open tabs hold live TCP connections that survive the policy change; a browser restart drops them.
+
+### Fixed — Hosts file no longer accumulates duplicate FocusLock blocks (#62)
+
+- **Two independent bugs were piling up FocusLock-tagged sections on every re-enforce tick.** On a real dev box, **113 duplicate sections** of the same domain had accumulated over time. The root causes:
+  - **Windows**: the markers contained Unicode em-dashes (`# ── FocusLock START ──`) but the file was written with `Encoding.ASCII`, which silently turns em-dashes into `?` on disk. The next `Apply()` searched for the still-Unicode in-memory marker via `IndexOf`, never matched the corrupted on-disk form, and appended a fresh block instead of replacing — one new block per 30s tick.
+  - **macOS**: UTF-8 preserved the em-dashes correctly, but `String.range(of:)` only finds the **first** match. Any duplicate (from a race, restart edge case, or older buggy version) survived forever.
+- **Fix on both platforms:** markers are now ASCII-only (`# FocusLock START` / `# FocusLock END`), and the strip logic uses a permissive regex that matches the canonical markers, the legacy em-dashed markers, and ASCII-mojibaked leftovers — **all** in one pass. Boxes with pre-v1.1.6 accumulation self-heal on the first Apply under this code: 113 → 1 → fresh.
+
+### Internal
+
+- 8 new xUnit tests on the Windows side cover the strip logic against canonical, legacy em-dash, ASCII-mojibaked, 113-duplicate, mixed-marker, no-FocusLock, empty-input, and excess-blank-line cases. All 20 daemon tests pass (12 existing DoH + empty-payload + 8 new strip).
+- Pure-string strip helpers (`HostsFileService.StripFocusLockBlocks` / `HostsService.stripFocusLockBlocks`) so the logic is testable without touching the actual hosts file.
+
+## [1.1.5] — 2026-06-03
+
+### Fixed — YouTube (and other DoH-enabled sites) actually get blocked now (Windows)
+
+- **Browser DNS-over-HTTPS was bypassing the hosts file.** The daemon was correctly writing `127.0.0.1 youtube.com` to the Windows hosts file, but Chrome / Edge / Brave / Firefox default to DNS-over-HTTPS on most networks — which never asks the OS resolver, so the hosts entry was invisible to the browser. You added youtube.com to your block list, started a session, and YouTube still loaded.
+- **Fix:** during an active session, the daemon now forces all four browsers off DoH via HKLM Group Policy keys (Chrome / Edge / Brave `DnsOverHttpsMode=off`, Firefox `DNSOverHTTPS\Enabled=0`). The prior values are backed up to `%ProgramData%\FocusLock\doh_backup.json` on session start and restored byte-perfect on session end — your browser's DoH preference is preserved exactly, including the "was never set" case.
+- **One caveat the UI now flags:** browsers cache live TCP connections independently of DNS. A YouTube tab that was already open before the session started can keep loading because the connection is already established. A simple browser restart drops the cache. The Block Lists page now has a one-liner reminding you of this when you start a Quick Block.
+- **macOS:** the equivalent plist-based browser DoH policy mechanism is not yet wired up — Mac users still hit the underlying issue until the parallel-port fix lands. Tracking issue forthcoming.
+
+### Fixed — No more no-op sessions
+
+- **Profiles with no blocks could start a session.** You could pick (or create) a profile with zero categories, zero domains, zero apps, hit Start, and the daemon would happily report "session active" while blocking nothing. The empty-list guard previously only ran on the "No profile" path.
+- **Fix:** every session-start path now refuses an empty payload. The Dashboard's main Start button and the Quick Start chips both check the built payload (not just the saved Block Lists) and surface a clear message naming the profile. The daemon validates the same condition independently (both Windows and macOS) so direct IPC clients can't bypass it.
+
+### Added — Visible session banner on Profiles and Block Lists pages
+
+- **A running session is now obvious from every configure page**, not just the Dashboard. New banner at the top of `/profiles` and `/blocklists`:
+  - Colour-keyed to the session type — accent for focusing, crimson for Hardcore, amber for Friend lock.
+  - Live MM:SS countdown that ticks with the daemon's 1-second status updates.
+  - **End early** button right there, with the same hardcore-lock / friend-lock rules as the Dashboard (locked under Hardcore; opens an inline unlock-token input under Friend lock).
+- Survives app close: the daemon is the source of truth for session state and broadcasts on every reconnect, so closing and reopening the app mid-session immediately re-renders the banner with the correct remaining time.
+
+### Added — Clearer feedback when a session is already running
+
+- Quick Start chips and the main Start button now disable themselves and show a tooltip ("A session is running. End it early or wait it out.") when a session is already active, instead of letting you click and hit a generic daemon error.
+
+### Internal
+
+- **First C# test project lands** (`daemon-win/FocusLock.Daemon.Tests`, xUnit, net8.0-windows). 12 tests covering the new DoH apply/restore lifecycle (using a `RegistryView` test seam against `HKCU\Software\FocusLockTest_*` so they need no admin) and the empty-session-payload branch in `SessionService.StartSession`. The daemon had zero unit tests before this release.
+
 ## [1.1.4] — 2026-05-27
 
 ### Added — In-app survey

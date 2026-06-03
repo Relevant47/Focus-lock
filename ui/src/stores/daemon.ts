@@ -345,3 +345,10 @@ export const useDaemon = create<State & Actions>((set, get) => ({
     });
   },
 }));
+
+// Ergonomic selector for "is a session running right now?" — used by every
+// Start surface (Dashboard, BlockLists, Quick Start chips, the new
+// ActiveSessionBanner) to disable controls without each call site re-deriving
+// the same boolean from `status`.
+export const useSessionActive = () =>
+  useDaemon(s => s.status?.sessionActive ?? false);

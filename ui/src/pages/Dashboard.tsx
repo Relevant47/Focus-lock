@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useDaemon } from '../stores/daemon';
+import { useBlockList, resolveBlockList } from '../stores/blocklist';
 import { CATEGORY_DOMAINS, type StartSessionPayload } from '../types';
 import { Icon } from '../components/Icons';
 import { Page, Pill, Toggle } from '../components/ui';
@@ -161,6 +162,10 @@ export default function Dashboard() {
   }, [mins, goal]);
 
   const profile = profiles.find(p => p.id === profileId);
+  // The user's saved global/default block list (from the Block Lists page).
+  // Used for "No profile (custom)" sessions so what the user configured there
+  // actually gets enforced — profile sessions still build from the profile.
+  const defaultBlockList = useBlockList();
 
   // When the user picks a profile, prefill hardcore with that profile's setting.
   // They can still toggle it off (or on for a non-hardcore profile) before starting.
@@ -169,25 +174,60 @@ export default function Dashboard() {
   }, [profile?.id, profile?.hardcoreMode]);
 
   function buildPayload(): StartSessionPayload {
+    // No profile selected → enforce the user's saved global default block list.
+    if (!profile) {
+      const { blockedDomains, blockedProcesses, allowlistedDomains } =
+        resolveBlockList(defaultBlockList);
+      return {
+        profileId: null,
+        durationMinutes: duration,
+        blockedDomains,
+        blockedProcesses,
+        allowlistedDomains,
+        hardcoreMode: hardcore,
+        pomodoroConfig: null,
+        unlockToken: friendLockToken.trim() || undefined,
+      };
+    }
     const blockedDomains = [
-      ...(profile?.blockedCategories ?? []).flatMap(cat => CATEGORY_DOMAINS[cat as keyof typeof CATEGORY_DOMAINS] ?? []),
-      ...(profile?.customBlockedDomains ?? []),
+      ...profile.blockedCategories.flatMap(cat => CATEGORY_DOMAINS[cat as keyof typeof CATEGORY_DOMAINS] ?? []),
+      ...profile.customBlockedDomains,
     ];
     return {
       profileId: profileId || null,
       durationMinutes: duration,
       blockedDomains,
-      blockedProcesses: profile?.customBlockedProcesses ?? [],
-      allowlistedDomains: profile?.allowlistedDomains ?? [],
+      blockedProcesses: profile.customBlockedProcesses,
+      allowlistedDomains: profile.allowlistedDomains,
       hardcoreMode: hardcore,
-      pomodoroConfig: profile?.pomodoroConfig ?? null,
+      pomodoroConfig: profile.pomodoroConfig ?? null,
       unlockToken: friendLockToken.trim() || undefined,
     };
   }
 
   function askIntention() {
     setError('');
+    // Defensive: the idle view structurally doesn't render when sessionActive,
+    // but daemon status can lag a tick on natural session expiry → user click,
+    // and we'd rather show a clear message than have the daemon reject.
+    if (status?.sessionActive) {
+      setError('A session is already running. End it early or wait it out.');
+      return;
+    }
     const payload = buildPayload();
+    // No-op session guard — applies to BOTH paths now:
+    //   • custom (no profile)  → user hasn't configured anything on Block Lists
+    //   • profile-based         → the picked profile has no categories, domains,
+    //                              or apps; we used to silently start it
+    // Either way, starting would block nothing and look broken (the "YouTube
+    // still opens" complaint). The daemon also rejects this — see
+    // SessionService.StartSession — but we surface it here without a round-trip.
+    if (payload.blockedDomains.length === 0 && payload.blockedProcesses.length === 0) {
+      setError(profile
+        ? `"${profile.name}" has no blocked sites or apps. Edit it on the Profiles page.`
+        : 'Your block list is empty. Add domains or categories on the Block Lists page, or pick a profile.');
+      return;
+    }
     setPendingPayload(payload);
     // Hardcore = interpose the no-going-back confirmation before the intention prompt.
     if (payload.hardcoreMode) setShowHardcoreConfirm(true);
@@ -217,6 +257,11 @@ export default function Dashboard() {
   async function handleQuickStart(pid: string) {
     const p = profiles.find(x => x.id === pid);
     if (!p) return;
+    setError('');
+    if (status?.sessionActive) {
+      setError('A session is already running. End it early or wait it out.');
+      return;
+    }
     const payload: StartSessionPayload = {
       profileId: p.id,
       durationMinutes: p.defaultDurationMinutes,
@@ -229,6 +274,13 @@ export default function Dashboard() {
       hardcoreMode: p.hardcoreMode,
       pomodoroConfig: p.pomodoroConfig,
     };
+    // Same no-op session guard as askIntention — Quick Start chips bypass the
+    // form, so an empty profile would otherwise sail through to the daemon
+    // (which now rejects it, but a UI message is friendlier than a thrown error).
+    if (payload.blockedDomains.length === 0 && payload.blockedProcesses.length === 0) {
+      setError(`"${p.name}" has no blocked sites or apps. Edit it on the Profiles page.`);
+      return;
+    }
     // Quick-start respects the profile's hardcore setting verbatim — but
     // hardcore profiles still get the lock-in confirmation, no exceptions.
     setPendingPayload(payload);
@@ -452,6 +504,26 @@ export default function Dashboard() {
                 {hardcore && <p className="text-crimson font-medium">Hardcore mode — session cannot be stopped early</p>}
               </div>
             )}
+
+            {/* Custom (no-profile) session — show what the saved global block
+                list will enforce, so it's obvious YouTube etc. is covered. */}
+            {!profile && (() => {
+              const { blockedDomains, blockedProcesses } = resolveBlockList(defaultBlockList);
+              const empty = blockedDomains.length === 0 && blockedProcesses.length === 0;
+              return (
+                <div className="mt-4 rounded-lg bg-bg/40 border border-border p-3 text-xs text-muted space-y-0.5">
+                  {empty ? (
+                    <p>No block list configured — add domains or categories on the <span className="text-text font-medium">Block Lists</span> page.</p>
+                  ) : (
+                    <>
+                      {defaultBlockList.categories.length > 0 && <p>Categories: {defaultBlockList.categories.join(', ')}</p>}
+                      <p>{blockedDomains.length} domains{blockedProcesses.length > 0 ? `, ${blockedProcesses.length} apps` : ''} from your Block Lists</p>
+                    </>
+                  )}
+                  {hardcore && <p className="text-crimson font-medium">Hardcore mode — session cannot be stopped early</p>}
+                </div>
+              );
+            })()}
 
             <button
               onClick={askIntention}
