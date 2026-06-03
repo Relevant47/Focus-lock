@@ -20,6 +20,7 @@ public sealed class SessionService
     private static readonly string KeyPath = Path.Combine(StateDir, "daemon.key");
 
     private readonly ILogger<SessionService> _log;
+    private readonly BrowserDohPolicyService? _doh;
     private readonly object _lock = new();
     private SessionState? _active;
     private byte[] _signingKey = Array.Empty<byte>();
@@ -34,8 +35,12 @@ public sealed class SessionService
     private DateTime? _hardcoreCooldownUntil;
 
     public SessionService(ILogger<SessionService> log)
+        : this(log, doh: null) { }
+
+    public SessionService(ILogger<SessionService> log, BrowserDohPolicyService? doh)
     {
         _log = log;
+        _doh = doh;
         Directory.CreateDirectory(StateDir);
         LoadOrCreateKey();
         VerifyBinaryHash();
@@ -325,6 +330,18 @@ public sealed class SessionService
 
         if (File.Exists(StatePath))
             File.Delete(StatePath);
+
+        // Restore browser DoH policy to whatever the user had before the
+        // session — the paired Apply() at session start backed it up to
+        // %ProgramData%\FocusLock\doh_backup.json.
+        try
+        {
+            _doh?.Restore();
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "DoH restore failed during session finalize");
+        }
     }
 
     private int CalculateScore(bool completed)

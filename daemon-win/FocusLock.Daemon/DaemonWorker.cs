@@ -6,6 +6,7 @@ public sealed class DaemonWorker : BackgroundService
 {
     private readonly SessionService _session;
     private readonly HostsFileService _hosts;
+    private readonly BrowserDohPolicyService _doh;
     private readonly ProcessKillService _procs;
     private readonly ScheduleService _schedules;
     private readonly FamilyEnforcementService _family;
@@ -13,11 +14,13 @@ public sealed class DaemonWorker : BackgroundService
 
     private int _tickCount;
     private bool _hostsApplied;          // hosts file currently carries a FocusLock block
+    private bool _dohApplied;            // DoH policy currently forced off
     private string _lastFingerprint = "";
 
     public DaemonWorker(
         SessionService session,
         HostsFileService hosts,
+        BrowserDohPolicyService doh,
         ProcessKillService procs,
         ScheduleService schedules,
         FamilyEnforcementService family,
@@ -25,6 +28,7 @@ public sealed class DaemonWorker : BackgroundService
     {
         _session = session;
         _hosts = hosts;
+        _doh = doh;
         _procs = procs;
         _schedules = schedules;
         _family = family;
@@ -90,6 +94,10 @@ public sealed class DaemonWorker : BackgroundService
                 _hostsApplied = false;
                 _lastFingerprint = "";
             }
+            // DoH restore is handled in SessionService.FinalizeSession so the
+            // backup is paired with the lifecycle that captured it. We just
+            // clear our local "applied" flag here.
+            _dohApplied = false;
             return;
         }
 
@@ -97,7 +105,20 @@ public sealed class DaemonWorker : BackgroundService
         // set actually changes (or the periodic re-enforce tick fires).
         var fingerprint = string.Join(",", unionDomains.OrderBy(x => x)) + "|" +
                           string.Join(",", sessionAllow.OrderBy(x => x));
-        if (!force && fingerprint == _lastFingerprint && _hostsApplied) return;
+        bool fingerprintChanged = fingerprint != _lastFingerprint;
+
+        // Force browser DoH off whenever there are domains to block. The
+        // service itself is idempotent — re-applying when the keys already
+        // hold "off" and the backup file already exists is a no-op. We still
+        // want to drive Apply() on the periodic re-enforce tick so a
+        // browser policy refresh after install picks up our value within 30s.
+        if (force || fingerprintChanged || !_dohApplied)
+        {
+            _doh.Apply();
+            _dohApplied = true;
+        }
+
+        if (!force && !fingerprintChanged && _hostsApplied) return;
 
         _hosts.Apply(unionDomains, sessionAllow);
         _hostsApplied = true;
