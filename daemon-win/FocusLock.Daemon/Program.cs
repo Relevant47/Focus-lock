@@ -10,6 +10,7 @@ builder.Services.AddWindowsService(options =>
 
 builder.Services.AddSingleton<SessionService>();
 builder.Services.AddSingleton<HostsFileService>();
+builder.Services.AddSingleton<BrowserDohPolicyService>();
 builder.Services.AddSingleton<ProcessKillService>();
 builder.Services.AddSingleton<ProfileService>();
 builder.Services.AddSingleton<ScheduleService>();
