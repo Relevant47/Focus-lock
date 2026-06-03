@@ -12,12 +12,18 @@ namespace FocusLock.Daemon.Services;
 /// </summary>
 public sealed class SessionService
 {
-    private static readonly string StateDir = Path.Combine(
+    private static readonly string DefaultStateDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
         "FocusLock");
 
-    private static readonly string StatePath = Path.Combine(StateDir, "session.json");
-    private static readonly string KeyPath = Path.Combine(StateDir, "daemon.key");
+    // Instance paths so tests can redirect persistence to a temp directory
+    // without touching %ProgramData% (which a non-elevated test user cannot
+    // write to). Production code uses the DefaultStateDir.
+    private readonly string _stateDir;
+    private readonly string StatePath;
+    private readonly string KeyPath;
+    private readonly string HashPath;
+    private readonly string LogPath;
 
     private readonly ILogger<SessionService> _log;
     private readonly BrowserDohPolicyService? _doh;
@@ -35,19 +41,27 @@ public sealed class SessionService
     private DateTime? _hardcoreCooldownUntil;
 
     public SessionService(ILogger<SessionService> log)
-        : this(log, doh: null) { }
+        : this(log, doh: null, stateDir: null) { }
 
     public SessionService(ILogger<SessionService> log, BrowserDohPolicyService? doh)
+        : this(log, doh, stateDir: null) { }
+
+    // Test seam: stateDir overrides the default %ProgramData%\FocusLock path
+    // so unit tests can keep their state inside a per-test temp directory.
+    internal SessionService(ILogger<SessionService> log, BrowserDohPolicyService? doh, string? stateDir)
     {
         _log = log;
         _doh = doh;
-        Directory.CreateDirectory(StateDir);
+        _stateDir = stateDir ?? DefaultStateDir;
+        StatePath = Path.Combine(_stateDir, "session.json");
+        KeyPath = Path.Combine(_stateDir, "daemon.key");
+        HashPath = Path.Combine(_stateDir, "daemon.hash");
+        LogPath = Path.Combine(_stateDir, "sessions.jsonl");
+        Directory.CreateDirectory(_stateDir);
         LoadOrCreateKey();
         VerifyBinaryHash();
         LoadPersistedSession();
     }
-
-    private static readonly string HashPath = Path.Combine(StateDir, "daemon.hash");
 
     private void VerifyBinaryHash()
     {
@@ -456,8 +470,6 @@ public sealed class SessionService
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
-
-    private static readonly string LogPath = Path.Combine(StateDir, "sessions.jsonl");
 
     private void AppendLog(SessionLog log)
     {
