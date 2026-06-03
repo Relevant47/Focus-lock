@@ -173,6 +173,12 @@ final class SessionService {
     func startSession(_ payload: StartSessionPayload) -> (String, Bool) {
         lock.withLock {
             guard !(_active?.isActive ?? false) else { return ("Session already active", false) }
+            // No-op session guard — mirrors the C# daemon. Refuse a session
+            // whose payload would block nothing rather than silently running a
+            // session that looks active to the UI but enforces zero rules.
+            guard !(payload.blockedDomains.isEmpty && payload.blockedProcesses.isEmpty) else {
+                return ("Session must block at least one site or app", false)
+            }
 
             let trimmedIntention = payload.intention?.trimmingCharacters(in: .whitespacesAndNewlines)
             var state = SessionState(
