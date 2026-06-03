@@ -59,6 +59,7 @@ final class SessionService {
     private var _signingKey: SymmetricKey
     private var _blockAttempts = 0
     private var _pomodoro: PomodoroState?
+    private let _doh: BrowserDohPolicyService?
 
     // Friend-lock rate limiting
     private var _failedUnlockAttempts = 0
@@ -67,7 +68,8 @@ final class SessionService {
     // Hardcore cooldown
     private var _hardcoreCooldownUntil: Date?
 
-    init() {
+    init(doh: BrowserDohPolicyService? = nil) {
+        _doh = doh
         _signingKey = Self.loadOrCreateKey()
         verifyBinaryHash()
         if let state = Self.loadPersistedSession(key: _signingKey) {
@@ -277,6 +279,11 @@ final class SessionService {
         _active = nil
         _pomodoro = nil
         try? FileManager.default.removeItem(at: Self.statePath)
+
+        // Restore browser DoH policy to whatever the user had before the
+        // session — the paired apply() at session start backed it up to
+        // /Library/Application Support/FocusLock/doh_backup.json.
+        _doh?.restore()
     }
 
     private func calculateScore(completed: Bool) -> Int {
