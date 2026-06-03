@@ -46,6 +46,7 @@ intSrc.setEventHandler(handler: onShutdown);  intSrc.resume()
 
 var tickCount = 0
 var hostsApplied = false
+var dohApplied = false
 var lastFingerprint = ""
 
 func applyEnforcement(force: Bool) {
@@ -67,11 +68,27 @@ func applyEnforcement(force: Bool) {
             hostsApplied = false
             lastFingerprint = ""
         }
+        // DoH restore is handled in SessionService.finalizeSession so the
+        // backup is paired with the lifecycle that captured it. We just
+        // clear our local "applied" flag here.
+        dohApplied = false
         return
     }
 
     let fp = union.sorted().joined(separator: ",") + "|" + sessionAllow.sorted().joined(separator: ",")
-    if !force && fp == lastFingerprint && hostsApplied { return }
+    let fpChanged = fp != lastFingerprint
+
+    // Force browser DoH off whenever there are domains to block. The service
+    // itself is idempotent — re-applying when the plists already hold "off"
+    // and the backup file already exists is a no-op. We still drive apply()
+    // on the periodic re-enforce tick so a browser policy refresh after
+    // install picks up our value within 30s.
+    if force || fpChanged || !dohApplied {
+        dohSvc.apply()
+        dohApplied = true
+    }
+
+    if !force && !fpChanged && hostsApplied { return }
 
     hostsSvc.apply(blocked: Array(union), allowed: sessionAllow)
     hostsApplied = true
