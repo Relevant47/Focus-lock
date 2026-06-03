@@ -20,6 +20,7 @@ final class ProcessKillService {
         "systemuiserver",
         "coreaudiod",
         "focuslockdaemon",
+        "focuslock",
     ]
 
     init(session: SessionService, family: FamilyEnforcementService) {
