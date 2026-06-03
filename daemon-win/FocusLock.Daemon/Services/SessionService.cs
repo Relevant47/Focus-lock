@@ -191,6 +191,13 @@ public sealed class SessionService
             if (_active?.IsActive == true)
                 return ("Session already active", false);
 
+            // Defence in depth: the UI also refuses no-op sessions, but the
+            // daemon is the source of truth — a third-party IPC caller or a
+            // bypassed UI guard would otherwise start a session that blocks
+            // nothing at all.
+            if (payload.BlockedDomains.Count == 0 && payload.BlockedProcesses.Count == 0)
+                return ("Session must block at least one site or app", false);
+
             // A session that has run past its EndTime but hasn't been finalized
             // yet (e.g. the Worker tick hasn't fired) leaves _active non-null
             // while IsActive is false. Finalize it now so it's logged as
