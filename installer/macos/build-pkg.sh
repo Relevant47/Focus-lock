@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Build FocusLock-1.0.0.pkg from compiled artifacts
+# Build FocusLock-<version>.pkg from compiled artifacts
 # Run on macOS after: swift build -c release && npm run tauri build
+#
+# Version is derived from ui/package.json (single source of truth per CLAUDE.md),
+# or pass it explicitly as the first argument: ./build-pkg.sh 1.2.3
 set -euo pipefail
 
-VERSION="1.0.0"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+VERSION="${1:-$(node -p "require('$REPO_ROOT/ui/package.json').version")}"
 
 DAEMON_BIN="$REPO_ROOT/daemon-mac/.build/release/FocusLockDaemon"
 UI_APP="$REPO_ROOT/ui/src-tauri/target/release/bundle/macos/FocusLock.app"
