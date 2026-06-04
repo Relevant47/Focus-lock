@@ -48,11 +48,14 @@ interface TauriUpdateManifest {
   platforms: Record<string, TauriPlatformUpdate>;
 }
 
-// Maps Tauri target strings to GitHub asset filename fragments
+// Maps Tauri target strings to GitHub asset filename fragments, in priority order.
+// macOS .app.tar.gz MUST come before .dmg — Tauri only generates .sig files for the .app.tar.gz
+// payload, so picking the .dmg leaves the manifest with an empty signature and the updater fails
+// with "Could not fetch a valid release JSON from the remote".
 const ASSET_MAP: Record<string, string[]> = {
   'windows-x86_64': ['x64-setup.exe', 'x86_64-setup.exe', 'windows-x86_64'],
-  'darwin-aarch64': ['aarch64.dmg', 'darwin-aarch64', 'arm64.dmg'],
-  'darwin-x86_64':  ['x86_64.dmg',  'darwin-x86_64',  'x64.dmg'],
+  'darwin-aarch64': ['aarch64.app.tar.gz', 'aarch64.dmg', 'arm64.dmg'],
+  'darwin-x86_64':  ['x64.app.tar.gz', 'x86_64.app.tar.gz', 'x64.dmg', 'x86_64.dmg'],
 };
 
 function semverGt(a: string, b: string): boolean {
@@ -66,7 +69,11 @@ function semverGt(a: string, b: string): boolean {
 
 function findAsset(assets: GitHubAsset[], platformKey: string): GitHubAsset | null {
   const fragments = ASSET_MAP[platformKey] ?? [platformKey];
-  return assets.find(a => fragments.some(f => a.name.toLowerCase().includes(f.toLowerCase()))) ?? null;
+  for (const f of fragments) {
+    const match = assets.find(a => a.name.toLowerCase().includes(f.toLowerCase()));
+    if (match) return match;
+  }
+  return null;
 }
 
 export default {
@@ -112,7 +119,14 @@ export default {
     // Fetch the signature file content (Tauri requires the actual signature string, not a URL)
     const sigUrl  = `${asset.browser_download_url}.sig`;
     const sigRes  = await fetch(sigUrl, { headers: { 'User-Agent': 'FocusLock-UpdateServer/1.0' } });
-    const sigText = sigRes.ok ? await sigRes.text() : '';
+    const sigText = sigRes.ok ? (await sigRes.text()).trim() : '';
+
+    // No signature available — pretend there's no update rather than serve a manifest the Tauri
+    // updater will reject with the unhelpful "Could not fetch a valid release JSON" error.
+    // The release pipeline is still uploading assets, or the platform's .sig wasn't produced.
+    if (!sigText) {
+      return new Response(null, { status: 204 });
+    }
 
     const manifest: TauriUpdateManifest = {
       version:  latestVersion,
@@ -120,7 +134,7 @@ export default {
       pub_date: release.published_at,
       platforms: {
         [platformKey]: {
-          signature: sigText.trim(),
+          signature: sigText,
           url: asset.browser_download_url,
         },
       },
