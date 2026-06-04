@@ -313,8 +313,11 @@ final class IpcSocketService {
     }
 
     private func handleGetLogs(_ req: IpcRequest) -> IpcResponse {
-        // Extract limit from payload if present
-        let limit = 50
+        var limit = 50
+        if let dict = req.payload?.value as? [String: AnyCodable],
+           let l = dict["limit"]?.value as? Int {
+            limit = l
+        }
         return .logs(sessionSvc.getLogs(limit: limit))
     }
 
