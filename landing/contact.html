@@ -7,13 +7,108 @@
   <meta name="description" content="Get in touch with the FocusLock team — support, feedback, press, partnerships."/>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.7;padding:48px 24px}
-    .wrap{max-width:720px;margin:0 auto}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --bg:#0a0a0f;
+      --bg-alt:#0f0f17;
+      --card:#16161f;
+      --text:#f1f1f3;
+      --text-soft:#c8c8d0;
+      --muted:#8b8b9a;
+      --border:#20202e;
+      --border-soft:#16161f;
+      --accent:#6C63FF;
+      --accent-dark:#8b85ff;
+      --accent-soft:rgba(108,99,255,.12);
+      --accent-tint:rgba(108,99,255,.22);
+      --radius:16px;
+      --radius-pill:50px;
+    }
+
+    body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.7}
+    .wrap{max-width:720px;margin:0 auto;padding:56px 24px 24px}
     a{color:#818cf8;text-decoration:none}
     a:hover{text-decoration:underline}
-    nav{margin-bottom:48px}
-    nav a{color:#94a3b8;font-size:.875rem}
+
+    /* ── Site nav (mirrors homepage) ── */
+    .site-nav{
+      position:sticky;top:0;z-index:100;
+      background:rgba(10,10,15,.75);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border);
+    }
+    .nav-inner{
+      max-width:1100px;margin:0 auto;
+      display:flex;justify-content:center;align-items:center;
+      height:72px;gap:28px;padding:0 24px;
+    }
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0}
+    .nav-logo:hover{text-decoration:none}
+    .nav-logo-icon{
+      width:32px;height:32px;background:var(--accent);
+      border-radius:9px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .nav-logo-text{font-weight:800;font-size:1.05rem;color:var(--text);letter-spacing:-.02em}
+    .nav-links{display:flex;align-items:center;gap:28px}
+    .nav-links a{
+      color:var(--muted);text-decoration:none;
+      font-size:.9rem;font-weight:500;
+      transition:color .2s;
+    }
+    .nav-links a:hover{color:var(--text);text-decoration:none}
+    .nav-links a.active{color:var(--accent)}
+    .nav-right{display:flex;align-items:center;gap:10px;white-space:nowrap}
+    .nav-gh,.nav-kofi{
+      display:inline-flex;align-items:center;gap:7px;
+      padding:8px 16px;border-radius:var(--radius-pill);
+      color:var(--muted);text-decoration:none;
+      font-size:.85rem;font-weight:600;
+      transition:all .2s;
+    }
+    .nav-gh:hover{color:var(--text);background:var(--bg-alt);text-decoration:none}
+    .nav-kofi{color:#d33d3a}
+    .nav-kofi:hover{background:rgba(255,94,91,.08);text-decoration:none}
+    .nav-dl-btn{
+      display:inline-flex;align-items:center;gap:7px;
+      padding:10px 22px;border-radius:var(--radius-pill);
+      background:var(--accent);color:#fff;text-decoration:none;
+      font-size:.875rem;font-weight:700;
+      box-shadow:0 4px 14px rgba(108,99,255,.25);
+      transition:all .2s;
+    }
+    .nav-dl-btn:hover{background:var(--accent-dark);transform:translateY(-1px);box-shadow:0 8px 22px rgba(108,99,255,.35);text-decoration:none}
+    .hamburger{
+      display:none;flex-direction:column;gap:5px;
+      background:none;border:none;cursor:pointer;padding:6px;
+    }
+    .hamburger span{
+      display:block;width:22px;height:2px;
+      background:var(--text);border-radius:2px;
+      transition:all .3s;
+    }
+    .mobile-menu{
+      display:none;flex-direction:column;
+      background:var(--card);border-bottom:1px solid var(--border);
+      padding:8px 0;
+    }
+    .mobile-menu.open{display:flex}
+    .mobile-menu a{
+      padding:14px 24px;color:var(--text-soft);
+      text-decoration:none;font-size:.95rem;font-weight:600;
+      border-bottom:1px solid var(--border-soft);
+    }
+    .mobile-menu a:last-child{border-bottom:none}
+    .mobile-menu a:hover{background:var(--bg-alt);text-decoration:none}
+    .mobile-menu a.active{color:var(--accent)}
+    @media (max-width:980px){
+      .nav-links{display:none}
+      .nav-dl-btn{display:none}
+      .nav-gh,.nav-kofi{display:none}
+      .hamburger{display:flex}
+    }
     h1{font-size:2rem;font-weight:700;margin-bottom:8px}
     .lede{color:#94a3b8;margin-bottom:48px;font-size:1.05rem}
     h2{font-size:1.125rem;font-weight:700;margin:40px 0 12px;color:#f1f5f9}
@@ -70,9 +165,52 @@
   </style>
 </head>
 <body>
-<div class="wrap">
-  <nav><a href="/">← Back to FocusLock</a></nav>
 
+<nav class="site-nav" id="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" aria-label="FocusLock home">
+      <div class="nav-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><marker id="arr-nav" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><polyline points="1,1 4,2.5 1,4" stroke="white" stroke-width="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <g transform="translate(50,50)">
+            <line x1="-76" y1="-76" x2="-18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-nav)"/>
+            <line x1="76" y1="-76" x2="18" y2="-18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-nav)"/>
+            <line x1="76" y1="76" x2="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-nav)"/>
+            <line x1="-76" y1="76" x2="-18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round" marker-end="url(#arr-nav)"/>
+            <circle cx="0" cy="0" r="5" fill="white"/>
+          </g>
+        </svg>
+      </div>
+      <span class="nav-logo-text">FocusLock</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#reviews">Reviews</a>
+      <a href="/changelog.html">Changelog</a>
+      <a href="/contact.html" class="active" aria-current="page">Contact</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener" class="nav-gh">
+        <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        Source
+      </a>
+      <a href="https://ko-fi.com/oscarpetrikas" target="_blank" rel="noopener" class="nav-kofi">Donate</a>
+      <a href="/" class="nav-dl-btn">Download Free</a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="/#reviews">Reviews</a>
+    <a href="/changelog.html">Changelog</a>
+    <a href="/contact.html" class="active" aria-current="page">Contact</a>
+    <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://ko-fi.com/oscarpetrikas" target="_blank" rel="noopener">Support on Ko-fi</a>
+    <a href="/">Download Free</a>
+  </div>
+</nav>
+
+<div class="wrap">
   <h1>Contact</h1>
   <p class="lede">One inbox, one human. Email is the fastest way to reach us — there's no support queue and no chatbot in front of it.</p>
 
@@ -115,5 +253,18 @@
 
   <footer>© 2026 FocusLock · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></footer>
 </div>
+
+<script>
+  (function(){
+    var hamburger = document.getElementById('hamburger');
+    var mobileMenu = document.getElementById('mobile-menu');
+    if (hamburger && mobileMenu) {
+      hamburger.addEventListener('click', function(){
+        var isOpen = mobileMenu.classList.toggle('open');
+        hamburger.setAttribute('aria-expanded', String(isOpen));
+      });
+    }
+  })();
+</script>
 </body>
 </html>
