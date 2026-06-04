@@ -2537,15 +2537,40 @@
       if (!Array.isArray(reviews) || reviews.length === 0) return;
 
       const track = document.getElementById('reviews-track');
-      const html = reviews.map(r => `
-        <div class="review-card">
-          <div class="review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</div>
-          <p class="review-text">"${r.review_text}"</p>
-          <div class="review-author">${r.name}</div>
-          ${r.role ? `<div class="review-role">${r.role}</div>` : ''}
-        </div>
-      `).join('');
-      track.innerHTML = html + html;
+      // Build cards via DOM APIs (textContent) so user-supplied review_text /
+      // name / role can't smuggle HTML — innerHTML would decode entity-encoded
+      // tags submitted via the review API and execute them.
+      const buildCard = (r) => {
+        const card = document.createElement('div');
+        card.className = 'review-card';
+        const stars = document.createElement('div');
+        stars.className = 'review-stars';
+        const starCount = Math.max(0, Math.min(5, Number(r.stars) | 0));
+        stars.textContent = '★'.repeat(starCount) + '☆'.repeat(5 - starCount);
+        card.appendChild(stars);
+        const text = document.createElement('p');
+        text.className = 'review-text';
+        text.textContent = '"' + String(r.review_text ?? '') + '"';
+        card.appendChild(text);
+        const author = document.createElement('div');
+        author.className = 'review-author';
+        author.textContent = String(r.name ?? '');
+        card.appendChild(author);
+        if (r.role) {
+          const role = document.createElement('div');
+          role.className = 'review-role';
+          role.textContent = String(r.role);
+          card.appendChild(role);
+        }
+        return card;
+      };
+      track.replaceChildren();
+      const frag = document.createDocumentFragment();
+      reviews.forEach(r => frag.appendChild(buildCard(r)));
+      // Duplicate the set so the marquee can scroll seamlessly (matches the
+      // previous `html + html` doubling).
+      reviews.forEach(r => frag.appendChild(buildCard(r)));
+      track.appendChild(frag);
 
       document.getElementById('reviews-live-wrap').style.display = 'block';
       document.getElementById('reviews-empty').style.display = 'none';

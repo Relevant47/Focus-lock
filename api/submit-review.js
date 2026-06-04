@@ -1,5 +1,15 @@
 function stripHtml(str) {
-  return str.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim();
+  // Decode entity-encoded angle brackets first so payloads like
+  // `&lt;img src=x onerror=...&gt;` are caught by the tag strip instead of
+  // surviving the sanitizer and decoding to live tags at render time.
+  const decoded = String(str)
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#0*60;?/gi, '<')
+    .replace(/&#0*62;?/gi, '>')
+    .replace(/&#x0*3c;?/gi, '<')
+    .replace(/&#x0*3e;?/gi, '>');
+  return decoded.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim();
 }
 
 export default async function handler(req, res) {
