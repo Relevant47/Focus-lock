@@ -6,6 +6,9 @@
   <title>Contact — FocusLock</title>
   <meta name="description" content="Get in touch with the FocusLock team — support, feedback, press, partnerships."/>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,800;9..144,900&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -24,12 +27,19 @@
       --accent-tint:rgba(108,99,255,.22);
       --radius:16px;
       --radius-pill:50px;
+      --display:'Fraunces','Source Serif Pro',Georgia,serif;
+      --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
     }
 
-    body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.7}
-    .wrap{max-width:720px;margin:0 auto;padding:56px 24px 24px}
-    a{color:#818cf8;text-decoration:none}
-    a:hover{text-decoration:underline}
+    body{
+      background:var(--bg);color:var(--text);
+      font-family:var(--sans);line-height:1.7;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .wrap{max-width:720px;margin:0 auto;padding:72px 24px 24px}
+    a{color:var(--accent);text-decoration:none;transition:color .2s}
+    a:hover{color:var(--accent-dark);text-decoration:underline}
 
     /* ── Site nav (mirrors homepage) ── */
     .site-nav{
@@ -109,12 +119,37 @@
       .nav-gh,.nav-kofi{display:none}
       .hamburger{display:flex}
     }
-    h1{font-size:2rem;font-weight:700;margin-bottom:8px}
-    .lede{color:#94a3b8;margin-bottom:48px;font-size:1.05rem}
-    h2{font-size:1.125rem;font-weight:700;margin:40px 0 12px;color:#f1f5f9}
-    p{margin-bottom:16px;color:#94a3b8}
-    ul{margin:0 0 16px 24px;color:#94a3b8}
+    h1{
+      font-family:var(--display);
+      font-size:clamp(2.4rem, 5.6vw, 3.8rem);
+      font-weight:800;letter-spacing:-.025em;line-height:1.05;
+      margin-bottom:18px;color:var(--text);
+    }
+    h1 .accent{color:var(--accent);font-style:italic;font-weight:700}
+    .lede{
+      color:var(--muted);
+      font-size:clamp(1rem, 1.4vw, 1.125rem);
+      line-height:1.7;font-weight:400;
+      max-width:580px;margin-bottom:8px;
+    }
+    h2{
+      font-family:var(--display);
+      font-size:1.4rem;font-weight:700;letter-spacing:-.015em;
+      margin:48px 0 14px;color:var(--text);
+    }
+    p{margin-bottom:16px;color:var(--text-soft)}
+    ul{margin:0 0 16px 24px;color:var(--text-soft)}
     ul li{margin-bottom:8px}
+    code.pill-code{
+      display:inline-block;
+      font-family:'SF Mono',Menlo,Consolas,monospace;
+      font-size:.86em;font-weight:600;
+      padding:2px 8px;border-radius:6px;
+      background:var(--accent-soft);
+      border:1px solid var(--accent-tint);
+      color:var(--accent);
+      letter-spacing:.01em;
+    }
     .email-card{
       display:block;text-decoration:none;
       position:relative;overflow:hidden;
@@ -182,9 +217,37 @@
     .use-card:hover .use-card-icon{background:var(--accent-tint);color:var(--accent-dark)}
     .use-card h3{font-size:.95rem;font-weight:700;color:#f1f5f9;margin-bottom:6px}
     .use-card p{font-size:.88rem;margin:0;color:#94a3b8}
-    .response{background:#13131a;border:1px solid #1e1e2e;border-radius:8px;padding:20px;margin:24px 0}
-    .response p{margin:0;color:#cbd5e1}
-    footer{margin-top:64px;padding-top:24px;border-top:1px solid #1e1e2e;color:#475569;font-size:.8rem}
+    .response{
+      background:var(--card);
+      border:1px solid rgba(108,99,255,.08);
+      border-radius:12px;
+      padding:22px 24px;
+      margin:24px 0;
+      transition:border-color .2s ease, background .2s ease;
+    }
+    .response:hover{border-color:rgba(108,99,255,.22);background:#1a1a26}
+    .response p{margin:0;color:var(--text-soft)}
+    .response strong{color:var(--text);font-weight:700}
+
+    /* ── Footer (mirrors homepage footer-bottom) ── */
+    .site-footer{
+      margin-top:80px;
+      background:#050508;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+    .site-footer-inner{
+      max-width:1100px;margin:0 auto;
+      padding:28px 24px;
+      display:flex;justify-content:space-between;align-items:center;
+      flex-wrap:wrap;gap:16px;
+      font-size:.82rem;color:#6a6a85;
+    }
+    .site-footer-inner a{
+      color:#6a6a85;text-decoration:none;
+      margin-right:18px;transition:color .2s;
+    }
+    .site-footer-inner a:hover{color:#fff;text-decoration:none}
+    .site-footer-inner a:last-child{margin-right:0}
   </style>
 </head>
 <body>
@@ -234,7 +297,7 @@
 </nav>
 
 <div class="wrap">
-  <h1>Contact</h1>
+  <h1>Get <span class="accent">in touch.</span></h1>
   <p class="lede">One inbox, one human. Email is the fastest way to reach us — there's no support queue and no chatbot in front of it.</p>
 
   <a class="email-card" href="mailto:hello@tryfocuslock.com">
@@ -305,10 +368,18 @@
   <p>Bug reports and feature requests are also welcome on <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank" rel="noopener">GitHub Issues</a>. Public issues help other users find solutions.</p>
 
   <h2>Security disclosures</h2>
-  <p>Found a security issue? Please email <a href="mailto:hello@tryfocuslock.com">hello@tryfocuslock.com</a> with "<strong>security</strong>" in the subject line rather than opening a public GitHub issue, so we can patch before disclosure.</p>
-
-  <footer>© 2026 FocusLock · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></footer>
+  <p>Found a security issue? Please email <a href="mailto:hello@tryfocuslock.com">hello@tryfocuslock.com</a> with "<code class="pill-code">security</code>" in the subject line rather than opening a public GitHub issue, so we can patch before disclosure.</p>
 </div>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div>© 2026 FocusLock · Built by Oscar Petrikas</div>
+    <div>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </div>
+</footer>
 
 <script>
   (function(){
