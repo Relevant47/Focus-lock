@@ -71,7 +71,6 @@ final class SessionService {
     init(doh: BrowserDohPolicyService? = nil) {
         _doh = doh
         _signingKey = Self.loadOrCreateKey()
-        verifyBinaryHash()
         if let state = Self.loadPersistedSession(key: _signingKey) {
             // Restore the persisted distraction-attempt count so a session that
             // expired (or resumes) across a restart keeps an accurate focus score.
@@ -88,20 +87,6 @@ final class SessionService {
                 finalizeSession(completed: true)
             }
         }
-    }
-
-    private func verifyBinaryHash() {
-        // CommandLine.arguments.first is the actual executable path for CLI tools
-        guard let execPath = CommandLine.arguments.first else { return }
-        let hashPath = Self.stateDir.appendingPathComponent("daemon.hash")
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: execPath)) else { return }
-        let digest = SHA256.hash(data: data)
-        let currentHash = Data(digest).hexString
-        if let stored = try? String(contentsOf: hashPath, encoding: .utf8).trimmingCharacters(in: .whitespaces),
-           stored != currentHash {
-            fputs("[security] Daemon binary hash mismatch — binary may have been tampered with\n", stderr)
-        }
-        try? currentHash.write(to: hashPath, atomically: true, encoding: .utf8)
     }
 
     var active: SessionState? { lock.withLock { _active } }
