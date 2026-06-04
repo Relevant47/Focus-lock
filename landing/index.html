@@ -134,10 +134,10 @@
       border-bottom-color: var(--border);
     }
     .nav-inner {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
+      display: flex;
+      justify-content: center;
       align-items: center;
-      height: 72px; gap: 16px;
+      height: 72px; gap: 28px;
     }
     .nav-logo {
       display: flex; align-items: center; gap: 10px;
@@ -152,8 +152,6 @@
     .nav-logo-text { font-weight: 800; font-size: 1.05rem; color: var(--text); letter-spacing: -.02em; }
     .nav-links {
       display: flex; align-items: center; gap: 28px;
-      justify-self: start;
-      margin-left: 8px;
     }
     .nav-links a {
       color: var(--muted); text-decoration: none;
