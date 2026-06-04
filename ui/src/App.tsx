@@ -21,6 +21,7 @@ import Schedules from './pages/Schedules';
 import Analytics from './pages/Analytics';
 import Family from './pages/Family';
 import Settings from './pages/Settings';
+import SetupRequired from './pages/SetupRequired';
 import { familyEnabled } from './lib/familyApi';
 
 function RoutedShell() {
@@ -45,6 +46,8 @@ export default function App() {
   const init = useDaemon((s) => s.init);
   const status = useDaemon((s) => s.status);
   const logs = useDaemon((s) => s.logs);
+  const connected = useDaemon((s) => s.connected);
+  const bootChecked = useDaemon((s) => s.bootChecked);
   const { showOnboarding, complete } = useOnboarding();
   const [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]);
   const prevSessionActive = useRef(false);
@@ -98,6 +101,13 @@ export default function App() {
 
   function dismissAchievement(id: string) {
     setAchievementQueue(q => q.filter(a => a.id !== id));
+  }
+
+  // macOS-only: if we've completed at least one poll cycle and we're not
+  // connected, route to SetupRequired. Windows handles this via its own
+  // in-line "daemon not running" handling in the Rust install_daemon flow.
+  if (bootChecked && !connected) {
+    return <SetupRequired />;
   }
 
   return (

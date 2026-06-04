@@ -49,6 +49,10 @@ function notify(title: string, body: string) {
 
 interface State {
   connected: boolean;
+  // True once init()'s first poll cycle has run (regardless of outcome).
+  // Lets the UI distinguish "haven't tried yet" from "tried and failed",
+  // so SetupRequired doesn't flash on startup.
+  bootChecked: boolean;
   status: DaemonStatus | null;
   profiles: FocusProfile[];
   schedules: ScheduledSession[];
@@ -105,6 +109,7 @@ function activeParentToken(state: State): string | undefined {
 
 export const useDaemon = create<State & Actions>((set, get) => ({
   connected: false,
+  bootChecked: false,
   status: null,
   profiles: [],
   schedules: [],
@@ -119,6 +124,10 @@ export const useDaemon = create<State & Actions>((set, get) => ({
     listen<DaemonStatus | null>('daemon-status', (event) => {
       const prev = get().status;
       const next = event.payload;
+
+      if (!get().bootChecked) {
+        set({ bootChecked: true });
+      }
 
       if (next === null) {
         set({ connected: false, status: null });
