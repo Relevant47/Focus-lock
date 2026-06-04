@@ -234,6 +234,23 @@
         <span class="badge web">Web</span>
       </div>
       <div class="entry-body">
+        <h2>Rebuilt the Contact page</h2>
+        <ul>
+          <li><strong>Fixed a broken email card.</strong> The "Get in touch" block was an inline anchor wrapping block-level children, so the browser drew the border around line-boxes — the disconnected slivers visible around the email address. Switched it to a proper block-level card with a soft purple glow and a hover lift; <code>mailto:</code> still opens your email app.</li>
+          <li><strong>Made it feel like the rest of the site.</strong> The page was a barebones one-off with system fonts and the wrong purple. It now uses the same top navigation as the homepage (with Contact highlighted), the Fraunces serif headline ("Get <em>in touch.</em>"), the real <code>#6C63FF</code> accent, and a footer that matches the homepage's bottom bar.</li>
+          <li><strong>Icons on the "What to write about" cards.</strong> A bug, shield, lightbulb, and megaphone now sit on the four cards. Hovering lifts the card and brightens the purple border.</li>
+          <li><strong>Polish.</strong> The "Response time" box matches the new card style, the literal subject-line keyword reads as a real <code>security</code> pill, focus rings are visible on all links and buttons for keyboard navigation.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-04 ───── -->
+    <article class="entry" data-type="web">
+      <div class="entry-meta">
+        <div class="entry-date">June 4, 2026</div>
+        <span class="badge web">Web</span>
+      </div>
+      <div class="entry-body">
         <h2>Simplified the top navigation</h2>
         <ul>
           <li>The top bar had grown to nine items and felt cluttered. Removed Features, How it works, Story, and FAQ — they were either duplicated further down the page or rarely used. Kept Reviews, Changelog, and Contact alongside the Source, Donate, and Download buttons.</li>

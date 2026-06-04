@@ -41,6 +41,17 @@
     a{color:var(--accent);text-decoration:none;transition:color .2s}
     a:hover{color:var(--accent-dark);text-decoration:underline}
 
+    /* ── Focus states for keyboard navigation ── */
+    a:focus-visible,
+    button:focus-visible,
+    .email-card:focus-visible{
+      outline:2px solid var(--accent);
+      outline-offset:3px;
+      border-radius:6px;
+    }
+    .email-card:focus-visible{border-radius:16px;outline-offset:4px}
+    .nav-dl-btn:focus-visible{outline-offset:3px}
+
     /* ── Site nav (mirrors homepage) ── */
     .site-nav{
       position:sticky;top:0;z-index:100;
