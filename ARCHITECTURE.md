@@ -143,7 +143,21 @@ and continues enforcing the session — the tampered file does NOT bypass the lo
 
 ## Anti-Tamper Mechanisms
 
-### Binary hash verification
+### Binary verification (macOS)
+On startup the daemon calls `SecCodeCheckValidity` against FocusLock's Apple
+Developer Team ID (see `daemon-mac/Sources/FocusLockDaemon/CodeSignatureCheck.swift`).
+A mismatch — modified binary, unsigned replacement, or wrong signer — exits with
+code 1; launchd's `KeepAlive` keeps retrying, the retries keep failing, and the UI
+eventually shows the "reinstall from official source" screen. Ad-hoc signed
+binaries (the output of `swift build` for local dev) are detected and the check is
+bypassed, so `swift run` continues to work. `FOCUSLOCK_DEV_BUILD=1` is an
+additional bypass for explicit dev workflows.
+
+The earlier `daemon.hash` (SHA-256-of-own-binary) mechanism is retired — it fired
+on every legitimate update because the recorded hash never matched a freshly-built
+daemon.
+
+### Binary hash verification (Windows)
 On first run the daemon SHA-256 hashes its own executable and stores the hash.
 On subsequent starts it re-hashes and compares — a mismatch is logged.
 
@@ -165,6 +179,20 @@ session state. Rate-limiting: 10s → 30s → 60s → 5min backoff per failed at
 
 ### Uninstall protection
 Uninstall scripts read `session.json` and abort if `endTime > now`.
+
+---
+
+## macOS install model
+
+The macOS daemon ships **inside** `FocusLock.app/Contents/Library/LaunchDaemons/` and is registered with launchd via Apple's `SMAppService` API. There is no separate `.pkg`, no `/Library/PrivilegedHelperTools/`, and no manual `launchctl load`. On first launch the UI calls `SMAppService.daemon(plistName:).register()` through a small Swift FFI bridge (`ui/src-tauri/swift-bridge/`); macOS shows one admin prompt; launchd starts the daemon. Subsequent launches and auto-updates require zero prompts.
+
+The plist (`daemon-mac/com.focuslock.daemon.plist`) uses `BundleProgram` — not `ProgramArguments` — to point at the daemon binary relative to the bundle root. This is the only key SMAppService accepts.
+
+If the user disables the service in System Settings → Login Items, the UI detects the missing socket on next launch and routes to `SetupRequired` (`ui/src/pages/SetupRequired.tsx`) with a deep link to the relevant System Settings pane.
+
+**Legacy upgrade:** users coming from a previous `.pkg` install see a one-time "Upgrading FocusLock" screen that runs an `osascript` admin shell-out to remove `/Library/PrivilegedHelperTools/FocusLockDaemon`, `/Library/LaunchDaemons/com.focuslock.daemon.plist`, and the stale `daemon.hash`. `/Library/Application Support/FocusLock/daemon.key` and other session state are preserved.
+
+**Asymmetry with Windows:** Windows still uses an NSIS-installed Windows service (`daemon-win/`) and the existing self-heal in `ui/src-tauri/src/lib.rs:try_install_daemon_sync`. The two platforms deliberately diverge here — see `CLAUDE.md`.
 
 ---
 
