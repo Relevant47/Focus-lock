@@ -164,7 +164,7 @@ export default function BlockLists() {
 
         {/* Suggested */}
         <div className="card p-5">
-          <SectionHeader title="Suggested domains" hint="One-click adds to custom domains below. These block website domains only — blocking desktop apps (e.g. Steam.exe, Discord.exe) is a separate feature coming later." />
+          <SectionHeader title="Suggested domains" hint={`One-click adds to custom domains below. These block website domains only — blocking desktop apps (e.g. ${IS_MACOS ? 'Steam, Discord' : 'Steam.exe, Discord.exe'}) is a separate feature coming later.`} />
           <div className="space-y-3">
             {(['Social', 'Entertainment', 'Gaming', 'News'] as const).map(group => {
               const items = SUGGESTED_GROUPED[group];
@@ -312,7 +312,7 @@ export default function BlockLists() {
                 value={customProcesses}
                 onChange={e => setCustomProcesses(e.target.value)}
                 rows={4}
-                placeholder={"steam.exe\ndiscord.exe\nslack.exe"}
+                placeholder={IS_MACOS ? "Steam\nDiscord\nSlack" : "steam.exe\ndiscord.exe\nslack.exe"}
                 className="input-base w-full px-3 py-2 text-sm font-mono resize-none"
               />
             </div>

@@ -181,7 +181,7 @@ function ProfileForm({ initial, onSave, onCancel }: {
           <textarea
             value={form.customBlockedProcesses.join('\n')}
             onChange={e => setField('customBlockedProcesses', e.target.value.split('\n').map(s => s.trim()).filter(Boolean))}
-            rows={3} placeholder="steam.exe&#10;discord.exe"
+            rows={3} placeholder={IS_MACOS ? "Steam\nDiscord" : "steam.exe\ndiscord.exe"}
             className="input-base w-full px-3 py-2 text-sm font-mono resize-none"
           />
         </div>

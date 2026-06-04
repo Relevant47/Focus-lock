@@ -19,3 +19,9 @@ function detectPlatform(): Platform {
 export const PLATFORM: Platform = detectPlatform();
 export const IS_WINDOWS = PLATFORM === 'windows';
 export const IS_MACOS = PLATFORM === 'macos';
+
+// Function-style helpers (preferred for new call sites). Same underlying
+// detection — handy in inline expressions where a function call reads more
+// naturally than a constant.
+export const isMac = (): boolean => IS_MACOS;
+export const isWindows = (): boolean => IS_WINDOWS;

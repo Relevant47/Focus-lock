@@ -9,6 +9,7 @@ import { Icon } from '../components/Icons';
 import { cn } from '../lib/cn';
 import { AUDIT_EVENT_LABEL, formatAuditTime } from '../lib/auditEvents';
 import { useSurvey } from '../stores/survey';
+import { IS_MACOS } from '../lib/platform';
 
 // ── Section primitive ────────────────────────────────────────────────────────
 function Section({
@@ -566,7 +567,7 @@ export default function Settings() {
             </Row>
             {!connected && (
               <div className="rounded-lg bg-bg/40 border border-border px-3 py-2.5 text-xs text-muted font-mono">
-                sc start FocusLockDaemon
+                {IS_MACOS ? 'sudo launchctl load /Library/LaunchDaemons/com.focuslock.daemon.plist' : 'sc start FocusLockDaemon'}
               </div>
             )}
           </Section>

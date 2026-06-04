@@ -57,6 +57,9 @@ updater.key.pub.bak2
 *.suo
 *.user
 
+# Claude Code local settings (per-user, not for the repo)
+.claude/settings.local.json
+
 # macOS
 .DS_Store
 **/.DS_Store

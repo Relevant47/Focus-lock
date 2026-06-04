@@ -12,6 +12,7 @@ import Confetti from '../components/Confetti';
 import { fmtClock, fmtDate } from '../lib/fmt';
 import { cn } from '../lib/cn';
 import { getDailyGoal, minutesToday, shouldCelebrate } from '../lib/goal';
+import { isMac } from '../lib/platform';
 
 // ── Hero session ring ────────────────────────────────────────────────────────
 function SessionRing({
@@ -305,7 +306,7 @@ export default function Dashboard() {
         <EmptyState
           art="daemon"
           title="Daemon not running"
-          body="FocusLock needs a background daemon as Administrator. Open Settings → Daemon to install, or run FocusLockDaemon.exe directly."
+          body={`FocusLock needs a background daemon as ${isMac() ? 'root' : 'Administrator'}. Open Settings → Daemon to install, or run ${isMac() ? 'FocusLockDaemon' : 'FocusLockDaemon.exe'} directly.`}
         />
       </Page>
     );
