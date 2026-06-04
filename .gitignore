@@ -31,8 +31,6 @@ ui/src-tauri/resources/createdump.exe
 installer/windows/*.msi
 installer/windows/daemon/
 installer/windows/ui/
-installer/macos/*.pkg
-installer/macos/pkg-root/
 
 # Keys — NEVER commit these
 *.key

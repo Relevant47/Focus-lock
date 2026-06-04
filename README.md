@@ -162,14 +162,18 @@ cd installer/windows
 wix build FocusLock.wxs -o FocusLock.msi
 ```
 
-### Step 6 — Build PKG installer (macOS)
+### Step 6 — macOS DMG (produced by Tauri)
 
 ```bash
-cd installer/macos
-chmod +x build-pkg.sh scripts/postinstall
-./build-pkg.sh
-# Output: FocusLock-1.0.0.pkg
+# Daemon is staged into the .app bundle automatically by build.rs.
+# No separate installer step needed.
+cd daemon-mac && swift build -c release
+cd ../ui && npm run tauri build
+# Output: ui/src-tauri/target/release/bundle/dmg/FocusLock_*.dmg
 ```
+
+On first launch the app uses `SMAppService` to register the bundled daemon —
+macOS asks for an admin password once. See ARCHITECTURE.md "macOS install model".
 
 ---
 

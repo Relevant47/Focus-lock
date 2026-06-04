@@ -365,15 +365,23 @@ dotnet tool install --global wix
 wix build FocusLock.wxs -o FocusLock.msi
 ```
 
-### macOS installer (PKG)
+### macOS installer (DMG)
 
 ```bash
 # Requires macOS with Xcode CLT
-cd installer/macos
-chmod +x build-pkg.sh scripts/postinstall
-./build-pkg.sh
-# Output: FocusLock-1.0.0.pkg
+cd daemon-mac && swift build -c release
+cd ../ui && npm run tauri build
+# Output: ui/src-tauri/target/release/bundle/dmg/FocusLock_*.dmg
+#         ui/src-tauri/target/release/bundle/macos/FocusLock.app
 ```
+
+The daemon binary is staged into `ui/src-tauri/target/daemon-stage/` by `build.rs`
+and bundled into `FocusLock.app/Contents/Library/LaunchDaemons/` by Tauri's
+resource step. On first launch the UI calls `SMAppService.register()` via the
+Swift bridge to ask launchd to start the daemon — see the "macOS install model"
+section above.
+
+The `.pkg` installer was retired in favor of this single-artifact flow.
 
 ---
 
