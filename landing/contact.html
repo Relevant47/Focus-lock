@@ -20,11 +20,45 @@
     p{margin-bottom:16px;color:#94a3b8}
     ul{margin:0 0 16px 24px;color:#94a3b8}
     ul li{margin-bottom:8px}
-    .email-card{background:#13131a;border:1px solid #1e1e2e;border-radius:12px;padding:32px;margin:24px 0;text-align:center}
-    .email-card .label{color:#64748b;font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
-    .email-card .addr{display:inline-block;font-size:1.5rem;font-weight:700;color:#f1f5f9;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:-.01em}
-    .email-card .addr:hover{color:#818cf8;text-decoration:none}
-    .email-card .hint{color:#64748b;font-size:.85rem;margin-top:14px}
+    .email-card{
+      display:block;text-decoration:none;
+      position:relative;overflow:hidden;
+      background:
+        radial-gradient(ellipse 480px 240px at 50% 0%, rgba(108,99,255,.16), transparent 70%),
+        linear-gradient(180deg, #16161f 0%, #13131a 100%);
+      border:1px solid rgba(108,99,255,.28);
+      border-radius:16px;
+      padding:48px 32px;
+      margin:32px 0 48px;
+      text-align:center;
+      box-shadow:0 18px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.02);
+      transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+    .email-card:hover{
+      transform:translateY(-2px);
+      border-color:rgba(108,99,255,.55);
+      box-shadow:0 24px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(108,99,255,.18);
+      text-decoration:none;
+    }
+    .email-card .label{
+      display:block;
+      color:#6C63FF;font-size:.78rem;font-weight:700;
+      letter-spacing:.14em;text-transform:uppercase;
+      margin-bottom:18px;
+    }
+    .email-card .addr{
+      display:block;
+      font-size:clamp(1.4rem, 4.2vw, 2.2rem);
+      font-weight:700;color:#f1f1f3;
+      font-family:'SF Mono',Menlo,Consolas,monospace;
+      letter-spacing:-.01em;
+      word-break:break-all;
+    }
+    .email-card:hover .addr{color:#8b85ff}
+    .email-card .hint{
+      display:block;
+      color:#8b8b9a;font-size:.875rem;margin-top:18px;
+    }
     .use-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}
     @media (max-width:560px){.use-grid{grid-template-columns:1fr}}
     .use-card{background:#13131a;border:1px solid #1e1e2e;border-radius:8px;padding:18px 20px}
