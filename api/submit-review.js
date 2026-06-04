@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 function stripHtml(str) {
   // Decode entity-encoded angle brackets first so payloads like
   // `&lt;img src=x onerror=...&gt;` are caught by the tag strip instead of
@@ -10,6 +12,17 @@ function stripHtml(str) {
     .replace(/&#x0*3c;?/gi, '<')
     .replace(/&#x0*3e;?/gi, '>');
   return decoded.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim();
+}
+
+const SB = process.env.SUPABASE_URL || '';
+const KEY = process.env.SUPABASE_SECRET_KEY || '';
+const SALT = process.env.RATELIMIT_SALT || 'focuslock-reviews';
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function clientIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  const raw = Array.isArray(xff) ? xff[0] : xff || '';
+  return raw.split(',')[0].trim() || 'unknown';
 }
 
 export default async function handler(req, res) {
@@ -42,12 +55,30 @@ export default async function handler(req, res) {
   const isSpam = spamWords.some(w => cleanText.toLowerCase().includes(w));
   const autoApprove = stars >= 4 && cleanText.length >= 40 && !isSpam;
 
-  const resp = await fetch(`${process.env.SUPABASE_URL}/rest/v1/reviews`, {
+  // Rate limit: 1 review per IP per 24h. Raw IP is never stored — only its hash.
+  // Mirrors api/survey/submit.ts; see supabase/migrations/0004_review_submit_ratelimit.sql.
+  const ipHash = crypto.createHash('sha256').update(clientIp(req) + SALT).digest('hex');
+  const since = new Date(Date.now() - WINDOW_MS).toISOString();
+  try {
+    const check = await fetch(
+      `${SB}/rest/v1/review_submit_ratelimit?ip_hash=eq.${ipHash}&created_at=gt.${since}&select=created_at&limit=1`,
+      { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } },
+    );
+    const recent = check.ok ? await check.json() : [];
+    if (Array.isArray(recent) && recent.length > 0) {
+      res.setHeader('Retry-After', String(Math.ceil(WINDOW_MS / 1000)));
+      return res.status(429).json({ error: 'One review per day — thank you!' });
+    }
+  } catch {
+    /* fail open: never block a genuine submission on a rate-limit read error */
+  }
+
+  const resp = await fetch(`${SB}/rest/v1/reviews`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': process.env.SUPABASE_SECRET_KEY,
-      'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
+      'apikey': KEY,
+      'Authorization': `Bearer ${KEY}`,
       'Prefer': 'return=minimal',
     },
     body: JSON.stringify({ name: cleanName, role: cleanRole, stars, review_text: cleanText, approved: autoApprove }),
@@ -56,6 +87,13 @@ export default async function handler(req, res) {
   if (!resp.ok) {
     return res.status(500).json({ error: 'Failed to save review' });
   }
+
+  // Best-effort rate-limit marker — never fail the request on this.
+  fetch(`${SB}/rest/v1/review_submit_ratelimit`, {
+    method: 'POST',
+    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ ip_hash: ipHash }),
+  }).catch(() => {});
 
   return res.status(200).json({
     success: true,
