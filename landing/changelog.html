@@ -227,7 +227,26 @@
 
   <div class="timeline" id="timeline">
 
-    <!-- ───── 2026-06-04 (latest) ───── -->
+    <!-- ───── 2026-06-05 (latest) ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">June 5, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">1.2.0</span>
+      </div>
+      <div class="entry-body">
+        <h2>macOS install just works now</h2>
+        <ul>
+          <li><strong>The background service can no longer go missing.</strong> It now ships inside <code>FocusLock.app</code> itself and is registered with macOS via Apple's <code>SMAppService</code> API on first launch. One admin password prompt, ever — subsequent launches and auto-updates are silent.</li>
+          <li><strong>If something does go wrong, the app tells you.</strong> If the background service is disabled in System Settings → Login Items, or the binary fails its signature check, the app now shows a clear recovery screen with a button that opens the right pane in System Settings — instead of silently failing to connect.</li>
+          <li><strong>Tamper detection is stronger and quieter.</strong> The old "daemon binary hash mismatch" warning fired on every legitimate update because the recorded hash never matched a freshly-built daemon. Replaced with Apple's <code>SecCodeCheckValidity</code> against the FocusLock Developer Team ID, which survives cert renewals and only fires on actual tampering.</li>
+          <li><strong>One-file distribution.</strong> The separate <code>.pkg</code> installer is retired — releases ship a single signed <code>.dmg</code>. If you're upgrading from a previous install, the app does a one-time cleanup of the old <code>/Library/PrivilegedHelperTools/</code> daemon for you. Your settings, PIN, and session history are preserved.</li>
+          <li><strong>Requires macOS 13 Ventura or newer.</strong></li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-04 ───── -->
     <article class="entry" data-type="web">
       <div class="entry-meta">
         <div class="entry-date">June 4, 2026</div>

@@ -18,6 +18,7 @@ daemon-win/FocusLock.Daemon/publish/
 daemon-win/FocusLock.Daemon.Tests/bin/
 daemon-win/FocusLock.Daemon.Tests/obj/
 daemon-mac/.build/
+ui/src-tauri/swift-bridge/.build/
 
 # Daemon binary copied into the Tauri bundle at build time
 ui/src-tauri/resources/FocusLockDaemon.exe
@@ -30,8 +31,6 @@ ui/src-tauri/resources/createdump.exe
 installer/windows/*.msi
 installer/windows/daemon/
 installer/windows/ui/
-installer/macos/*.pkg
-installer/macos/pkg-root/
 
 # Keys — NEVER commit these
 *.key

@@ -8,6 +8,9 @@ use tauri::{
 };
 use tauri_plugin_updater::UpdaterExt;
 
+#[cfg(target_os = "macos")]
+mod macos_daemon;
+
 // ── Platform-specific IPC ─────────────────────────────────────────────────────
 
 #[cfg(target_os = "windows")]
@@ -126,8 +129,52 @@ async fn install_daemon(app: tauri::AppHandle) -> Result<String, String> {
             .await
             .map_err(|e| e.to_string())?
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
+    {
+        let outcome = tokio::task::spawn_blocking(macos_daemon::register_and_start)
+            .await
+            .map_err(|e| e.to_string())?;
+        serde_json::to_string(&outcome).map_err(|e| e.to_string())
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     Err("Not supported on this platform".to_string())
+}
+
+#[tauri::command]
+async fn daemon_status_macos() -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let s = tokio::task::spawn_blocking(macos_daemon::status)
+            .await
+            .map_err(|e| e.to_string())?;
+        serde_json::to_string(&s).map_err(|e| e.to_string())
+    }
+    #[cfg(not(target_os = "macos"))]
+    Err("macOS-only".to_string())
+}
+
+#[tauri::command]
+async fn legacy_install_present_macos() -> Result<bool, String> {
+    #[cfg(target_os = "macos")]
+    {
+        Ok(tokio::task::spawn_blocking(macos_daemon::legacy_install_present)
+            .await
+            .map_err(|e| e.to_string())?)
+    }
+    #[cfg(not(target_os = "macos"))]
+    Ok(false)
+}
+
+#[tauri::command]
+async fn cleanup_legacy_install_macos() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        tokio::task::spawn_blocking(macos_daemon::cleanup_legacy_install)
+            .await
+            .map_err(|e| e.to_string())?
+    }
+    #[cfg(not(target_os = "macos"))]
+    Ok(())
 }
 
 #[tauri::command]
@@ -365,7 +412,15 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![ipc_request, check_for_updates, install_update, install_daemon])
+        .invoke_handler(tauri::generate_handler![
+            ipc_request,
+            check_for_updates,
+            install_update,
+            install_daemon,
+            daemon_status_macos,
+            legacy_install_present_macos,
+            cleanup_legacy_install_macos
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

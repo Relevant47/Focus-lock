@@ -4,6 +4,25 @@ All notable changes to FocusLock will be documented here.
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-06-05
+
+### Changed (macOS) — New install model
+
+- **The background service is now bundled inside `FocusLock.app`** and registered via Apple's `SMAppService` API. First launch shows a single macOS-native admin prompt; subsequent launches and auto-updates need none. Replaces the previous `.pkg` installer flow that copied a daemon to `/Library/PrivilegedHelperTools/` and a plist to `/Library/LaunchDaemons/`.
+- **Recovery screen.** If the background service is missing, disabled in System Settings → Login Items, or fails its signature check, the app now shows a clear in-app `SetupRequired` screen with a deep link to fix it. No more silent "daemon not running" failure.
+- **Tamper detection** now uses `SecCodeCheckValidity` against the FocusLock Apple Developer Team ID instead of a custom SHA-256 of the daemon binary stored at `/Library/Application Support/FocusLock/daemon.hash`. The "Daemon binary hash mismatch" warning is retired — it fired on every legitimate update.
+- **Distribution simplified.** Releases ship a single signed `.dmg`. The `.pkg` installer, `installer/macos/install.sh`, `uninstall.sh`, `build-pkg.sh`, `distribution.xml`, and `scripts/postinstall` are removed.
+- **Upgrade path:** users coming from a prior `.pkg` install see a one-time "Upgrading FocusLock" screen that runs an `osascript` admin shell-out to clean up `/Library/PrivilegedHelperTools/FocusLockDaemon`, `/Library/LaunchDaemons/com.focuslock.daemon.plist`, and the stale `daemon.hash`. The existing `daemon.key` / session state is preserved.
+
+### Requirement
+
+- **Minimum macOS is now 13 Ventura.** Required for `SMAppService`.
+
+### Unchanged
+
+- Windows install path (NSIS + Windows service + the existing self-heal in `ui/src-tauri/src/lib.rs`).
+- IPC protocol, daemon enforcement logic, family-controls flow.
+
 ### Changed — Apex domain
 
 - Registered `tryfocuslock.com` as the official apex (the originally-planned `focuslock.app` was unavailable). The desktop survey API now defaults to `https://tryfocuslock.com`; `vercel.json` CSP allows the new apex; family-server Resend/from-address examples and design docs updated. The `focus-lock-sable.vercel.app` Vercel alias is still live, so already-shipped clients keep working without an update.

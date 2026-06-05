@@ -196,6 +196,18 @@ jobs:
           # tab appear in shipped artifacts. Unset on a fork → tab stays hidden.
           VITE_FAMILY_API_URL: ${{ vars.VITE_FAMILY_API_URL }}
 
+      # Move bundled daemon from Contents/Resources/Library/LaunchDaemons/ to
+      # Contents/Library/LaunchDaemons/ where SMAppService expects it, and re-sign
+      # with the Developer ID so the in-bundle binary matches the .app's signature.
+      - name: Place daemon in SMAppService layout
+        if: env.APPLE_SIGNING_IDENTITY != ''
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          node scripts/place-mac-daemon.mjs \
+            "src-tauri/target/${{ matrix.target }}/release/bundle/macos/FocusLock.app"
+        working-directory: ui
+
   # ── Publish release ───────────────────────────────────────────────────────────
   publish:
     name: Publish Release

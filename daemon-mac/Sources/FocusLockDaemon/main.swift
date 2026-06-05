@@ -2,6 +2,8 @@ import Foundation
 
 fputs("[focuslock] Daemon starting\n", stderr)
 
+verifyOwnCodeSignature()
+
 let dohSvc           = BrowserDohPolicyService()
 let sessionSvc       = SessionService(doh: dohSvc)
 let profileSvc       = ProfileService()
