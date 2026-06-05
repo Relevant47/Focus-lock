@@ -141,6 +141,23 @@ jobs:
         run: npm ci
         working-directory: ui
 
+      - name: Inject Apple Team ID into daemon source
+        if: env.APPLE_SIGNING_IDENTITY != ''
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          # APPLE_SIGNING_IDENTITY is typically "Developer ID Application: Name (ABCDE12345)".
+          # Extract the 10-char Team ID from the parens and bake it into the daemon source
+          # so the SecCodeCheckValidity check at startup has a real value to compare against.
+          TEAM_ID=$(echo "$APPLE_SIGNING_IDENTITY" | sed -nE 's/.*\(([A-Z0-9]{10})\).*/\1/p')
+          if [ -z "$TEAM_ID" ]; then
+            echo "Could not extract Team ID from APPLE_SIGNING_IDENTITY" >&2
+            exit 1
+          fi
+          echo "Using Team ID: $TEAM_ID"
+          sed -i '' "s/FOCUSLOCK_TEAM_ID_PLACEHOLDER/$TEAM_ID/g" \
+            daemon-mac/Sources/FocusLockDaemon/CodeSignatureCheck.swift
+
       - name: Build daemon (macOS)
         run: swift build -c release
         working-directory: daemon-mac
