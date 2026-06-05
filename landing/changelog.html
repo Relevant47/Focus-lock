@@ -232,6 +232,22 @@
       <div class="entry-meta">
         <div class="entry-date">June 5, 2026</div>
         <span class="badge app">App</span>
+      </div>
+      <div class="entry-body">
+        <h2>Family password-reset emails actually arrive now</h2>
+        <ul>
+          <li><strong>Closed beta families can now reset a forgotten password.</strong> Previously the reset email was wired to Resend's sandbox sender (<code>onboarding@resend.dev</code>), which only delivered to the Resend account owner — every other family's reset request silently no-op'd. We've now verified <code>tryfocuslock.com</code> in Resend, so the reset link reaches any inbox.</li>
+          <li><strong>Emails come from <code>FocusLock &lt;hello@tryfocuslock.com&gt;</code>.</strong> Replies land in the same inbox as the Contact page, so a confused parent who hits Reply gets to a real human.</li>
+          <li><strong>No app update required.</strong> The fix is server-side only — desktop installs from 1.1.2 onward already point at the right endpoint.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-05 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">June 5, 2026</div>
+        <span class="badge app">App</span>
         <span class="version-tag">1.2.0</span>
       </div>
       <div class="entry-body">

@@ -20,40 +20,38 @@ This file exists so anyone (you, future-Claude, a contributor) can pick up the c
 | Phase 2.6 — real password-reset email via Resend | ✅ | `family-server/src/email.ts`, `landing/reset.html`, UI `ForgotPasswordButton` | `da8a924` |
 | Phase 2.7 — account export + delete (data portability) | ✅ | `family-server/src/account.ts` | `27be5a0` |
 | Phase 2.9 — per-email rate limiting (login + reset) | ✅ | `family-server/src/rateLimit.ts`, migration `0002_auth_rate_limits.sql` | `eefce7f` |
+| Phase 2.8 — verified Resend sender domain (`hello@tryfocuslock.com`) | ✅ | Worker secrets only (`RESEND_API_KEY` rotated, `EMAIL_FROM`, `RESET_URL_BASE`); no source change | — (config) |
 | **Releases** | ✅ | v1.1.0 (`15c9f1a`), v1.1.1 (`cd64833`), v1.1.2 (`e9d06cf`); Swift build fix `f6efceb` | — |
 
 Settings lock (formerly "Parent controls", single-device PIN — **different feature**) shipped earlier in 1.0.25 / 1.0.26 and is unrelated to family controls. Don't conflate them.
 
 ---
 
-## Phase 2.8 — email sender domain (IN PROGRESS, 2026-05-25)
+## Phase 2.8 — email sender domain (SHIPPED, 2026-06-05)
 
-**Why this is the current open item:** the Resend integration ships and is deployed, but it sends from the **sandbox sender `onboarding@resend.dev`**, which only delivers to the Resend *account owner's* email. Every other beta family's password-reset email silently no-ops. Fix = verify a real domain in Resend and point `EMAIL_FROM` at it.
+**Was:** the Resend integration was deployed but used the sandbox sender `onboarding@resend.dev`, which only delivers to the Resend account owner. Every other beta family's reset email silently no-op'd.
 
-**Decision (2026-05-25):** register **`focuslock.org`** on Spaceship as the canonical product domain (website, email sender, notifications, recovery, contact). Transactional sender = `FocusLock <noreply@focuslock.org>`. Personal-email forwarding intentionally out of scope.
+**Now:** Resend is verified for `tryfocuslock.com` (Cloudflare auto-added the DKIM/SPF/return-path records via Resend's "Connect Cloudflare" integration). The Worker uses these three secrets — set, not committed:
 
-**The code is already env-driven** — `family-server/src/email.ts` reads `env.EMAIL_FROM` and `env.RESET_URL_BASE`, falling back to `onboarding@resend.dev` and the Vercel reset URL. So shipping 2.8 requires **no functional code change**, only Worker secrets.
+| Secret | Value |
+|--------|-------|
+| `RESEND_API_KEY` | (new, rotated 2026-06-05; the older `focuslock-family-prod` / `focus-lock-family-server` keys were deleted) |
+| `EMAIL_FROM` | `FocusLock <hello@tryfocuslock.com>` |
+| `RESET_URL_BASE` | `https://tryfocuslock.com/reset.html` |
 
-### Runbook (operator = Oscar; steps Claude cannot do are marked 🧑)
+Verified end-to-end: outbound `POST /api/v1/auth/reset-request` calls Resend, which returns HTTP 200 + an email ID; sent messages now appear in the Resend dashboard with `From: FocusLock <hello@tryfocuslock.com>` (no code change to `family-server/src/email.ts` — Phase 2.6 already made it env-driven).
 
-1. 🧑 **Register `focuslock.org` on Spaceship.**
-2. 🧑 **Add the domain in the Resend dashboard** (Domains → Add Domain → `focuslock.org`). Resend generates the records below (region in the MX/SPF host may differ; DKIM key is unique — copy exact values from the dashboard):
-   - **MX** — host `send` — value `feedback-smtp.<region>.amazonses.com` — priority `10`
-   - **TXT (SPF)** — host `send` — value `v=spf1 include:amazonses.com ~all`
-   - **TXT (DKIM)** — host `resend._domainkey` — value `p=MIGf…` (long, no line breaks)
-   - **TXT (DMARC, optional)** — host `_dmarc` — value `v=DMARC1; p=none;`
-3. 🧑 **Add those records in Spaceship's DNS editor.** Enter only the host part (`send`, `resend._domainkey`, `_dmarc`) — Spaceship appends the domain. Click **Verify** in Resend (DNS can take minutes to ~hours).
-4. 🧑 **Rotate the leaked Resend API key** (it was exposed in chat). Create a new key in Resend, delete the old one, then:
-   `cd family-server && npx wrangler secret put RESEND_API_KEY`
-5. 🧑 **Set the sender secret:**
-   `npx wrangler secret put EMAIL_FROM`  → enter `FocusLock <noreply@focuslock.org>`
-6. ✅ **Smoke test** (Claude can run / interpret): trigger a reset to a non-owner address and confirm arrival:
-   `curl -X POST https://focuslock-family.oscarpetrikas.workers.dev/api/v1/auth/reset-request -H "content-type: application/json" -d '{"email":"<a-real-test-inbox>"}'`
-   Then check the destination inbox and `npx wrangler tail` for any Resend errors.
+### Gotcha: `.html` in `RESET_URL_BASE`
 
-**Heads-up / risk:** the Resend *account login* may itself be a dead `@oscarpetrikas.com` address. The deployed API key still works, but if Oscar is ever logged out, account recovery could be blocked. Once `focuslock.org` email works, consider switching the Resend login/recovery email to an `@focuslock.org` address.
+The natural value would have been `https://tryfocuslock.com/reset` (matching the original Vercel default `…/reset` shape). But `vercel.json` doesn't have `cleanUrls: true` and has no `/reset` → `/reset.html` rewrite, so `/reset` 404s on the live apex. We use `.html` in the secret as the simple fix. If you want the clean URL back, add this entry to `vercel.json`'s `rewrites` and re-set the secret to `…/reset`:
 
-**Follow-on (separate task, not 2.8):** moving the public website + reset link off `focus-lock.vercel.app` onto `focuslock.org` (point DNS at Vercel, set `RESET_URL_BASE`, update `landing/reset.html`'s `API_BASE` only if the Worker also moves to a custom route).
+```json
+{ "source": "/reset", "destination": "/reset.html" }
+```
+
+### Follow-on (separate task)
+
+- **Switch the Resend *account-login* address** from the current `@oscarpetrikas.com` (which the status doc previously flagged as possibly dead) to `hello@tryfocuslock.com` now that inbound mail to it works via Cloudflare Email Routing — otherwise a logout could lock out account recovery.
 
 ---
 
@@ -77,7 +75,6 @@ Parent device (Tauri app, `ui/src/pages/Family.tsx`) signs in to a Cloudflare Wo
 
 ## Known issues / TODOs (small, do whenever)
 
-- **Phase 2.8 (above)** — sender domain verification is the active blocker for real-family beta email.
 - **Signup leaks account existence** via `409 Conflict`. Acceptable in beta; fix when adding email verification.
 - **WS push doesn't reach the parent UI** — only child gets pushed rules. Parent UI polls devices every 30s. Optional polish: parent WS to `/parent/ws` for instant device-online state.
 - **No automated tests yet** on the Worker. Add Vitest + miniflare.
@@ -86,7 +83,6 @@ Parent device (Tauri app, `ui/src/pages/Family.tsx`) signs in to a Cloudflare Wo
 
 ## How to pick this up later
 
-**In a new Claude Code session:**
-> "Continue FocusLock family controls — Phase 2.8 email sender domain (focuslock.org / Resend)."
+Phases 2.1–2.9 are all shipped. The remaining loose ends are the small bullets in "Known issues / TODOs" above and the Resend account-login switch noted under Phase 2.8.
 
-Memory at `~/.claude/projects/C--Users-me/memory/project_focuslock_parental_model.md` autoloads with full context.
+Memory at `~/.claude/projects/-Users-oscarpetrikas/memory/MEMORY.md` autoloads with full context.
