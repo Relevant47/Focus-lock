@@ -5,6 +5,7 @@ import { useDaemon } from './stores/daemon';
 import { applyTheme, getTheme } from './stores/theme';
 import { evaluate, rememberSessionStart, type Achievement } from './lib/achievements';
 import Nav from './components/Nav';
+import ErrorBoundary from './components/ErrorBoundary';
 import Onboarding, { useOnboarding } from './components/Onboarding';
 import UpdateBanner from './components/UpdateBanner';
 import CommandPalette from './components/CommandPalette';
@@ -26,19 +27,24 @@ import { familyEnabled } from './lib/familyApi';
 
 function RoutedShell() {
   const location = useLocation();
+  // Keyed boundary: a fresh ErrorBoundary instance per route. Without the key,
+  // navigating away from a crashed page would leave the boundary in its error
+  // state on the new page.
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/"           element={<Dashboard />} />
-        <Route path="/blocklists" element={<BlockLists />} />
-        <Route path="/profiles"   element={<Profiles />} />
-        <Route path="/schedules"  element={<Schedules />} />
-        {familyEnabled && <Route path="/family" element={<Family />} />}
-        <Route path="/analytics"  element={<Analytics />} />
-        <Route path="/settings"   element={<Settings />} />
-        <Route path="*"           element={<Navigate to="/" replace />} />
-      </Routes>
-    </AnimatePresence>
+    <ErrorBoundary key={location.pathname} scope="page">
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/"           element={<Dashboard />} />
+          <Route path="/blocklists" element={<BlockLists />} />
+          <Route path="/profiles"   element={<Profiles />} />
+          <Route path="/schedules"  element={<Schedules />} />
+          {familyEnabled && <Route path="/family" element={<Family />} />}
+          <Route path="/analytics"  element={<Analytics />} />
+          <Route path="/settings"   element={<Settings />} />
+          <Route path="*"           element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
+    </ErrorBoundary>
   );
 }
 

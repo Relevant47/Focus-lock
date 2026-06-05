@@ -232,6 +232,22 @@
       <div class="entry-meta">
         <div class="entry-date">June 5, 2026</div>
         <span class="badge app">App</span>
+        <span class="version-tag">1.2.1</span>
+      </div>
+      <div class="entry-body">
+        <h2>Family page no longer takes the whole app down</h2>
+        <ul>
+          <li><strong>Fixed a blank-window crash after signing in to Family.</strong> When the daemon couldn't enumerate local user accounts (we saw it on macOS), <code>EnvironmentWarning</code> tried to call <code>.filter()</code> on a missing array and threw — and because there was no React error boundary, the entire window turned solid black with no way to recover. Now defaults to an empty list and renders normally.</li>
+          <li><strong>Added a top-level error boundary.</strong> If anything else throws during render, you'll see a small "Something went wrong" card with the actual error message and a <em>Try again</em> button, instead of losing the whole app. The other tabs keep working.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-05 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">June 5, 2026</div>
+        <span class="badge app">App</span>
       </div>
       <div class="entry-body">
         <h2>Family Controls actually works from the app now</h2>

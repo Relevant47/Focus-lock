@@ -852,9 +852,16 @@ function EnvironmentWarning() {
   const elevatedOk = env.daemonElevated;
   const uacWeak = env.platform === 'windows' && env.uacEnabled === false;
 
+  // Default localUsers to []. The protocol declares it non-nullable, but the
+  // daemon ships `null` (or omits the field) when enumeration fails — without
+  // this default, every downstream `.filter`/`.length` access crashes the
+  // entire React tree (since the Family page has no inner boundary).
+  const localUsers = env.localUsers ?? [];
+
   // Real human admin accounts only — built-in (SYSTEM, Administrator, _services
   // etc.) are interesting to advanced users but noisy as a warning surface.
-  const humanAdmins = env.localUsers.filter(u => u.isAdmin && !u.isBuiltIn);
+  const humanAdmins = localUsers.filter(u => u.isAdmin && !u.isBuiltIn);
+  const nonBuiltInCount = localUsers.filter(u => !u.isBuiltIn).length;
 
   const hasIssues = !elevatedOk || uacWeak || humanAdmins.length > 0;
 
@@ -867,7 +874,7 @@ function EnvironmentWarning() {
           <p className="text-text font-medium mb-0.5">This machine's daemon is set up correctly</p>
           <p className="text-faint">
             Elevated{env.platform === 'windows' ? ' · UAC enabled' : ''} · {platform} {env.osVersion}.
-            {env.localUsers.length > 0 && ` ${env.localUsers.filter(u => !u.isBuiltIn).length} local account${env.localUsers.filter(u => !u.isBuiltIn).length === 1 ? '' : 's'}, none with admin.`}
+            {localUsers.length > 0 && ` ${nonBuiltInCount} local account${nonBuiltInCount === 1 ? '' : 's'}, none with admin.`}
             {' '}Don't forget to verify the *child's* device too — that's where the locks actually have to hold.
           </p>
         </div>
@@ -909,7 +916,7 @@ function EnvironmentWarning() {
                 Anyone in this list can stop the daemon, edit the hosts file, and uninstall FocusLock in seconds.
               </li>
             )}
-            {humanAdmins.length === 0 && env.localUsers.length === 0 && (
+            {humanAdmins.length === 0 && localUsers.length === 0 && (
               <li>
                 <span className="text-text">Couldn't enumerate local accounts.</span>
                 {' '}Make sure the child's account on this machine is a standard (non-admin) account — that's a load-bearing assumption for everything FocusLock does.
@@ -921,8 +928,8 @@ function EnvironmentWarning() {
             {env.platform === 'windows' && env.uacEnabled !== null && (
               <> · UAC {env.uacEnabled ? 'on' : <span className="text-warn">off</span>}</>
             )}
-            {env.localUsers.length > 0 && (
-              <> · {env.localUsers.filter(u => !u.isBuiltIn).length} non-built-in user{env.localUsers.filter(u => !u.isBuiltIn).length === 1 ? '' : 's'}</>
+            {localUsers.length > 0 && (
+              <> · {nonBuiltInCount} non-built-in user{nonBuiltInCount === 1 ? '' : 's'}</>
             )}
           </p>
         </div>
