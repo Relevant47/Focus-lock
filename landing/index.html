@@ -2402,8 +2402,8 @@
         <details class="ih-faq">
           <summary>Prefer the terminal?</summary>
           <p>
-            On macOS, after the <code>.pkg</code> downloads:<br>
-            <code style="display:block;margin:6px 0;padding:6px 8px;background:var(--bg-dark);border-radius:6px;">sudo installer -pkg ~/Downloads/FocusLock*.pkg -target /</code>
+            On macOS, after the <code>.dmg</code> downloads:<br>
+            <code style="display:block;margin:6px 0;padding:6px 8px;background:var(--bg-dark);border-radius:6px;">hdiutil attach ~/Downloads/FocusLock*.dmg && cp -R "/Volumes/FocusLock/FocusLock.app" /Applications/</code>
             On Windows (PowerShell as Administrator):<br>
             <code style="display:block;margin:6px 0;padding:6px 8px;background:var(--bg-dark);border-radius:6px;">Start-Process .\FocusLock-Setup.exe -Verb RunAs -Wait</code>
           </p>
@@ -2822,8 +2822,8 @@
       </div>
       <div class="mock-body">
         ${macIcon}
-        <div class="mock-headline">"FocusLock.pkg" Not Opened</div>
-        <div class="mock-msg">Apple could not verify "FocusLock.pkg" is free of malware that may harm your Mac or compromise your privacy.</div>
+        <div class="mock-headline">"FocusLock.app" Not Opened</div>
+        <div class="mock-msg">Apple could not verify "FocusLock.app" is free of malware that may harm your Mac or compromise your privacy.</div>
         <div class="mock-btns">
           <span class="mock-btn">Move to Trash</span>
           <span class="mock-btn mock-pulse" style="background:#0a84ff;color:#fff;border-color:#0a84ff;">Open Anyway</span>
@@ -2835,9 +2835,9 @@
   const macContextMenu = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
       <div class="mock-finder-row">
-        <div class="pkg">PKG</div>
-        <div><div style="font-weight:600;">FocusLock-1.1.6.pkg</div>
-          <div style="font-size:.7rem;color:#5a5a66;">Installer Package · 24 MB</div></div>
+        <div class="pkg">APP</div>
+        <div><div style="font-weight:600;">FocusLock.app</div>
+          <div style="font-size:.7rem;color:#5a5a66;">Application · 24 MB</div></div>
       </div>
       <div class="mock-ctx">
         <div class="mock-ctx-item">Open with…</div>
@@ -2853,12 +2853,30 @@
     <div class="mock-win">
       <div class="mock-body" style="text-align:center;">
         <div style="font-size:1.8rem;">🔒</div>
-        <div class="mock-headline">Installer is trying to install new software.</div>
+        <div class="mock-headline">FocusLock wants to install a background helper.</div>
         <div class="mock-msg">Enter your password to allow this.</div>
         <div style="background:#fff;border:1px solid #c4c4cc;border-radius:5px;padding:5px;font-size:.7rem;color:#999;">••••••••</div>
         <div class="mock-btns" style="justify-content:center;">
           <span class="mock-btn">Cancel</span>
-          <span class="mock-btn primary mock-pulse">Install Software</span>
+          <span class="mock-btn primary mock-pulse">OK</span>
+        </div>
+      </div>
+    </div>`;
+
+  const macDragToApps = `
+    <div class="mock-win">
+      <div class="mock-titlebar">
+        <span class="mock-traffic"></span><span class="mock-traffic"></span><span class="mock-traffic"></span>
+      </div>
+      <div class="mock-body" style="display:flex;align-items:center;justify-content:center;gap:18px;padding:24px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          ${macIcon}
+          <div style="font-size:.7rem;color:#5a5a66;">FocusLock</div>
+        </div>
+        <div class="mock-pulse" style="font-size:1.8rem;color:#0a84ff;">→</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <div class="mock-icon" style="background:linear-gradient(135deg,#5a8df0,#2f6bda);color:#fff;">📁</div>
+          <div style="font-size:.7rem;color:#5a5a66;">Applications</div>
         </div>
       </div>
     </div>`;
@@ -2917,20 +2935,25 @@
     mac: {
       title: "One quick step before you open FocusLock",
       sub: "Because FocusLock runs at a deep system level to keep your blocks unbypassable, macOS will show a security warning. This is completely normal — here's exactly what to do.",
-      reassure: 'FocusLock is open source — every line is on <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener">GitHub</a>. The warning appears because we haven\'t paid Apple\'s $99/yr developer fee yet, not because anything is wrong with the app.',
+      reassure: 'FocusLock is open source — every line is on <a href="https://github.com/Relevant47/Focus-lock" target="_blank" rel="noopener">GitHub</a>. The warning appears because we haven\'t completed Apple\'s notarization process yet, not because anything is wrong with the app.',
       steps: [
         {
-          heading: "Open your Downloads folder and find FocusLock.pkg",
-          body: "Your browser just saved it there. <strong>Don't double-click it yet</strong> — that's what triggers the warning we want to skip.",
+          heading: "Open your Downloads folder and find FocusLock.dmg",
+          body: "Your browser just saved it there. Double-click the DMG to mount it.",
           visual: `<div class="mock-finder-row">
-            <div class="pkg">PKG</div>
-            <div><div style="font-weight:600;">FocusLock-1.1.6.pkg</div>
-              <div style="font-size:.7rem;color:#5a5a66;">Installer Package · 24 MB · Just now</div></div>
+            <div class="pkg">DMG</div>
+            <div><div style="font-weight:600;">FocusLock-1.2.0.dmg</div>
+              <div style="font-size:.7rem;color:#5a5a66;">Disk Image · 24 MB · Just now</div></div>
           </div>`,
         },
         {
-          heading: "Right-click the file → choose Open",
-          body: "Hold <kbd>Control</kbd> and click, or use a two-finger click on the trackpad. Pick <strong>Open</strong> from the menu that appears.",
+          heading: "Drag FocusLock to your Applications folder",
+          body: "A window opens with the FocusLock app and an Applications shortcut. Drag the app onto Applications to install it.",
+          visual: macDragToApps,
+        },
+        {
+          heading: "Open Applications, then right-click FocusLock → choose Open",
+          body: "Hold <kbd>Control</kbd> and click the app, or use a two-finger click on the trackpad. Pick <strong>Open</strong> from the menu that appears.",
           visual: macContextMenu,
         },
         {
@@ -2939,14 +2962,9 @@
           visual: macGatekeeperOpenAnyway,
         },
         {
-          heading: "Enter your Mac password when asked",
-          body: 'This lets FocusLock install its background service. <span class="ih-note">We never see or transmit your password — macOS handles the prompt itself.</span>',
+          heading: "Enter your Mac password to allow the background helper",
+          body: 'This lets FocusLock register its background service so blocks survive force quits and restarts. <span class="ih-note">We never see or transmit your password — macOS handles the prompt itself.</span>',
           visual: macPwd,
-        },
-        {
-          heading: "You're in — follow the installer from here",
-          body: "The standard installer takes over. Keep the defaults and you'll be running in about 30 seconds.",
-          visual: installerWelcome,
         },
       ],
     },
