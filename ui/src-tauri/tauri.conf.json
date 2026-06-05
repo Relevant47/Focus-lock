@@ -43,10 +43,7 @@
     "shortDescription": "Block distractions. Own your focus.",
     "longDescription": "FocusLock blocks distracting websites and apps at the operating system level — no browser extensions, no workarounds. Blocks survive app restarts, force quits, and even reboots.",
     "externalBin": [],
-    "resources": {
-      "target/daemon-stage/FocusLockDaemon": "Library/LaunchDaemons/FocusLockDaemon",
-      "target/daemon-stage/com.focuslock.daemon.plist": "Library/LaunchDaemons/com.focuslock.daemon.plist"
-    },
+    "resources": [],
     "windows": {
       "digestAlgorithm": "sha256",
       "timestampUrl": "http://timestamp.digicert.com"

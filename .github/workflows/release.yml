@@ -158,8 +158,18 @@ jobs:
           sed -i '' "s/FOCUSLOCK_TEAM_ID_PLACEHOLDER/$TEAM_ID/g" \
             daemon-mac/Sources/FocusLockDaemon/CodeSignatureCheck.swift
 
-      - name: Build daemon (macOS)
-        run: swift build -c release
+      - name: Build daemon (macOS, universal)
+        # Build for both archs and lipo them together so the same daemon binary
+        # works regardless of which target the Tauri matrix entry builds the .app for.
+        run: |
+          swift build -c release --arch arm64
+          swift build -c release --arch x86_64
+          mkdir -p .build/release
+          lipo -create \
+            .build/arm64-apple-macosx/release/FocusLockDaemon \
+            .build/x86_64-apple-macosx/release/FocusLockDaemon \
+            -output .build/release/FocusLockDaemon
+          file .build/release/FocusLockDaemon
         working-directory: daemon-mac
 
       - name: Import Apple certificates

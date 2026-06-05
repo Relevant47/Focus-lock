@@ -1,0 +1,8 @@
+{
+  "bundle": {
+    "resources": {
+      "target/daemon-stage/FocusLockDaemon": "Library/LaunchDaemons/FocusLockDaemon",
+      "target/daemon-stage/com.focuslock.daemon.plist": "Library/LaunchDaemons/com.focuslock.daemon.plist"
+    }
+  }
+}
