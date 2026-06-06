@@ -43,7 +43,7 @@ export default function Family() {
     <Page className="overflow-y-auto">
       <div className="max-w-3xl mx-auto px-8 py-10">
         <PageHeader
-          eyebrow="Coming soon — beta"
+          eyebrow="Beta"
           title="Family"
           sub="Lock apps on a child's computer from your own. Pair a device, set rules, see what's active."
           right={
