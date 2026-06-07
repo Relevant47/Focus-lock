@@ -1,5 +1,17 @@
 import Foundation
 
+// launchd writes our stdout/stderr to the StandardOutPath / StandardErrorPath
+// declared in com.focuslock.daemon.plist, but it does NOT create missing parent
+// directories for those redirects. Pre-SMAppService installs created
+// /Library/Logs/FocusLock via installer/macos/install.sh; that installer was
+// removed in v1.2.0, so create the directory here on every startup (idempotent)
+// to keep daemon.log working on fresh installs.
+try? FileManager.default.createDirectory(
+    at: URL(fileURLWithPath: "/Library/Logs/FocusLock"),
+    withIntermediateDirectories: true,
+    attributes: [.posixPermissions: 0o755]
+)
+
 fputs("[focuslock] Daemon starting\n", stderr)
 
 verifyOwnCodeSignature()
