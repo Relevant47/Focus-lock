@@ -8,6 +8,13 @@ type RegisterOutcome =
   | { kind: 'not_found' }
   | { kind: 'error'; error: string };
 
+type DaemonStatus =
+  | { kind: 'not_registered' }
+  | { kind: 'enabled' }
+  | { kind: 'requires_approval' }
+  | { kind: 'not_found' }
+  | { kind: 'unknown' };
+
 type ScreenState =
   | { kind: 'checking' }
   | { kind: 'first_run' }
@@ -109,6 +116,11 @@ async function detectInitialState(): Promise<ScreenState> {
   try {
     const legacy = await invoke<boolean>('legacy_install_present_macos');
     if (legacy) return { kind: 'legacy_upgrade' };
+
+    const raw = await invoke<string>('daemon_status_macos');
+    const status = JSON.parse(raw) as DaemonStatus;
+    if (status.kind === 'requires_approval') return { kind: 'disabled' };
+    if (status.kind === 'not_found') return { kind: 'tampered' };
     return { kind: 'first_run' };
   } catch (e) {
     return { kind: 'error', message: String(e) };
