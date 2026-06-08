@@ -1,8 +1,8 @@
 import { signJwt } from './crypto';
 import {
-  consumePairingCode, createDevice, createPairingCode, logAudit, PAIR_CODE_TTL,
+  consumePairingCode, createDevice, createNotification, createPairingCode, logAudit, PAIR_CODE_TTL,
 } from './db';
-import type { Env, PairRedeemRequest } from './types';
+import type { DevicePairedPayload, Env, PairRedeemRequest } from './types';
 import {
   badRequest, clientIp, gone, json, requireAuth, safeJson, sha256Hex, unauthorized,
 } from './utils';
@@ -57,6 +57,28 @@ export async function pairRedeem(req: Request, env: Env): Promise<Response> {
 
   await logAudit(env.DB, consumed.account_id, deviceId, 'pair_redeem',
     { hostname: body.hostname ?? null, os: body.os, osVersion: body.osVersion ?? null }, ip);
+
+  // Phase 3.1 — surface the pair as an unread Inbox card on the parent UI.
+  // Best-effort: a notification write failure must not affect the device's
+  // ability to come online, so swallow errors and log them only.
+  const hostname = typeof body.hostname === 'string' ? body.hostname : null;
+  const osVersion = typeof body.osVersion === 'string' ? body.osVersion : null;
+  const nowIso = new Date().toISOString();
+  const payload: DevicePairedPayload = {
+    deviceId,
+    hostname,
+    os: body.os,
+    osVersion,
+    pairedAt: nowIso,
+  };
+  await createNotification(
+    env.DB, consumed.account_id, 'device_paired',
+    hostname ? `${hostname} just paired` : 'A new device paired',
+    hostname
+      ? `${hostname} (${body.os}) is now linked to your family. You can block apps on it from the Family tab.`
+      : `A new ${body.os} device is now linked to your family.`,
+    payload,
+  ).catch((err: unknown) => { console.warn('notification create failed', err); });
 
   return json({
     deviceId,
