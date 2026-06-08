@@ -83,6 +83,17 @@ export interface RateLimitRow {
   blocked_until: string | null;
 }
 
+export interface NotificationRow {
+  id: number;
+  account_id: string;
+  kind: 'weekly_digest' | 'device_paired';
+  title: string;
+  body: string;
+  payload: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
 // ── API shapes (camelCase, what HTTP clients see) ──────────────────────────
 
 export interface DeviceSummary {
@@ -104,6 +115,33 @@ export interface LockRule {
   scheduleCron: string | null;
   active: boolean;
   createdAt: string;
+}
+
+export interface Notification {
+  id: number;
+  kind: 'weekly_digest' | 'device_paired';
+  title: string;
+  body: string;
+  payload: unknown;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface WeeklyDigestPayload {
+  periodStartIso: string;          // start of the 7-day window
+  periodEndIso:   string;          // end (= digest run time)
+  ruleCreates:    number;          // count of rule_create events in window
+  topApps:        string[];        // up to 5 most-frequent target apps
+  topDomains:     string[];        // up to 5 most-frequent target domains
+  activeDeviceCount: number;       // devices seen online at least once in window
+}
+
+export interface DevicePairedPayload {
+  deviceId:   string;
+  hostname:   string | null;
+  os:         'windows' | 'macos';
+  osVersion:  string | null;
+  pairedAt:   string;
 }
 
 export interface CreateRuleRequest {
