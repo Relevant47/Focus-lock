@@ -59,6 +59,16 @@ function isValidCron(expr: string): boolean {
   return parts.every((p, i) => isValidCronField(p, CRON_FIELD_RANGES[i][0], CRON_FIELD_RANGES[i][1]));
 }
 
+// POSIX cron treats weekday 7 as Sunday (alias of 0). Daemons only match 0-6,
+// so rewrite any 7 in the weekday field to 0 before save and before preview.
+// The weekday field's valid range is single-digit 0-7, so plain char replacement is safe.
+function normalizeCronWeekday(expr: string): string {
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length !== 5) return expr;
+  parts[4] = parts[4].replace(/7/g, '0');
+  return parts.join(' ');
+}
+
 // ── Form ─────────────────────────────────────────────────────────────────────
 function ScheduleForm({ initial, onSave, onCancel }: {
   initial: ScheduledSession; onSave: (s: ScheduledSession) => Promise<void>; onCancel: () => void;
@@ -77,7 +87,7 @@ function ScheduleForm({ initial, onSave, onCancel }: {
     if (!form.profileId)   { setError('Select a profile'); return; }
     if (!isValidCron(form.cronExpression)) { setError('Invalid cron expression — use format: minute hour day month weekday'); return; }
     setSaving(true); setError('');
-    try { await onSave(form); }
+    try { await onSave({ ...form, cronExpression: normalizeCronWeekday(form.cronExpression) }); }
     catch (e) { setError(e instanceof Error ? e.message : 'Save failed'); }
     finally { setSaving(false); }
   }
@@ -174,7 +184,7 @@ function CalendarView({ schedules, profiles, onEdit }: {
     return enabled.filter(s => {
       const parts = s.cronExpression.trim().split(/\s+/);
       if (parts.length !== 5) return false;
-      return fieldMatches(parts[2], day) && fieldMatches(parts[3], month + 1) && fieldMatches(parts[4], dow);
+      return fieldMatches(parts[2], day) && fieldMatches(parts[3], month + 1) && fieldMatches(parts[4].replace(/7/g, '0'), dow);
     });
   }
 
