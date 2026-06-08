@@ -1,5 +1,5 @@
 import type {
-  AccountRow, AuditLogRow, DeviceRow, LockRule, LockRuleRow, PairingCodeRow,
+  AccountRow, AuditLogRow, DeviceRow, LockRule, LockRuleRow, NotificationRow, PairingCodeRow,
 } from './types';
 
 // ── accounts ───────────────────────────────────────────────────────────────
@@ -252,4 +252,76 @@ function safeParseArr(s: string): string[] {
     const v = JSON.parse(s);
     return Array.isArray(v) ? v.filter(x => typeof x === 'string') : [];
   } catch { return []; }
+}
+
+// ── notifications (Family Inbox) ───────────────────────────────────────────
+
+export async function createNotification(
+  db: D1Database,
+  accountId: string,
+  kind: 'weekly_digest' | 'device_paired',
+  title: string,
+  body: string,
+  payload: unknown,
+): Promise<NotificationRow> {
+  const now = new Date().toISOString();
+  const payloadJson = payload == null ? null : JSON.stringify(payload);
+  const res = await db.prepare(
+    `INSERT INTO notifications (account_id, kind, title, body, payload, read_at, created_at)
+     VALUES (?, ?, ?, ?, ?, NULL, ?)
+     RETURNING *`,
+  ).bind(accountId, kind, title, body, payloadJson, now).first();
+  return res as unknown as NotificationRow;
+}
+
+export async function listNotificationsForAccount(
+  db: D1Database,
+  accountId: string,
+  limit = 50,
+): Promise<NotificationRow[]> {
+  // Unread first (NULL sorts last in SQLite ASC, so we use IS NULL DESC),
+  // then newest first within each group.
+  const res = await db.prepare(
+    `SELECT * FROM notifications
+     WHERE account_id = ?
+     ORDER BY (read_at IS NULL) DESC, created_at DESC
+     LIMIT ?`,
+  ).bind(accountId, limit).all();
+  return (res.results ?? []) as unknown as NotificationRow[];
+}
+
+export async function countUnreadNotifications(
+  db: D1Database,
+  accountId: string,
+): Promise<number> {
+  const row = await db.prepare(
+    `SELECT COUNT(*) AS n FROM notifications
+     WHERE account_id = ? AND read_at IS NULL`,
+  ).bind(accountId).first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+export async function markNotificationRead(
+  db: D1Database,
+  notificationId: number,
+  accountId: string,
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  const res = await db.prepare(
+    `UPDATE notifications SET read_at = ?
+     WHERE id = ? AND account_id = ? AND read_at IS NULL`,
+  ).bind(now, notificationId, accountId).run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function markAllNotificationsRead(
+  db: D1Database,
+  accountId: string,
+): Promise<number> {
+  const now = new Date().toISOString();
+  const res = await db.prepare(
+    `UPDATE notifications SET read_at = ?
+     WHERE account_id = ? AND read_at IS NULL`,
+  ).bind(now, accountId).run();
+  return res.meta?.changes ?? 0;
 }
