@@ -239,6 +239,7 @@
         <ul>
           <li><strong>Fixed a blank-window crash after signing in to Family.</strong> When the daemon couldn't enumerate local user accounts (we saw it on macOS), <code>EnvironmentWarning</code> tried to call <code>.filter()</code> on a missing array and threw — and because there was no React error boundary, the entire window turned solid black with no way to recover. Now defaults to an empty list and renders normally.</li>
           <li><strong>Added a top-level error boundary.</strong> If anything else throws during render, you'll see a small "Something went wrong" card with the actual error message and a <em>Try again</em> button, instead of losing the whole app. The other tabs keep working.</li>
+          <li><strong>Async errors no longer disappear silently.</strong> Errors thrown outside the render cycle — IPC callbacks, promise rejections, module-load failures — bypass React's boundary. A global handler now surfaces them as a red overlay with the message and stack, so you can see what went wrong instead of staring at a frozen UI.</li>
         </ul>
       </div>
     </article>
