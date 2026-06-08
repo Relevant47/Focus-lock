@@ -278,6 +278,114 @@
       </div>
     </article>
 
+    <!-- ───── 2026-06-03 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">June 3, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.6</span>
+      </div>
+      <div class="entry-body">
+        <h2>Hosts file no longer accumulates duplicate blocks; YouTube is blocked on macOS too</h2>
+        <ul>
+          <li><strong>Your hosts file isn't piling up FocusLock entries anymore.</strong> Two parallel bugs were stacking a fresh FocusLock-tagged section on every 30-second enforcement tick — on a real dev box, <strong>113 duplicate copies</strong> of the same block had accumulated over time. On Windows the markers used Unicode em-dashes but the file was written as ASCII, so the on-disk text never matched what the code was searching for; on macOS, the strip logic only removed the <em>first</em> match, leaving any duplicates from older buggy versions in place forever. Both daemons now use ASCII-only markers and a permissive strip that catches canonical, legacy em-dashed, and mojibaked forms in one pass. Existing boxes self-heal on the first re-enforce.</li>
+          <li><strong>YouTube is blocked on macOS now too.</strong> The Windows-only DoH fix from v1.1.5 has a macOS mirror: during an active session the daemon writes the equivalent managed-preference plist values for Chrome / Edge / Brave / Firefox, then restores the originals byte-perfect on session end. The same browser-restart caveat applies — open tabs hold live TCP connections that survive the policy change.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-03 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">June 3, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.5</span>
+      </div>
+      <div class="entry-body">
+        <h2>YouTube actually gets blocked now (Windows)</h2>
+        <ul>
+          <li><strong>The bug.</strong> The daemon was correctly writing <code>127.0.0.1 youtube.com</code> to the Windows hosts file, but Chrome / Edge / Brave / Firefox default to DNS-over-HTTPS on most networks — which never asks the OS resolver. So the hosts entry was invisible to the browser, you added <code>youtube.com</code> to your block list, started a session, and YouTube still loaded.</li>
+          <li><strong>The fix.</strong> During an active session, the daemon now forces all four browsers off DoH via HKLM Group Policy keys. Your prior settings are backed up to <code>%ProgramData%\FocusLock\doh_backup.json</code> on session start and restored byte-perfect on session end, including the "was never set" case.</li>
+          <li><strong>One caveat we now flag.</strong> Browsers cache live TCP connections independently of DNS — a YouTube tab already open when the session started can keep loading because the connection is established. A browser restart drops it. The Block Lists page now has a one-liner reminding you of this when you Quick Block.</li>
+          <li><strong>No more no-op sessions.</strong> Profiles with no blocks at all could start a session that did nothing. Every start path now refuses an empty payload and names which profile is missing rules.</li>
+          <li><strong>Visible session banner on Profiles and Block Lists.</strong> A running session is now obvious from every configure page, with a live countdown and End early button, colour-keyed to the session type (focus / Hardcore / Friend lock).</li>
+          <li><strong>Clearer feedback when a session is already running.</strong> Quick Start chips and the main Start button disable themselves with a tooltip instead of letting you click and hit a generic daemon error.</li>
+          <li><strong>macOS DoH parity is not in this release</strong> — it lands in v1.1.6.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-27 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 27, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.4</span>
+      </div>
+      <div class="entry-body">
+        <h2>In-app survey</h2>
+        <ul>
+          <li><strong>Optional 2-minute survey in Settings → Feedback → "Take survey".</strong> NPS, demographics, usage patterns, and a free-text "What do you like most / least". Stored anonymously in Supabase. Submit once locks the entry against dupes; you can delete your response any time from the same panel.</li>
+          <li><strong>Smart nudge.</strong> A small bottom-right banner suggests the survey after 5 completed sessions or 7 days of use, hard-capped at 3 lifetime appearances. Never interrupts an active block or pomodoro work phase. "Maybe later" snoozes 7 days, "No thanks" snoozes 60 days.</li>
+          <li><strong>Inline newsletter opt-in</strong> at the end of the survey — sends signups directly to Beehiiv via an embedded form. No email leaves FocusLock except to Beehiiv if you choose to subscribe.</li>
+          <li><strong>Privacy.</strong> An <code>install_id</code> (UUID v4 generated on your machine) prevents duplicate submissions but isn't linked to any identifying data. Privacy policy updated to disclose the new optional collection.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-23 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 23, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.3</span>
+      </div>
+      <div class="entry-body">
+        <h2>Daemon safety, macOS app blocking, and Light mode</h2>
+        <ul>
+          <li><strong>The daemon will no longer kill system-critical processes (CRITICAL — affected 1.1.2 and earlier).</strong> Before this release, typing <code>explorer.exe</code>, <code>winlogon.exe</code>, or <code>svchost.exe</code> into the blocked-process textarea would have those processes killed during a focus session — including the Windows shell itself. Both daemons now check a hard-coded protected-name denylist before killing anything, and skip processes running in system sessions (Windows session 0; macOS uid 0 / under 100).</li>
+          <li><strong>App blocking on macOS actually works.</strong> The Mac daemon now resolves running apps via <code>NSWorkspace.runningApplications</code> and matches by bundle identifier. Previously the matcher only saw process names and full paths, so <code>.app</code> packages were invisible — blocking "Steam" on Mac silently did nothing. Now actually blocks the app.</li>
+          <li><strong>Complete Light mode.</strong> The old half-broken light theme (sidebar stayed dark while cards turned white) is replaced with a full CSS-custom-property token system. Cohesive across every screen, modal, and the command palette. Settings → Appearance now has Dark / Light / System — System follows the OS preference live.</li>
+          <li><strong>Suggested apps picker.</strong> 14 curated common-distraction apps (Steam, Discord, Spotify, Slack, Battle.net, Epic, Riot, Roblox, Minecraft, OBS, Twitch, WhatsApp, Telegram, Signal). One-click adds the right token per platform — process name on Windows, bundle ID on macOS.</li>
+          <li><strong>Suggested-domain chips show the actual domain.</strong> "Reddit" with <code>reddit.com</code> in muted text below — no more guessing what each chip blocks. Section renamed "Suggested Sites" → "Suggested Domains" to make the apps-vs-sites split obvious.</li>
+          <li><strong>Steam suggested-domain fixed.</strong> Was pointing at <code>steam.com</code>, which isn't actually Steam's domain — blocking it did almost nothing. Now uses <code>store.steampowered.com</code> plus a new <code>steamcommunity.com</code> chip.</li>
+          <li><strong>Working scan-this-download links</strong> on the landing page — the old VirusTotal "scan" link returned an empty search; replaced with real upload pages for VirusTotal, MetaDefender, and Hybrid Analysis.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-23 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 23, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.2</span>
+      </div>
+      <div class="entry-body">
+        <h2>Family controls: real password-reset emails, data export, login rate limit</h2>
+        <ul>
+          <li><strong>Forgot-password emails actually send now.</strong> The reset flow used to only log the token to the family-server worker output. It now sends a real email via Resend. The response shape doesn't change whether the email is registered or whether the send succeeded, so account enumeration stays blocked. Login screen has a "Forgot password?" button → modal → "check your inbox" confirmation.</li>
+          <li><strong>Export and delete your account.</strong> New "Your data" card on the parent dashboard: "Export as JSON" downloads a versioned dump of your account, devices, rules, and audit history (secrets and IPs stripped). "Delete account" opens a danger-zone modal that requires password re-entry plus a typed confirmation phrase. Deletion is permanent and cascades to every paired device.</li>
+          <li><strong>Login + reset-request rate limiting.</strong> Per-email sliding window: 5 failed logins in 15 min triggers a 30-min block; 3 reset requests in 60 min triggers a 60-min block. Failed attempts on a non-existent email are counted equally so 429 vs 401 can't be used to enumerate accounts. Successful login clears the counter so legitimate users aren't punished for typos.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-05-22 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">May 22, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">v1.1.1</span>
+      </div>
+      <div class="entry-body">
+        <h2>The Family tab actually ships this time</h2>
+        <ul>
+          <li>v1.1.0's release workflow forgot to pass <code>VITE_FAMILY_API_URL</code> to the Tauri build, so the Family tab was hidden in shipped artifacts even though the backend was live. CI now reads the URL from a GitHub Actions repository variable and bakes it into the build. Self-host forks without that variable set still get the Family tab hidden (same as 1.0.x) — this isn't a behaviour change for forks.</li>
+        </ul>
+      </div>
+    </article>
+
     <!-- ───── 2026-05-22 ───── -->
     <article class="entry" data-type="app">
       <div class="entry-meta">
