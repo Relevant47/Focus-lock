@@ -4,6 +4,7 @@ import {
   createRuleHandler, deleteDeviceHandler, deleteRuleHandler,
   listDevices, listMyRulesHandler, listRulesHandler,
 } from './devices';
+import { listNotificationsHandler, markAllReadHandler, markReadHandler } from './notifications';
 import { pairCreate, pairRedeem } from './pairing';
 import { add, dispatch } from './router';
 import type { Env } from './types';
@@ -53,6 +54,11 @@ async function deviceWsUpgrade(req: Request, env: Env): Promise<Response> {
   upstream.searchParams.set('did', ctx.deviceId);
   return stub.fetch(new Request(upstream.toString(), req));
 }
+
+// ── Notifications (Phase 3.1 — Family Inbox) ───────────────────────────────
+add('GET',  '/api/v1/notifications',              listNotificationsHandler);
+add('POST', '/api/v1/notifications/:id/read',     markReadHandler);
+add('POST', '/api/v1/notifications/read-all',     markAllReadHandler);
 
 // ── CORS ───────────────────────────────────────────────────────────────────
 // The Tauri desktop app fetches this Worker from a `tauri://localhost` (mac)
