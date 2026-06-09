@@ -59,11 +59,15 @@ export async function createRuleHandler(
 
   const body = await safeJson<CreateRuleRequest>(req);
   if (!body || typeof body.kind !== 'string') return badRequest('kind required');
-  if (body.kind !== 'block_now' && body.kind !== 'schedule' && body.kind !== 'unblock_all') {
-    return badRequest('kind must be block_now | schedule | unblock_all');
+  if (body.kind !== 'block_now' && body.kind !== 'schedule'
+      && body.kind !== 'unblock_all' && body.kind !== 'unblock_specific') {
+    return badRequest('kind must be block_now | schedule | unblock_all | unblock_specific');
   }
   if (body.kind === 'schedule' && typeof body.scheduleCron !== 'string') {
     return badRequest('scheduleCron required for kind=schedule');
+  }
+  if (body.kind === 'unblock_specific' && typeof body.expiresAt !== 'string') {
+    return badRequest('expiresAt required for kind=unblock_specific');
   }
   const apps = Array.isArray(body.targetApps) ? body.targetApps.filter(s => typeof s === 'string') : undefined;
   const domains = Array.isArray(body.targetDomains) ? body.targetDomains.filter(s => typeof s === 'string') : undefined;
@@ -72,6 +76,7 @@ export async function createRuleHandler(
     env.DB, params.id, ctx.accountId, body.kind,
     apps, domains,
     body.kind === 'schedule' ? body.scheduleCron! : null,
+    body.kind === 'unblock_specific' ? body.expiresAt! : null,
   );
   await logAudit(env.DB, ctx.accountId, params.id, 'rule_create',
     { ruleId: rule.id, kind: rule.kind }, clientIp(req));

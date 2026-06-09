@@ -6,6 +6,10 @@ import {
 } from './devices';
 import { listNotificationsHandler, markAllReadHandler, markReadHandler } from './notifications';
 import { pairCreate, pairRedeem } from './pairing';
+import {
+  approveRequestHandler, createRequestHandler, denyRequestHandler,
+  deviceGetRequestHandler, parentGetRequestHandler,
+} from './approvalRequests';
 import { runWeeklyDigests } from './digest';
 import { add, dispatch } from './router';
 import type { Env } from './types';
@@ -60,6 +64,13 @@ async function deviceWsUpgrade(req: Request, env: Env): Promise<Response> {
 add('GET',  '/api/v1/notifications',              listNotificationsHandler);
 add('POST', '/api/v1/notifications/:id/read',     markReadHandler);
 add('POST', '/api/v1/notifications/read-all',     markAllReadHandler);
+
+// ── Approval Requests (Phase 3.2) ──────────────────────────────────────────
+add('POST', '/api/v1/family/requests',                createRequestHandler);
+add('GET',  '/api/v1/family/requests/:id',            parentGetRequestHandler);
+add('POST', '/api/v1/family/requests/:id/approve',    approveRequestHandler);
+add('POST', '/api/v1/family/requests/:id/deny',       denyRequestHandler);
+add('GET',  '/api/v1/device/requests/:id',            deviceGetRequestHandler);
 
 // ── CORS ───────────────────────────────────────────────────────────────────
 // The Tauri desktop app fetches this Worker from a `tauri://localhost` (mac)
