@@ -17,7 +17,7 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     private static let reconnectMin: TimeInterval = 2
     private static let reconnectMax: TimeInterval = 30
     private static let offlineAuditThreshold: TimeInterval = 300  // 5 minutes
-    private static let userAgent = "FocusLock-Daemon/1.1.0"
+    private static let userAgent = "FocusLock-Daemon/1.2.1"
 
     private let family: FamilyService
     private let enforce: FamilyEnforcementService
