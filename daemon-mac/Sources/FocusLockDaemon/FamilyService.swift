@@ -71,7 +71,7 @@ final class FamilyService {
         var req = URLRequest(url: url, timeoutInterval: 15)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("FocusLock-Daemon/1.1.0", forHTTPHeaderField: "User-Agent")
+        req.setValue("FocusLock-Daemon/1.2.1", forHTTPHeaderField: "User-Agent")
 
         let host = Host.current().localizedName ?? "macOS"
         let body: [String: Any] = [

@@ -24,7 +24,7 @@ namespace FocusLock.Daemon.Services;
 /// </summary>
 public sealed class CloudSyncService : BackgroundService
 {
-    private const string UserAgent = "FocusLock-Daemon/1.1.0";
+    private const string UserAgent = "FocusLock-Daemon/1.2.1";
 
     private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan ReconnectMin      = TimeSpan.FromSeconds(2);
