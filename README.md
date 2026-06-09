@@ -20,8 +20,7 @@ focus-lock/
 ├── daemon-mac/             Swift CLI (macOS daemon)
 ├── shared/                 Shared TypeScript protocol types
 ├── installer/
-│   ├── windows/            PowerShell + WiX installer files
-│   └── macos/              Shell scripts + PKG components
+│   └── windows/            PowerShell + WiX installer files
 ├── update-server/          Cloudflare Worker (update manifest server)
 ├── landing/                Static marketing site
 ├── scripts/                Dev tooling (icon generation etc.)
