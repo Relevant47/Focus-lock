@@ -8,6 +8,7 @@ import { auth as familyAuth, familyApiUrl, FamilyApiError, type DeviceSummary, t
 import type { FamilyEnvironment, FamilyStatus } from '../types';
 import { AUDIT_EVENT_LABEL, FAMILY_AUDIT_EVENTS, TAMPER_ALERT_EVENTS, formatAuditTime } from '../lib/auditEvents';
 import FamilyOnboarding, { useFamilyOnboarding } from '../components/FamilyOnboarding';
+import FamilyInbox from '../components/FamilyInbox';
 import { IS_MACOS } from '../lib/platform';
 
 const DEVICE_POLL_INTERVAL_MS = 30_000;
@@ -561,6 +562,9 @@ function SignedInView() {
           since elevation status and the admin/non-admin distinction is what
           decides whether the kid can bypass everything. */}
       <EnvironmentWarning />
+
+      {/* Inbox feed (Phase 3.1 — Family Inbox) */}
+      <FamilyInbox />
 
       {/* Account row */}
       <div className="card p-4 flex items-center justify-between">
