@@ -62,6 +62,19 @@ export async function runWeeklyDigests(env: Env, now: Date = new Date()): Promis
 
   let written = 0;
   for (const [accountId, accountRules] of rulesByAccount) {
+    // Idempotency: skip if we already wrote a weekly digest for this account
+    // anywhere inside the current window. Cloudflare's cron normally fires
+    // exactly once, but we still defend against operator-initiated retries
+    // and the local `/__scheduled?cron=...` debug endpoint.
+    const existing = await env.DB.prepare(
+      `SELECT 1 FROM notifications
+       WHERE account_id = ?
+         AND kind = 'weekly_digest'
+         AND created_at >= ?
+       LIMIT 1`,
+    ).bind(accountId, startIso).first();
+    if (existing) continue;
+
     const appCounts = new Map<string, number>();
     const domainCounts = new Map<string, number>();
     for (const r of accountRules) {
