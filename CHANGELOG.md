@@ -4,6 +4,32 @@ All notable changes to FocusLock will be documented here.
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-06-05
+
+### Fixed — Family page no longer crashes the whole app
+
+- `EnvironmentWarning` now defaults `localUsers` to an empty list when the daemon
+  returns a missing array, preventing the `.filter()` call from throwing and the
+  React tree from unmounting into a blank window.
+- Added a top-level React error boundary so any future render error shows a
+  "Something went wrong" card with a Try Again button instead of a black window.
+  The other tabs keep working while the failing one shows the recovery card.
+- Added a global `window.onerror` / `unhandledrejection` handler that surfaces
+  async errors (IPC callbacks, promise rejections, module-load failures) as a
+  red overlay with message and stack — instead of silent failure / frozen UI.
+
+### Fixed — Family Controls works end-to-end from the desktop app
+
+- The family-server worker now responds to CORS preflight and includes
+  `Access-Control-Allow-Origin` on every response, so Create account / Log in /
+  Forgot password no longer fail with "Load failed" in the desktop app's
+  WebView. Server-side change — no client update required.
+- Password-reset emails now actually deliver. Resend's sandbox sender
+  (`onboarding@resend.dev`) only routed to the Resend account owner; the
+  verified `tryfocuslock.com` sender reaches any inbox.
+- Reset / verification emails come from `FocusLock <hello@tryfocuslock.com>` so
+  replies land in the Contact-page inbox.
+
 ## [1.2.0] — 2026-06-05
 
 ### Changed (macOS) — New install model
