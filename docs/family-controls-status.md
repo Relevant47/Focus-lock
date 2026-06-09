@@ -21,6 +21,7 @@ This file exists so anyone (you, future-Claude, a contributor) can pick up the c
 | Phase 2.7 — account export + delete (data portability) | ✅ | `family-server/src/account.ts` | `27be5a0` |
 | Phase 2.9 — per-email rate limiting (login + reset) | ✅ | `family-server/src/rateLimit.ts`, migration `0002_auth_rate_limits.sql` | `eefce7f` |
 | Phase 2.8 — verified Resend sender domain (`hello@tryfocuslock.com`) | ✅ | Worker secrets only (`RESEND_API_KEY` rotated, `EMAIL_FROM`, `RESET_URL_BASE`); no source change | — (config) |
+| Phase 3.1 — Family Inbox (in-app notification feed; weekly digest + device-paired cards) | ✅ | `family-server/src/notifications.ts`, `digest.ts`, migration `0004_notifications.sql`, weekly cron in `wrangler.toml`; `ui/src/components/FamilyInbox.tsx`, `ui/src/stores/family.ts`, badge in `Nav.tsx` | shipped in v1.3.0 |
 | **Releases** | ✅ | v1.1.0 (`15c9f1a`), v1.1.1 (`cd64833`), v1.1.2 (`e9d06cf`); Swift build fix `f6efceb` | — |
 
 Settings lock (formerly "Parent controls", single-device PIN — **different feature**) shipped earlier in 1.0.25 / 1.0.26 and is unrelated to family controls. Don't conflate them.
@@ -83,6 +84,6 @@ Parent device (Tauri app, `ui/src/pages/Family.tsx`) signs in to a Cloudflare Wo
 
 ## How to pick this up later
 
-Phases 2.1–2.9 are all shipped. The remaining loose ends are the small bullets in "Known issues / TODOs" above and the Resend account-login switch noted under Phase 2.8.
+Phases 2.1–2.9 and 3.1 (Family Inbox) are all shipped. The remaining loose ends are the small bullets in "Known issues / TODOs" above and the Resend account-login switch noted under Phase 2.8. The next natural Phase-3 piece is **child approval requests** ("kid wants 15 min on reddit.com" → approve/deny card in the Inbox); the `notifications.kind` column and the Inbox feed already accommodate it.
 
 Memory at `~/.claude/projects/-Users-oscarpetrikas/memory/MEMORY.md` autoloads with full context.
