@@ -267,7 +267,7 @@ function safeParseArr(s: string): string[] {
 export async function createNotification(
   db: D1Database,
   accountId: string,
-  kind: 'weekly_digest' | 'device_paired',
+  kind: 'weekly_digest' | 'device_paired' | 'approval_request',
   title: string,
   body: string,
   payload: unknown,
