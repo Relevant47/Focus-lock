@@ -45,7 +45,7 @@ pub fn register_and_start() -> RegisterOutcome {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ServiceStatus {
     NotRegistered,
     Enabled,
