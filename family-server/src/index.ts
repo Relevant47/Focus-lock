@@ -6,6 +6,7 @@ import {
 } from './devices';
 import { listNotificationsHandler, markAllReadHandler, markReadHandler } from './notifications';
 import { pairCreate, pairRedeem } from './pairing';
+import { runWeeklyDigests } from './digest';
 import { add, dispatch } from './router';
 import type { Env } from './types';
 import { badRequest, json, requireDeviceAuth, unauthorized } from './utils';
@@ -88,5 +89,15 @@ export default {
     const headers = new Headers(res.headers);
     for (const [k, v] of Object.entries(CORS_HEADERS)) headers.set(k, v);
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+  },
+
+  // Cloudflare invokes this on the cron schedule defined in wrangler.toml.
+  // We run via ctx.waitUntil so the platform considers the job done only
+  // once the digest writes have committed.
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runWeeklyDigests(env).then(
+      n => console.log(`weekly digest: wrote ${n} notifications`),
+      err => console.error('weekly digest failed', err),
+    ));
   },
 } satisfies ExportedHandler<Env>;
