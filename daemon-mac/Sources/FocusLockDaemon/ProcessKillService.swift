@@ -135,9 +135,11 @@ final class ProcessKillService {
         let lowered = name.lowercased()
         if Self.protectedNames.contains(lowered) { return false }
         // Also block obvious substrings — NSWorkspace may report "Finder" as
-        // the localized name but the user could disguise input.
+        // the localized name but the user could disguise input. Match in either
+        // direction so e.g. "WindowServer_helper" or a short alias of a
+        // protected name is also refused.
         for protected in Self.protectedNames {
-            if lowered == protected { return false }
+            if lowered.contains(protected) || protected.contains(lowered) { return false }
         }
         return true
     }
