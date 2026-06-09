@@ -8,6 +8,7 @@ import { auth as familyAuth, familyApiUrl, FamilyApiError, type DeviceSummary, t
 import type { FamilyEnvironment, FamilyStatus } from '../types';
 import { AUDIT_EVENT_LABEL, FAMILY_AUDIT_EVENTS, TAMPER_ALERT_EVENTS, formatAuditTime } from '../lib/auditEvents';
 import FamilyOnboarding, { useFamilyOnboarding } from '../components/FamilyOnboarding';
+import FamilyInbox from '../components/FamilyInbox';
 import { IS_MACOS } from '../lib/platform';
 
 const DEVICE_POLL_INTERVAL_MS = 30_000;
@@ -15,8 +16,11 @@ const DEVICE_POLL_INTERVAL_MS = 30_000;
 export default function Family() {
   const session = useFamily(s => s.session);
   const family = useDaemon(s => s.status?.family ?? null);
-  const { showOnboarding, complete, reset } = useFamilyOnboarding();
+  const { showOnboarding, complete } = useFamilyOnboarding();
   const [signedOutMode, setSignedOutMode] = useState<SignedOutMode>('login');
+  // Explicit "Show walkthrough again" click — bypasses the first-run gates
+  // below so a signed-in parent or paired-child device can still re-view it.
+  const [walkthroughRequested, setWalkthroughRequested] = useState(false);
 
   // Refresh the stored session once on mount so a stale token gets evicted
   // (logs the user out) before they try to do anything.
@@ -35,9 +39,10 @@ export default function Family() {
   useTamperAlerts(showChildView || !!session);
 
   // First-time walkthrough only when we'd otherwise show the signed-out card —
-  // there's no point onboarding a kid whose daemon is already paired or a
-  // parent who's already signed in.
-  const showFirstRun = showOnboarding && !showChildView && !session;
+  // there's no point auto-onboarding a kid whose daemon is already paired or a
+  // parent who's already signed in. An explicit Walkthrough click bypasses
+  // those gates.
+  const showWalkthrough = walkthroughRequested || (showOnboarding && !showChildView && !session);
 
   return (
     <Page className="overflow-y-auto">
@@ -48,7 +53,7 @@ export default function Family() {
           sub="Lock apps on a child's computer from your own. Pair a device, set rules, see what's active."
           right={
             <button
-              onClick={reset}
+              onClick={() => setWalkthroughRequested(true)}
               title="Show walkthrough again"
               className="btn-ghost px-2 py-1 text-[11px] text-muted hover:text-text"
             >
@@ -61,9 +66,9 @@ export default function Family() {
           : session ? <SignedInView /> : <SignedOutView mode={signedOutMode} onModeChange={setSignedOutMode} />}
       </div>
 
-      {showFirstRun && (
+      {showWalkthrough && (
         <FamilyOnboarding
-          onDone={complete}
+          onDone={() => { complete(); setWalkthroughRequested(false); }}
           onPickPair={() => setSignedOutMode('pair')}
         />
       )}
@@ -561,6 +566,9 @@ function SignedInView() {
           since elevation status and the admin/non-admin distinction is what
           decides whether the kid can bypass everything. */}
       <EnvironmentWarning />
+
+      {/* Inbox feed (Phase 3.1 — Family Inbox) */}
+      <FamilyInbox />
 
       {/* Account row */}
       <div className="card p-4 flex items-center justify-between">

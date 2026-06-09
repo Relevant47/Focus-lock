@@ -72,6 +72,19 @@ export interface LockRule {
   targetApps: string[]; targetDomains: string[];
   scheduleCron: string | null; active: boolean; createdAt: string;
 }
+export interface Notification {
+  id: number;
+  kind: 'weekly_digest' | 'device_paired';
+  title: string;
+  body: string;
+  payload: unknown;
+  readAt: string | null;
+  createdAt: string;
+}
+export interface NotificationListResponse {
+  notifications: Notification[];
+  unreadCount: number;
+}
 export interface CreateRuleInput {
   kind: 'block_now' | 'schedule' | 'unblock_all';
   targetApps?: string[]; targetDomains?: string[]; scheduleCron?: string;
@@ -115,6 +128,19 @@ export const family = {
   deleteRule: (token: string, deviceId: string, ruleId: string) =>
     request<{ ok: boolean }>(`/api/v1/family/devices/${deviceId}/rules/${ruleId}`,
       { method: 'DELETE' }, token),
+};
+
+// ── Notifications (Phase 3.1 — Family Inbox) ───────────────────────────────
+
+export const notifications = {
+  list: (token: string) =>
+    request<NotificationListResponse>('/api/v1/notifications', { method: 'GET' }, token),
+
+  markRead: (token: string, id: number) =>
+    request<{ ok: true }>(`/api/v1/notifications/${id}/read`, { method: 'POST' }, token),
+
+  markAllRead: (token: string) =>
+    request<{ ok: true; marked: number }>('/api/v1/notifications/read-all', { method: 'POST' }, token),
 };
 
 // ── Account (Phase 2.7) ────────────────────────────────────────────────────

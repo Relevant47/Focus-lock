@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useDaemon } from '../stores/daemon';
+import { useFamily } from '../stores/family';
 import { Icon } from './Icons';
 import { cn } from '../lib/cn';
 import { fmtClock } from '../lib/fmt';
@@ -41,6 +42,7 @@ export default function Nav() {
   const connected = useDaemon((s) => s.connected);
   const status = useDaemon((s) => s.status);
   const logs = useDaemon((s) => s.logs);
+  const familyUnread = useFamily(s => s.unreadCount);
   const sessionActive = !!status?.sessionActive;
   const hardcore = !!status?.session?.hardcoreMode;
   const friendLock = !!status?.hasFriendLock;
@@ -111,7 +113,12 @@ export default function Nav() {
                 }
               >
                 <link.Icon size={15} className="shrink-0 transition-colors" />
-                {link.label}
+                <span className="flex-1">{link.label}</span>
+                {link.to === '/family' && familyUnread > 0 && (
+                  <span className="ml-auto bg-accent text-bg text-[10px] font-bold tnum rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-tight">
+                    {familyUnread > 9 ? '9+' : familyUnread}
+                  </span>
+                )}
               </NavLink>
             ))}
           </div>

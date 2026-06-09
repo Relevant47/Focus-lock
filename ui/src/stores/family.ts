@@ -1,5 +1,8 @@
 import { create } from 'zustand';
-import { account, auth, family, FamilyApiError, type DeviceSummary, type LockRule, type Session } from '../lib/familyApi';
+import {
+  account, auth, family, notifications as notificationsApi, FamilyApiError,
+  type DeviceSummary, type LockRule, type Notification, type Session,
+} from '../lib/familyApi';
 import type { FamilyDataExport } from '../../../shared/protocol';
 
 const STORAGE_KEY = 'focus-lock:family-session';
@@ -26,6 +29,8 @@ interface State {
   loading: boolean;
   error: string | null;
   pairCode: { code: string; expiresAt: string } | null;
+  notifications: Notification[];
+  unreadCount: number;
 }
 
 interface Actions {
@@ -38,6 +43,9 @@ interface Actions {
   clearPairCode(): void;
   unpairDevice(deviceId: string): Promise<void>;
   loadRules(deviceId: string): Promise<void>;
+  loadNotifications(): Promise<void>;
+  markNotificationRead(id: number): Promise<void>;
+  markAllNotificationsRead(): Promise<void>;
   blockNow(deviceId: string, apps: string[], domains: string[]): Promise<void>;
   emergencyUnblock(deviceId: string): Promise<void>;
   removeRule(deviceId: string, ruleId: string): Promise<void>;
@@ -52,6 +60,8 @@ export const useFamily = create<Store>((set, get) => ({
   session: loadStoredSession(),
   devices: [],
   rulesByDevice: {},
+  notifications: [],
+  unreadCount: 0,
   loading: false,
   error: null,
   pairCode: null,
@@ -74,7 +84,7 @@ export const useFamily = create<Store>((set, get) => ({
 
   logout() {
     persistSession(null);
-    set({ session: null, devices: [], rulesByDevice: {}, pairCode: null, error: null });
+    set({ session: null, devices: [], rulesByDevice: {}, pairCode: null, error: null, notifications: [], unreadCount: 0 });
   },
 
   async refreshSession() {
@@ -132,6 +142,41 @@ export const useFamily = create<Store>((set, get) => ({
       const { rules } = await family.listRules(s.token, deviceId);
       set({ rulesByDevice: { ...get().rulesByDevice, [deviceId]: rules } });
     } catch (e) { set({ error: errMsg(e) }); }
+  },
+
+  async loadNotifications() {
+    const s = get().session;
+    if (!s) return;
+    try {
+      const { notifications, unreadCount } = await notificationsApi.list(s.token);
+      set({ notifications, unreadCount });
+    } catch (e) {
+      if (e instanceof FamilyApiError && e.status === 401) { get().logout(); return; }
+      // Silent for transient errors — inbox is non-critical UX.
+      console.warn('loadNotifications failed', e);
+    }
+  },
+
+  async markNotificationRead(id) {
+    const s = get().session;
+    if (!s) return;
+    // Optimistic update: mark locally first, then sync.
+    const now = new Date().toISOString();
+    const next = get().notifications.map(n => n.id === id && n.readAt == null ? { ...n, readAt: now } : n);
+    const unread = next.filter(n => n.readAt == null).length;
+    set({ notifications: next, unreadCount: unread });
+    try { await notificationsApi.markRead(s.token, id); }
+    catch (e) { console.warn('markRead failed', e); /* eventual reload will reconcile */ }
+  },
+
+  async markAllNotificationsRead() {
+    const s = get().session;
+    if (!s) return;
+    const now = new Date().toISOString();
+    const next = get().notifications.map(n => n.readAt == null ? { ...n, readAt: now } : n);
+    set({ notifications: next, unreadCount: 0 });
+    try { await notificationsApi.markAllRead(s.token); }
+    catch (e) { console.warn('markAllRead failed', e); }
   },
 
   async blockNow(deviceId, apps, domains) {

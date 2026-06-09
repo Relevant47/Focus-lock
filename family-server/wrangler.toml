@@ -21,3 +21,8 @@ new_sqlite_classes = ["DeviceConnection"]
 
 # JWT_SECRET is set via `npm run secret:set-jwt` — DO NOT commit it to source.
 # For local dev (wrangler dev), put it in .dev.vars (gitignored).
+
+# Phase 3.1 — Family Inbox weekly digest.
+# Mondays at 14:00 UTC (mid-morning US Pacific, mid-afternoon UK, evening EU).
+[triggers]
+crons = ["0 14 * * 1"]

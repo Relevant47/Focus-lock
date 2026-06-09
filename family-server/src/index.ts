@@ -4,7 +4,9 @@ import {
   createRuleHandler, deleteDeviceHandler, deleteRuleHandler,
   listDevices, listMyRulesHandler, listRulesHandler,
 } from './devices';
+import { listNotificationsHandler, markAllReadHandler, markReadHandler } from './notifications';
 import { pairCreate, pairRedeem } from './pairing';
+import { runWeeklyDigests } from './digest';
 import { add, dispatch } from './router';
 import type { Env } from './types';
 import { badRequest, json, requireDeviceAuth, unauthorized } from './utils';
@@ -54,6 +56,11 @@ async function deviceWsUpgrade(req: Request, env: Env): Promise<Response> {
   return stub.fetch(new Request(upstream.toString(), req));
 }
 
+// ── Notifications (Phase 3.1 — Family Inbox) ───────────────────────────────
+add('GET',  '/api/v1/notifications',              listNotificationsHandler);
+add('POST', '/api/v1/notifications/:id/read',     markReadHandler);
+add('POST', '/api/v1/notifications/read-all',     markAllReadHandler);
+
 // ── CORS ───────────────────────────────────────────────────────────────────
 // The Tauri desktop app fetches this Worker from a `tauri://localhost` (mac)
 // or `https://tauri.localhost` (win) origin. WebKit treats POSTs with a
@@ -82,5 +89,15 @@ export default {
     const headers = new Headers(res.headers);
     for (const [k, v] of Object.entries(CORS_HEADERS)) headers.set(k, v);
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+  },
+
+  // Cloudflare invokes this on the cron schedule defined in wrangler.toml.
+  // We run via ctx.waitUntil so the platform considers the job done only
+  // once the digest writes have committed.
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runWeeklyDigests(env).then(
+      n => console.log(`weekly digest: wrote ${n} notifications`),
+      err => console.error('weekly digest failed', err),
+    ));
   },
 } satisfies ExportedHandler<Env>;
