@@ -129,13 +129,18 @@ public sealed class ScheduleService
                 && FieldMatches(parts[1], dt.Hour)
                 && FieldMatches(parts[2], dt.Day)
                 && FieldMatches(parts[3], dt.Month)
-                && FieldMatches(parts[4], (int)dt.DayOfWeek);
+                && FieldMatches(NormalizeWeekday(parts[4]), (int)dt.DayOfWeek);
         }
         catch
         {
             return false;
         }
     }
+
+    // POSIX cron treats weekday 7 as Sunday (alias of 0). DayOfWeek only
+    // produces 0-6, so a literal 7 would never match. Weekday field values
+    // are single-digit 0-7, so plain char replacement is safe.
+    private static string NormalizeWeekday(string field) => field.Replace("7", "0");
 
     private static bool FieldMatches(string field, int value)
     {

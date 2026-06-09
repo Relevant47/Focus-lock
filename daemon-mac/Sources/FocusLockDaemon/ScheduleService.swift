@@ -81,7 +81,14 @@ final class ScheduleService {
             && fieldMatches(parts[1], value: comps.hour ?? 0)
             && fieldMatches(parts[2], value: comps.day ?? 1)
             && fieldMatches(parts[3], value: comps.month ?? 1)
-            && fieldMatches(parts[4], value: wday)
+            && fieldMatches(normalizeWeekday(parts[4]), value: wday)
+    }
+
+    // POSIX cron treats weekday 7 as Sunday (alias of 0). `wday` only produces
+    // 0-6, so a literal 7 would never match. Weekday field values are
+    // single-digit 0-7, so plain char replacement is safe.
+    private func normalizeWeekday(_ field: String) -> String {
+        return field.replacingOccurrences(of: "7", with: "0")
     }
 
     private func fieldMatches(_ field: String, value: Int) -> Bool {
