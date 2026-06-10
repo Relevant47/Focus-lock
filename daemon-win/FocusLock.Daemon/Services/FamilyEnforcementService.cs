@@ -97,6 +97,17 @@ public sealed class FamilyEnforcementService
                 foreach (var d in r.TargetDomains) if (!string.IsNullOrWhiteSpace(d)) domains.Add(d);
                 foreach (var a in r.TargetApps)    if (!string.IsNullOrWhiteSpace(a)) procs.Add(a);
             }
+            // Phase 3.2: unblock_specific lifts matching items as long as the
+            // rule hasn't expired. Server filters expired rules on the wire, so
+            // we shouldn't see a stale one here; treat a null ExpiresAt
+            // defensively as still-live.
+            foreach (var r in _rules.Values)
+            {
+                if (!r.Active || r.Kind != "unblock_specific") continue;
+                if (r.ExpiresAt != null && !IsFuture(r.ExpiresAt)) continue;
+                foreach (var d in r.TargetDomains) domains.Remove(d);
+                foreach (var a in r.TargetApps)    procs.Remove(a);
+            }
             return (domains, procs);
         }
     }
@@ -113,6 +124,7 @@ public sealed class FamilyEnforcementService
                 TargetDomains = new List<string>(r.TargetDomains),
                 ScheduleCron  = r.ScheduleCron,
                 CreatedAt     = r.CreatedAt,
+                ExpiresAt     = r.ExpiresAt,
             }).ToList();
         }
     }
@@ -206,8 +218,21 @@ public sealed class FamilyEnforcementService
         a.Active == b.Active &&
         a.Kind == b.Kind &&
         a.ScheduleCron == b.ScheduleCron &&
+        a.ExpiresAt == b.ExpiresAt &&
         a.TargetApps.SequenceEqual(b.TargetApps) &&
         a.TargetDomains.SequenceEqual(b.TargetDomains);
+
+    /// True iff the ISO-8601 timestamp parses and lies strictly in the future.
+    /// Used to decide whether an unblock_specific rule is still in effect.
+    private static bool IsFuture(string iso)
+    {
+        if (DateTimeOffset.TryParse(iso, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+        {
+            return dt > DateTimeOffset.UtcNow;
+        }
+        return false;
+    }
 
     private void LoadCache()
     {
