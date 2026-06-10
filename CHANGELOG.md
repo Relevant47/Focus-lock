@@ -4,7 +4,26 @@ All notable changes to FocusLock will be documented here.
 
 ## [Unreleased]
 
-## [1.2.1] — 2026-06-05
+### Fixed — Active session is now unmistakable, and stoppable from every page
+
+- **Persistent global session banner.** A sticky top bar now appears on **every**
+  page (Dashboard, Block Lists, Profiles, Schedules, Family, Analytics,
+  Settings) while a session is running, with a bold "BLOCKING — Normal /
+  Hardcore / Friend lock" label, a pulsing colour-keyed dot, and the live
+  countdown. Previously the active-session banner was only mounted on
+  `/profiles` and `/blocklists`, so users on Settings / Analytics / Schedules /
+  Family had no visible indication a session was active.
+- **End session button is now reachable from anywhere.** In Normal mode the
+  banner shows a prominent red **End session** button on the right. In Hardcore
+  mode the button is replaced by a "🔒 Locked until end" label — restoring
+  hardcore's whole point (hardcore is the *only* mode that can't be stopped
+  early). Friend-lock mode still requires the unlock token inline.
+- **Button promoted from subtle ghost to primary danger styling**, and the label
+  changed from "End early" → "End session". Previously the only stop affordance
+  on the configure pages was a small ghost-styled "End early" link, which users
+  reported missing entirely.
+
+
 
 ### Fixed — Family page no longer crashes the whole app
 

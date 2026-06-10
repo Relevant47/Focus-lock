@@ -7,7 +7,6 @@ import { SUGGESTED_APPS, type SuggestedApp } from '../lib/suggestedApps';
 import { IS_MACOS } from '../lib/platform';
 import { Page, PageHeader, SectionHeader } from '../components/ui';
 import { Icon } from '../components/Icons';
-import ActiveSessionBanner from '../components/ActiveSessionBanner';
 import { cn } from '../lib/cn';
 
 /** What string we push to the processes textarea for a given suggested app,
@@ -159,7 +158,6 @@ export default function BlockLists() {
   return (
     <Page className="p-8">
       <div className="max-w-4xl mx-auto space-y-6">
-        <ActiveSessionBanner />
         <PageHeader title="Block Lists" sub="Configure what to block — start a quick session without creating a profile." />
 
         {/* Suggested */}
