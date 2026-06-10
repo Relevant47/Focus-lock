@@ -172,6 +172,109 @@ final class FamilyService {
         fputs("[family] unpaired locally\n", stderr)
     }
 
+    /// POST /api/v1/family/requests with the kid's `Authorization: Bearer <deviceToken>`.
+    /// The server idempotently returns an existing pending row when one matches.
+    func requestUnblock(target: String, targetKind: String, minutes: Int)
+        -> (error: String?, result: RequestUnblockResult?)
+    {
+        guard let cfg = current else { return ("Device is not paired", nil) }
+        guard let url = URL(string: "\(cfg.serverUrl)/api/v1/family/requests") else {
+            return ("Invalid server URL", nil)
+        }
+        var req = URLRequest(url: url, timeoutInterval: 15)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(cfg.deviceToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("FocusLock-Daemon/1.3.0", forHTTPHeaderField: "User-Agent")
+
+        let body: [String: Any] = [
+            "target":           target,
+            "targetKind":       targetKind,
+            "requestedMinutes": minutes,
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        struct Envelope: Decodable {
+            struct R: Decodable { var id: String; var expiresAt: String }
+            var request: R
+        }
+
+        let sem = DispatchSemaphore(value: 0)
+        var resultErr: String?
+        var resultPayload: Envelope?
+        URLSession.shared.dataTask(with: req) { data, resp, err in
+            defer { sem.signal() }
+            if let err = err {
+                resultErr = "Could not reach family server: \(err.localizedDescription)"
+                return
+            }
+            guard let http = resp as? HTTPURLResponse else {
+                resultErr = "No HTTP response"; return
+            }
+            guard (200..<300).contains(http.statusCode) else {
+                let bodyStr = (data.flatMap { String(data: $0, encoding: .utf8) }) ?? ""
+                resultErr = "Request failed (\(http.statusCode)): \(bodyStr)"; return
+            }
+            guard let data = data else { resultErr = "Empty response"; return }
+            do { resultPayload = try JSONDecoder().decode(Envelope.self, from: data) }
+            catch { resultErr = "Invalid response: \(error.localizedDescription)" }
+        }.resume()
+        sem.wait()
+
+        if let resultErr = resultErr { return (resultErr, nil) }
+        guard let env = resultPayload else { return ("Server returned no body", nil) }
+        return (nil, RequestUnblockResult(requestId: env.request.id, expiresAt: env.request.expiresAt))
+    }
+
+    /// GET /api/v1/device/requests/:id — kid polls the status of an outstanding ask.
+    func requestStatus(requestId: String) -> (error: String?, result: RequestStatusResult?) {
+        guard let cfg = current else { return ("Device is not paired", nil) }
+        guard let url = URL(string: "\(cfg.serverUrl)/api/v1/device/requests/\(requestId)") else {
+            return ("Invalid server URL", nil)
+        }
+        var req = URLRequest(url: url, timeoutInterval: 10)
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(cfg.deviceToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("FocusLock-Daemon/1.3.0", forHTTPHeaderField: "User-Agent")
+
+        struct Envelope: Decodable {
+            struct R: Decodable {
+                var status: String
+                var resolutionRuleId: String?
+            }
+            var request: R
+        }
+
+        let sem = DispatchSemaphore(value: 0)
+        var resultErr: String?
+        var resultPayload: Envelope?
+        URLSession.shared.dataTask(with: req) { data, resp, err in
+            defer { sem.signal() }
+            if let err = err {
+                resultErr = "Could not reach family server: \(err.localizedDescription)"; return
+            }
+            guard let http = resp as? HTTPURLResponse else {
+                resultErr = "No HTTP response"; return
+            }
+            guard (200..<300).contains(http.statusCode) else {
+                let bodyStr = (data.flatMap { String(data: $0, encoding: .utf8) }) ?? ""
+                resultErr = "Status check failed (\(http.statusCode)): \(bodyStr)"; return
+            }
+            guard let data = data else { resultErr = "Empty response"; return }
+            do { resultPayload = try JSONDecoder().decode(Envelope.self, from: data) }
+            catch { resultErr = "Invalid response: \(error.localizedDescription)" }
+        }.resume()
+        sem.wait()
+
+        if let resultErr = resultErr { return (resultErr, nil) }
+        guard let env = resultPayload else { return ("Server returned no body", nil) }
+        // We don't fetch the rule's expiresAt here in v1 — the daemon's
+        // FamilyEnforcementService.snapshot() carries that for the UI's own
+        // hydration. Returning nil keeps the IPC simple; T19 doesn't depend on it.
+        return (nil, RequestStatusResult(status: env.request.status,
+                                         resolutionRuleExpiresAt: nil))
+    }
+
     // ── Persistence ────────────────────────────────────────────────────────
 
     private func loadConfig() -> FamilyConfig? {

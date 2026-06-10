@@ -109,3 +109,25 @@ struct RedeemResponse: Codable {
     var deviceToken: String
     var expiresInSeconds: Int64
 }
+
+// ── Family approval requests (Phase 3.2) ─────────────────────────────────────
+
+struct RequestUnblockPayload: Codable {
+    var target: String
+    var targetKind: String      // "app" | "domain"
+    var minutes: Int            // 5 | 15 | 30 | 60
+}
+
+struct RequestUnblockResult: Codable {
+    var requestId: String
+    var expiresAt: String
+}
+
+struct RequestStatusPayload: Codable {
+    var requestId: String
+}
+
+struct RequestStatusResult: Codable {
+    var status: String          // "pending" | "approved" | "denied" | "expired"
+    var resolutionRuleExpiresAt: String?
+}
