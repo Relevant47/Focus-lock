@@ -19,11 +19,12 @@ struct FamilyConfig: Codable {
 
 struct FamilyRuleSummary: Codable {
     var id: String
-    var kind: String          // block_now | schedule | unblock_all
+    var kind: String          // block_now | schedule | unblock_all | unblock_specific
     var targetApps: [String]
     var targetDomains: [String]
     var scheduleCron: String?
     var createdAt: String
+    var expiresAt: String?
 }
 
 struct FamilyStatus: Codable {
@@ -88,6 +89,7 @@ struct CloudRule: Codable {
     var scheduleCron: String?
     var active: Bool
     var createdAt: String
+    var expiresAt: String?
 }
 
 struct CloudRulesEnvelope: Codable {
