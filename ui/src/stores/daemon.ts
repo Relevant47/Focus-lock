@@ -97,6 +97,15 @@ interface Actions {
   authorizeUninstall(): Promise<void>;
   /// Toggle the opt-in firewall-lockdown flag on the paired device. Gated.
   setFirewallLockdown(enabled: boolean): Promise<void>;
+  /// Kid-initiated request to lift a specific block for a fixed window.
+  /// Returns the server-issued request id so the UI can poll status.
+  requestUnblock(target: string, targetKind: 'app' | 'domain',
+                 minutes: 5 | 15 | 30 | 60):
+    Promise<{ requestId: string; expiresAt: string }>;
+  /// Poll the verdict on a previously-created request.
+  requestStatus(requestId: string):
+    Promise<{ status: 'pending' | 'approved' | 'denied' | 'expired';
+              resolutionRuleExpiresAt: string | null }>;
 }
 
 interface ParentTokenPayload { token: string; expiresAt: string }
@@ -352,6 +361,25 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       if (pt) payload.parentToken = pt;
       await request('family_set_firewall_lockdown', payload);
     });
+  },
+
+  async requestUnblock(target, targetKind, minutes) {
+    const res = await request('request_unblock', { target, targetKind, minutes });
+    if (res.type !== 'request_unblock_result' || !res.payload) {
+      throw new Error('Unexpected response from daemon');
+    }
+    return res.payload as { requestId: string; expiresAt: string };
+  },
+
+  async requestStatus(requestId) {
+    const res = await request('request_status', { requestId });
+    if (res.type !== 'request_status_result' || !res.payload) {
+      throw new Error('Unexpected response from daemon');
+    }
+    return res.payload as {
+      status: 'pending' | 'approved' | 'denied' | 'expired';
+      resolutionRuleExpiresAt: string | null;
+    };
   },
 }));
 
