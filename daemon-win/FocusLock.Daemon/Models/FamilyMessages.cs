@@ -47,11 +47,12 @@ public sealed class FamilyStatus
 public sealed class FamilyRuleSummary
 {
     public string Id            { get; set; } = string.Empty;
-    public string Kind          { get; set; } = string.Empty; // block_now | schedule | unblock_all
+    public string Kind          { get; set; } = string.Empty; // block_now | schedule | unblock_all | unblock_specific
     public List<string> TargetApps    { get; set; } = new();
     public List<string> TargetDomains { get; set; } = new();
     public string? ScheduleCron       { get; set; }
     public string CreatedAt           { get; set; } = string.Empty;
+    public string? ExpiresAt          { get; set; }
 }
 
 // ── IPC payloads (UI → daemon) ─────────────────────────────────────────────
@@ -113,6 +114,7 @@ public sealed class CloudRule
     public string? ScheduleCron       { get; set; }
     public bool   Active              { get; set; } = true;
     public string CreatedAt           { get; set; } = string.Empty;
+    public string? ExpiresAt          { get; set; }
 }
 
 /// <summary>
