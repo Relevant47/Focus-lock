@@ -9,6 +9,7 @@ import type { FamilyEnvironment, FamilyStatus } from '../types';
 import { AUDIT_EVENT_LABEL, FAMILY_AUDIT_EVENTS, TAMPER_ALERT_EVENTS, formatAuditTime } from '../lib/auditEvents';
 import FamilyOnboarding, { useFamilyOnboarding } from '../components/FamilyOnboarding';
 import FamilyInbox from '../components/FamilyInbox';
+import { useNewRequestAlerts } from '../components/useNewRequestAlerts';
 import { IS_MACOS } from '../lib/platform';
 
 const DEVICE_POLL_INTERVAL_MS = 30_000;
@@ -37,6 +38,10 @@ export default function Family() {
   // paired child device or when a parent is signed in, fire OS notifications
   // for tamper-class events that we haven't seen before.
   useTamperAlerts(showChildView || !!session);
+
+  // Watch for new approval-request notifications and fire an OS notification
+  // when a new one first appears.
+  useNewRequestAlerts(!!session);
 
   // First-time walkthrough only when we'd otherwise show the signed-out card —
   // there's no point auto-onboarding a kid whose daemon is already paired or a
