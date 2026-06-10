@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import {
-  account, auth, family, notifications as notificationsApi, FamilyApiError,
-  type DeviceSummary, type LockRule, type Notification, type Session,
+  account, auth, family, familyRequests, notifications as notificationsApi, FamilyApiError,
+  type ApprovalRequest, type DeviceSummary, type LockRule, type Notification, type Session,
 } from '../lib/familyApi';
 import type { FamilyDataExport } from '../../../shared/protocol';
 
@@ -31,6 +31,7 @@ interface State {
   pairCode: { code: string; expiresAt: string } | null;
   notifications: Notification[];
   unreadCount: number;
+  requestsById: Record<string, ApprovalRequest>;
 }
 
 interface Actions {
@@ -46,6 +47,9 @@ interface Actions {
   loadNotifications(): Promise<void>;
   markNotificationRead(id: number): Promise<void>;
   markAllNotificationsRead(): Promise<void>;
+  hydrateRequest(id: string): Promise<void>;
+  approveRequest(id: string): Promise<void>;
+  denyRequest(id: string): Promise<void>;
   blockNow(deviceId: string, apps: string[], domains: string[]): Promise<void>;
   emergencyUnblock(deviceId: string): Promise<void>;
   removeRule(deviceId: string, ruleId: string): Promise<void>;
@@ -62,6 +66,7 @@ export const useFamily = create<Store>((set, get) => ({
   rulesByDevice: {},
   notifications: [],
   unreadCount: 0,
+  requestsById: {},
   loading: false,
   error: null,
   pairCode: null,
@@ -84,7 +89,7 @@ export const useFamily = create<Store>((set, get) => ({
 
   logout() {
     persistSession(null);
-    set({ session: null, devices: [], rulesByDevice: {}, pairCode: null, error: null, notifications: [], unreadCount: 0 });
+    set({ session: null, devices: [], rulesByDevice: {}, pairCode: null, error: null, notifications: [], unreadCount: 0, requestsById: {} });
   },
 
   async refreshSession() {
@@ -177,6 +182,44 @@ export const useFamily = create<Store>((set, get) => ({
     set({ notifications: next, unreadCount: 0 });
     try { await notificationsApi.markAllRead(s.token); }
     catch (e) { console.warn('markAllRead failed', e); }
+  },
+
+  async hydrateRequest(id) {
+    const s = get().session;
+    if (!s) return;
+    if (get().requestsById[id]) return;   // already cached
+    try {
+      const { request } = await familyRequests.getById(s.token, id);
+      set({ requestsById: { ...get().requestsById, [id]: request } });
+    } catch (e) { console.warn('hydrateRequest failed', id, e); }
+  },
+
+  async approveRequest(id) {
+    const s = get().session;
+    if (!s) return;
+    try {
+      const { request } = await familyRequests.approve(s.token, id);
+      set({ requestsById: { ...get().requestsById, [id]: request } });
+    } catch (e) {
+      if (e instanceof FamilyApiError && e.status === 409) {
+        // Already resolved by another path — refresh notifications so the card
+        // updates with the new status.
+        await get().loadNotifications();
+      } else { console.warn('approveRequest failed', id, e); }
+    }
+  },
+
+  async denyRequest(id) {
+    const s = get().session;
+    if (!s) return;
+    try {
+      const { request } = await familyRequests.deny(s.token, id);
+      set({ requestsById: { ...get().requestsById, [id]: request } });
+    } catch (e) {
+      if (e instanceof FamilyApiError && e.status === 409) {
+        await get().loadNotifications();
+      } else { console.warn('denyRequest failed', id, e); }
+    }
   },
 
   async blockNow(deviceId, apps, domains) {
