@@ -74,12 +74,24 @@ export interface LockRule {
 }
 export interface Notification {
   id: number;
-  kind: 'weekly_digest' | 'device_paired';
+  kind: 'weekly_digest' | 'device_paired' | 'approval_request';
   title: string;
   body: string;
   payload: unknown;
   readAt: string | null;
   createdAt: string;
+}
+export interface ApprovalRequest {
+  id: string;
+  deviceId: string;
+  targetKind: 'app' | 'domain';
+  target: string;
+  requestedMinutes: number;
+  status: 'pending' | 'approved' | 'denied' | 'expired';
+  createdAt: string;
+  expiresAt: string;
+  resolvedAt: string | null;
+  resolutionRuleId: string | null;
 }
 export interface NotificationListResponse {
   notifications: Notification[];
@@ -128,6 +140,21 @@ export const family = {
   deleteRule: (token: string, deviceId: string, ruleId: string) =>
     request<{ ok: boolean }>(`/api/v1/family/devices/${deviceId}/rules/${ruleId}`,
       { method: 'DELETE' }, token),
+};
+
+// ── Approval Requests (Phase 3.2) ──────────────────────────────────────────
+
+export const familyRequests = {
+  getById: (token: string, id: string) =>
+    request<{ request: ApprovalRequest }>(`/api/v1/family/requests/${id}`, { method: 'GET' }, token),
+
+  approve: (token: string, id: string) =>
+    request<{ request: ApprovalRequest; rule: LockRule }>(`/api/v1/family/requests/${id}/approve`,
+      { method: 'POST' }, token),
+
+  deny: (token: string, id: string) =>
+    request<{ request: ApprovalRequest }>(`/api/v1/family/requests/${id}/deny`,
+      { method: 'POST' }, token),
 };
 
 // ── Notifications (Phase 3.1 — Family Inbox) ───────────────────────────────
