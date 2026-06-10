@@ -73,6 +73,15 @@ final class FamilyEnforcementService {
             for d in r.targetDomains where !d.isEmpty { domains.insert(d) }
             for a in r.targetApps    where !a.isEmpty { procs.insert(a) }
         }
+        // Phase 3.2: unblock_specific lifts the matching items as long as the
+        // rule hasn't expired. We treat a nil expiresAt defensively (the server
+        // filters out expired rules on the wire, so we shouldn't see one here,
+        // but if we do we treat it as live).
+        for r in rules.values where r.active && r.kind == "unblock_specific" {
+            if let exp = r.expiresAt, !isFuture(exp) { continue }
+            for d in r.targetDomains { domains.remove(d) }
+            for a in r.targetApps    { procs.remove(a) }
+        }
         return (Array(domains), Array(procs))
     }
 
@@ -82,7 +91,8 @@ final class FamilyEnforcementService {
             FamilyRuleSummary(
                 id: r.id, kind: r.kind,
                 targetApps: r.targetApps, targetDomains: r.targetDomains,
-                scheduleCron: r.scheduleCron, createdAt: r.createdAt)
+                scheduleCron: r.scheduleCron, createdAt: r.createdAt,
+                expiresAt: r.expiresAt)
         }
     }
 
@@ -174,8 +184,21 @@ final class FamilyEnforcementService {
         return a.active == b.active
             && a.kind == b.kind
             && a.scheduleCron == b.scheduleCron
+            && a.expiresAt == b.expiresAt
             && a.targetApps == b.targetApps
             && a.targetDomains == b.targetDomains
+    }
+
+    /// True iff the ISO-8601 timestamp parses and lies strictly in the future.
+    /// Used to decide whether an unblock_specific rule is still in effect.
+    private func isFuture(_ iso: String) -> Bool {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = f.date(from: iso) { return d > Date() }
+        // Some emitters omit fractional seconds; retry without that option.
+        f.formatOptions = [.withInternetDateTime]
+        if let d = f.date(from: iso) { return d > Date() }
+        return false
     }
 
     private func loadCache() {
