@@ -48,20 +48,20 @@ export default function ActiveSessionBanner() {
   }
 
   const tone = hardcore
-    ? { border: 'border-crimson/40', bg: 'bg-crimson/10', dot: 'bg-crimson', text: 'text-crimson', label: 'Hardcore' }
+    ? { border: 'border-crimson/40', bg: 'bg-crimson/15', dot: 'bg-crimson', text: 'text-crimson', label: 'Hardcore' }
     : friendLock
-      ? { border: 'border-warn/40',    bg: 'bg-warn/10',    dot: 'bg-warn',    text: 'text-warn',    label: 'Friend lock' }
-      : { border: 'border-accent/40',  bg: 'bg-accent/10',  dot: 'bg-accent',  text: 'text-accent',  label: 'Focusing' };
+      ? { border: 'border-warn/40',    bg: 'bg-warn/15',    dot: 'bg-warn',    text: 'text-warn',    label: 'Friend lock' }
+      : { border: 'border-accent/40',  bg: 'bg-accent/15',  dot: 'bg-accent',  text: 'text-accent',  label: 'Normal' };
 
   return (
-    <div className={cn('rounded-xl border p-4', tone.border, tone.bg)}>
+    <div className={cn('sticky top-0 z-30 border-b backdrop-blur px-4 py-3', tone.border, tone.bg)}>
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className={cn('w-2 h-2 rounded-full pulse-dot animate-soft-pulse', tone.dot)} />
-          <span className={cn('text-[10px] uppercase tracking-[0.15em] font-bold', tone.text)}>
-            {tone.label}
+          <span className={cn('w-2.5 h-2.5 rounded-full pulse-dot animate-soft-pulse', tone.dot)} />
+          <span className={cn('text-sm uppercase tracking-[0.15em] font-bold', tone.text)}>
+            Blocking — {tone.label}
           </span>
-          {hardcore && <Icon.Lock size={11} className="text-crimson" />}
+          {hardcore && <Icon.Lock size={13} className="text-crimson" />}
         </div>
 
         {status?.secondsRemaining != null && (
@@ -77,24 +77,24 @@ export default function ActiveSessionBanner() {
 
         {hardcore ? (
           <span
-            className="text-xs text-crimson/90 flex items-center gap-1.5"
+            className="text-sm font-semibold text-crimson/90 flex items-center gap-1.5"
             title="Hardcore sessions cannot be stopped early"
           >
-            <Icon.Lock size={11} /> Locked until end
+            <Icon.Lock size={13} /> Locked until end
           </span>
         ) : (
           <button
             onClick={handleEnd}
             disabled={busy || (friendLock && showUnlock && !unlockInput.trim()) || !!status?.friendLockRateLimited}
-            className="btn-ghost px-3 py-1.5 text-xs flex items-center gap-1.5"
+            className="btn-danger px-4 py-2 text-sm font-semibold flex items-center gap-1.5"
             title={
               status?.friendLockRateLimited
                 ? `Wait ${status.friendLockRetryAfterSeconds ?? '?'}s before retrying`
-                : 'End the running session early'
+                : 'End the running session'
             }
           >
-            <Icon.Stop size={11} />
-            {busy ? 'Ending…' : friendLock && !showUnlock ? 'End early…' : 'End early'}
+            <Icon.Stop size={13} />
+            {busy ? 'Ending…' : friendLock && !showUnlock ? 'End session…' : 'End session'}
           </button>
         )}
       </div>

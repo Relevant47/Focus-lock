@@ -264,11 +264,12 @@ export interface LocalUserAccount {
 
 export interface FamilyRuleSummary {
   id: string;
-  kind: "block_now" | "schedule" | "unblock_all";
+  kind: "block_now" | "schedule" | "unblock_all" | "unblock_specific";
   targetApps: string[];
   targetDomains: string[];
   scheduleCron: string | null;
   createdAt: string;
+  expiresAt: string | null;
 }
 
 export interface FamilyRedeemPayload {
@@ -311,12 +312,13 @@ export interface FamilyDataExport {
   lock_rules: Array<{
     id: string;
     device_id: string;
-    kind: "block_now" | "schedule" | "unblock_all";
+    kind: "block_now" | "schedule" | "unblock_all" | "unblock_specific";
     target_apps: string[];
     target_domains: string[];
     schedule_cron: string | null;
     active: boolean;
     created_at: string;
+    expires_at: string | null;
   }>;
   audit_log: Array<{
     id: number;
@@ -368,3 +370,25 @@ export const CATEGORY_DOMAINS: Record<BlockCategory, string[]> = {
     "chaturbate.com", "cam4.com", "myfreecams.com",
   ],
 };
+
+// ── Family approval requests (Phase 3.2) ─────────────────────────────────────
+
+export interface RequestUnblockPayload {
+  target: string;
+  targetKind: "app" | "domain";
+  minutes: 5 | 15 | 30 | 60;
+}
+
+export interface RequestUnblockResult {
+  requestId: string;
+  expiresAt: string;
+}
+
+export interface RequestStatusPayload {
+  requestId: string;
+}
+
+export interface RequestStatusResult {
+  status: "pending" | "approved" | "denied" | "expired";
+  resolutionRuleExpiresAt: string | null;
+}

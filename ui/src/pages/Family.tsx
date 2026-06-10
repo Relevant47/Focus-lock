@@ -9,6 +9,7 @@ import type { FamilyEnvironment, FamilyStatus } from '../types';
 import { AUDIT_EVENT_LABEL, FAMILY_AUDIT_EVENTS, TAMPER_ALERT_EVENTS, formatAuditTime } from '../lib/auditEvents';
 import FamilyOnboarding, { useFamilyOnboarding } from '../components/FamilyOnboarding';
 import FamilyInbox from '../components/FamilyInbox';
+import { useNewRequestAlerts } from '../components/useNewRequestAlerts';
 import { IS_MACOS } from '../lib/platform';
 
 const DEVICE_POLL_INTERVAL_MS = 30_000;
@@ -37,6 +38,10 @@ export default function Family() {
   // paired child device or when a parent is signed in, fire OS notifications
   // for tamper-class events that we haven't seen before.
   useTamperAlerts(showChildView || !!session);
+
+  // Watch for new approval-request notifications and fire an OS notification
+  // when a new one first appears.
+  useNewRequestAlerts(!!session);
 
   // First-time walkthrough only when we'd otherwise show the signed-out card —
   // there's no point auto-onboarding a kid whose daemon is already paired or a
@@ -231,20 +236,34 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
         <div className="space-y-2">
           <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold">Active family rules</p>
           <ul className="space-y-1.5">
-            {family.activeRules.map(r => (
-              <li key={r.id} className="border border-border/50 rounded-md p-2 text-xs">
-                <div className="flex items-center gap-2 mb-1">
-                  <Pill tone={r.kind === 'unblock_all' ? 'success' : 'danger'}>{r.kind.replace('_', ' ')}</Pill>
-                  {r.scheduleCron && <span className="text-faint font-mono">cron: {r.scheduleCron}</span>}
-                </div>
-                {r.targetApps.length > 0 && (
-                  <p className="font-mono text-muted truncate">apps: {r.targetApps.join(', ')}</p>
-                )}
-                {r.targetDomains.length > 0 && (
-                  <p className="font-mono text-muted truncate">domains: {r.targetDomains.join(', ')}</p>
-                )}
-              </li>
-            ))}
+            {family.activeRules.map(r => {
+              const single = r.targetApps.length === 1 && r.targetDomains.length === 0
+                ? { kind: 'app' as const, target: r.targetApps[0] }
+                : r.targetApps.length === 0 && r.targetDomains.length === 1
+                  ? { kind: 'domain' as const, target: r.targetDomains[0] }
+                  : null;
+              const askable = single
+                && (r.kind === 'block_now' || r.kind === 'schedule');
+              return (
+                <li key={r.id} className="border border-border/50 rounded-md p-2 text-xs space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Pill tone={r.kind === 'unblock_all' || r.kind === 'unblock_specific' ? 'success' : 'danger'}>
+                      {r.kind.replace('_', ' ')}
+                    </Pill>
+                    {r.scheduleCron && <span className="text-faint font-mono">cron: {r.scheduleCron}</span>}
+                  </div>
+                  {r.targetApps.length > 0 && (
+                    <p className="font-mono text-muted truncate">apps: {r.targetApps.join(', ')}</p>
+                  )}
+                  {r.targetDomains.length > 0 && (
+                    <p className="font-mono text-muted truncate">domains: {r.targetDomains.join(', ')}</p>
+                  )}
+                  {askable && (
+                    <AskUnblockRow targetKind={single!.kind} target={single!.target} />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -1178,4 +1197,82 @@ function relativeSeconds(s: number): string {
   if (s < 3600)  return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   return `${Math.floor(s / 86400)}d`;
+}
+
+// ── AskUnblockRow ────────────────────────────────────────────────────────────
+// Kid-initiated "ask for N min" control rendered inline under a single-target
+// block_now/schedule rule. No parent PIN required — fires a request to the
+// family server, then polls every 5s until the parent (or an auto-deny/expiry)
+// resolves it.
+
+function AskUnblockRow({ targetKind, target }: {
+  targetKind: 'app' | 'domain';
+  target: string;
+}): JSX.Element {
+  const requestUnblock = useDaemon(s => s.requestUnblock);
+  const requestStatus  = useDaemon(s => s.requestStatus);
+  const [minutes, setMinutes] = useState<5 | 15 | 30 | 60>(15);
+  const [busy, setBusy] = useState(false);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [status, setStatus] = useState<
+    'pending' | 'approved' | 'denied' | 'expired' | null
+  >(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function ask(): Promise<void> {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      const res = await requestUnblock(target, targetKind, minutes);
+      setRequestId(res.requestId);
+      setStatus('pending');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not reach parent');
+    } finally { setBusy(false); }
+  }
+
+  // Poll every 5s while pending. Stops as soon as we get a verdict.
+  useEffect(() => {
+    if (!requestId || status !== 'pending') return;
+    let cancelled = false;
+    const tick = async (): Promise<void> => {
+      try {
+        const r = await requestStatus(requestId);
+        if (!cancelled && r.status !== 'pending') setStatus(r.status);
+      } catch { /* ignore transient errors */ }
+    };
+    const t = window.setInterval(tick, 5000);
+    return () => { cancelled = true; window.clearInterval(t); };
+  }, [requestId, status, requestStatus]);
+
+  if (status === 'approved') {
+    return <p className="text-success">✓ Approved — unblock active</p>;
+  }
+  if (status === 'denied') {
+    return <p className="text-faint">Denied by parent.</p>;
+  }
+  if (status === 'expired') {
+    return <p className="text-faint">No reply — try again later.</p>;
+  }
+  if (status === 'pending') {
+    return <p className="text-accent">Waiting for parent…</p>;
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <select
+        value={minutes}
+        onChange={e => setMinutes(Number(e.target.value) as 5 | 15 | 30 | 60)}
+        className="input-base px-2 py-1 text-xs">
+        <option value={5}>5 min</option>
+        <option value={15}>15 min</option>
+        <option value={30}>30 min</option>
+        <option value={60}>60 min</option>
+      </select>
+      <button onClick={ask} disabled={busy} className="btn-primary px-2 py-1 text-xs">
+        {busy ? 'Asking…' : `Ask for ${minutes}m`}
+      </button>
+      {error && <span className="text-danger">{error}</span>}
+    </div>
+  );
 }

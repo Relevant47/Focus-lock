@@ -25,4 +25,4 @@ new_sqlite_classes = ["DeviceConnection"]
 # Phase 3.1 — Family Inbox weekly digest.
 # Mondays at 14:00 UTC (mid-morning US Pacific, mid-afternoon UK, evening EU).
 [triggers]
-crons = ["0 14 * * 1"]
+crons = ["0 14 * * 1", "* * * * *"]

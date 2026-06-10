@@ -1,5 +1,6 @@
 import type {
-  AccountRow, AuditLogRow, DeviceRow, LockRule, LockRuleRow, NotificationRow, PairingCodeRow,
+  AccountRow, ApprovalRequestRow, AuditLogRow, DeviceRow, LockRule, LockRuleRow,
+  NotificationRow, PairingCodeRow,
 } from './types';
 
 // ── accounts ───────────────────────────────────────────────────────────────
@@ -202,29 +203,35 @@ export async function createRule(
   db: D1Database,
   deviceId: string,
   createdByAccountId: string,
-  kind: 'block_now' | 'schedule' | 'unblock_all',
+  kind: 'block_now' | 'schedule' | 'unblock_all' | 'unblock_specific',
   targetApps: string[] | undefined,
   targetDomains: string[] | undefined,
   scheduleCron: string | null,
+  expiresAt: string | null = null,
 ): Promise<LockRule> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const apps = targetApps && targetApps.length ? JSON.stringify(targetApps) : null;
   const domains = targetDomains && targetDomains.length ? JSON.stringify(targetDomains) : null;
   await db.prepare(
-    `INSERT INTO lock_rules (id, device_id, kind, target_apps, target_domains, schedule_cron, active, created_at, created_by_account_id)
-     VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-  ).bind(id, deviceId, kind, apps, domains, scheduleCron, now, createdByAccountId).run();
+    `INSERT INTO lock_rules (id, device_id, kind, target_apps, target_domains, schedule_cron, active, created_at, created_by_account_id, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+  ).bind(id, deviceId, kind, apps, domains, scheduleCron, now, createdByAccountId, expiresAt).run();
   return rowToRule({
     id, device_id: deviceId, kind, target_apps: apps, target_domains: domains,
-    schedule_cron: scheduleCron, active: 1, created_at: now, created_by_account_id: createdByAccountId,
+    schedule_cron: scheduleCron, active: 1, created_at: now,
+    created_by_account_id: createdByAccountId, expires_at: expiresAt,
   });
 }
 
 export async function listActiveRulesForDevice(db: D1Database, deviceId: string): Promise<LockRule[]> {
+  const now = new Date().toISOString();
   const { results } = await db.prepare(
-    'SELECT * FROM lock_rules WHERE device_id = ? AND active = 1 ORDER BY created_at DESC',
-  ).bind(deviceId).all();
+    `SELECT * FROM lock_rules
+     WHERE device_id = ? AND active = 1
+       AND (expires_at IS NULL OR expires_at > ?)
+     ORDER BY created_at DESC`,
+  ).bind(deviceId, now).all();
   return ((results ?? []) as unknown as LockRuleRow[]).map(rowToRule);
 }
 
@@ -244,6 +251,7 @@ function rowToRule(r: LockRuleRow): LockRule {
     scheduleCron: r.schedule_cron,
     active: r.active === 1,
     createdAt: r.created_at,
+    expiresAt: r.expires_at,
   };
 }
 
@@ -259,7 +267,7 @@ function safeParseArr(s: string): string[] {
 export async function createNotification(
   db: D1Database,
   accountId: string,
-  kind: 'weekly_digest' | 'device_paired',
+  kind: 'weekly_digest' | 'device_paired' | 'approval_request',
   title: string,
   body: string,
   payload: unknown,
@@ -324,4 +332,86 @@ export async function markAllNotificationsRead(
      WHERE account_id = ? AND read_at IS NULL`,
   ).bind(now, accountId).run();
   return res.meta?.changes ?? 0;
+}
+
+// ── approval_requests (Family Approval) ────────────────────────────────────
+
+const APPR_REQUEST_TTL_MS = 60 * 60 * 1000;   // 1 hour pending window
+
+export async function createApprovalRequest(
+  db: D1Database,
+  accountId: string,
+  deviceId: string,
+  targetKind: 'app' | 'domain',
+  target: string,
+  requestedMinutes: number,
+): Promise<ApprovalRequestRow> {
+  const id = crypto.randomUUID();
+  const now = new Date();
+  const created_at = now.toISOString();
+  const expires_at = new Date(now.getTime() + APPR_REQUEST_TTL_MS).toISOString();
+  await db.prepare(
+    `INSERT INTO approval_requests
+       (id, account_id, device_id, target_kind, target, requested_minutes, status, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+  ).bind(id, accountId, deviceId, targetKind, target, requestedMinutes, created_at, expires_at).run();
+  return {
+    id, account_id: accountId, device_id: deviceId,
+    target_kind: targetKind, target, requested_minutes: requestedMinutes,
+    status: 'pending', created_at, expires_at,
+    resolved_at: null, resolution_rule_id: null,
+  };
+}
+
+export async function findApprovalRequestById(
+  db: D1Database, id: string,
+): Promise<ApprovalRequestRow | null> {
+  const row = await db.prepare('SELECT * FROM approval_requests WHERE id = ?').bind(id).first();
+  return row as ApprovalRequestRow | null;
+}
+
+/// Returns an existing pending row for the same target on the same device.
+/// Used for dedup so a retry picks up the existing request rather than
+/// spawning duplicates the parent then has to triage.
+export async function findPendingApprovalForTarget(
+  db: D1Database, deviceId: string, targetKind: 'app' | 'domain', target: string,
+): Promise<ApprovalRequestRow | null> {
+  const row = await db.prepare(
+    `SELECT * FROM approval_requests
+     WHERE device_id = ? AND target_kind = ? AND target = ? AND status = 'pending'
+     LIMIT 1`,
+  ).bind(deviceId, targetKind, target).first();
+  return row as ApprovalRequestRow | null;
+}
+
+/// Atomic state transition pending → approved/denied. Returns true if the row
+/// transitioned, false if it had already resolved or expired (caller then
+/// returns 409 to the parent UI).
+export async function markApprovalResolved(
+  db: D1Database, id: string, accountId: string,
+  status: 'approved' | 'denied',
+  resolutionRuleId: string | null,
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  const res = await db.prepare(
+    `UPDATE approval_requests SET status = ?, resolved_at = ?, resolution_rule_id = ?
+     WHERE id = ? AND account_id = ? AND status = 'pending' AND expires_at > ?`,
+  ).bind(status, now, resolutionRuleId, id, accountId, now).run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+/// Cron sweep. Flips every overdue pending row to 'expired' in one shot.
+/// Returns the rows that flipped so the caller can WS-notify their devices.
+export async function expireOverduePending(db: D1Database): Promise<ApprovalRequestRow[]> {
+  const now = new Date().toISOString();
+  const sel = await db.prepare(
+    `SELECT * FROM approval_requests WHERE status = 'pending' AND expires_at <= ?`,
+  ).bind(now).all();
+  const rows = (sel.results ?? []) as unknown as ApprovalRequestRow[];
+  if (rows.length === 0) return [];
+  await db.prepare(
+    `UPDATE approval_requests SET status = 'expired', resolved_at = ?
+     WHERE status = 'pending' AND expires_at <= ?`,
+  ).bind(now, now).run();
+  return rows;
 }

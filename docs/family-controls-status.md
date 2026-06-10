@@ -22,6 +22,7 @@ This file exists so anyone (you, future-Claude, a contributor) can pick up the c
 | Phase 2.9 — per-email rate limiting (login + reset) | ✅ | `family-server/src/rateLimit.ts`, migration `0002_auth_rate_limits.sql` | `eefce7f` |
 | Phase 2.8 — verified Resend sender domain (`hello@tryfocuslock.com`) | ✅ | Worker secrets only (`RESEND_API_KEY` rotated, `EMAIL_FROM`, `RESET_URL_BASE`); no source change | — (config) |
 | Phase 3.1 — Family Inbox (in-app notification feed; weekly digest + device-paired cards) | ✅ | `family-server/src/notifications.ts`, `digest.ts`, migration `0004_notifications.sql`, weekly cron in `wrangler.toml`; `ui/src/components/FamilyInbox.tsx`, `ui/src/stores/family.ts`, badge in `Nav.tsx` | shipped in v1.3.0 |
+| Phase 3.2 — Family Approval Requests (kid asks 5/15/30/60m, parent approves/denies in Inbox; time-limited `unblock_specific` rule) | ✅ | `family-server/src/approvalRequests.ts`, migrations `0005`/`0006`, per-minute cron; `daemon-{win,mac}` `unblock_specific` enforcement + IPC handlers; `ui/src/components/FamilyInbox.tsx` card variant + `useNewRequestAlerts.ts`; `ChildPairedView` ask flow in `ui/src/pages/Family.tsx` | shipped in v1.4.0 |
 | **Releases** | ✅ | v1.1.0 (`15c9f1a`), v1.1.1 (`cd64833`), v1.1.2 (`e9d06cf`); Swift build fix `f6efceb` | — |
 
 Settings lock (formerly "Parent controls", single-device PIN — **different feature**) shipped earlier in 1.0.25 / 1.0.26 and is unrelated to family controls. Don't conflate them.

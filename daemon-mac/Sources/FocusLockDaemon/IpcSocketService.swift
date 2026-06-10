@@ -172,6 +172,8 @@ final class IpcSocketService {
         case "family_check_environment":   return .familyEnvironment(envProbe.probe())
         case "family_authorize_uninstall": return handleFamilyAuthorizeUninstall(req)
         case "family_set_firewall_lockdown": return handleFamilySetFirewallLockdown(req)
+        case "request_unblock":            return handleRequestUnblock(req)
+        case "request_status":             return handleRequestStatus(req)
         default:
             return .error("Unknown request type: \(req.type)")
         }
@@ -242,6 +244,37 @@ final class IpcSocketService {
         if let gate = gateOrNil(req) { return gate }
         familySvc.clearLocal()
         return .ok()
+    }
+
+    private func handleRequestUnblock(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: RequestUnblockPayload = decode(req.payload) else {
+            return .error("Invalid payload")
+        }
+        if payload.target.isEmpty { return .error("target required") }
+        if payload.targetKind != "app" && payload.targetKind != "domain" {
+            return .error("targetKind must be \"app\" or \"domain\"")
+        }
+        if ![5, 15, 30, 60].contains(payload.minutes) {
+            return .error("minutes must be 5, 15, 30, or 60")
+        }
+        let (err, result) = familySvc.requestUnblock(
+            target: payload.target,
+            targetKind: payload.targetKind,
+            minutes: payload.minutes)
+        if let err = err { return .error(err) }
+        guard let result = result else { return .error("Request failed") }
+        return .requestUnblock(result)
+    }
+
+    private func handleRequestStatus(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: RequestStatusPayload = decode(req.payload) else {
+            return .error("Invalid payload")
+        }
+        if payload.requestId.isEmpty { return .error("requestId required") }
+        let (err, result) = familySvc.requestStatus(requestId: payload.requestId)
+        if let err = err { return .error(err) }
+        guard let result = result else { return .error("Status check failed") }
+        return .requestStatus(result)
     }
 
     // ── Status overlay ───────────────────────────────────────────────────────

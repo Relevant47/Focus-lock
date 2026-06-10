@@ -6,12 +6,33 @@ import {
 } from './devices';
 import { listNotificationsHandler, markAllReadHandler, markReadHandler } from './notifications';
 import { pairCreate, pairRedeem } from './pairing';
+import {
+  approveRequestHandler, createRequestHandler, denyRequestHandler,
+  deviceGetRequestHandler, parentGetRequestHandler,
+} from './approvalRequests';
+import { expireOverduePending } from './db';
 import { runWeeklyDigests } from './digest';
 import { add, dispatch } from './router';
 import type { Env } from './types';
 import { badRequest, json, requireDeviceAuth, unauthorized } from './utils';
 
 export { DeviceConnection } from './do';
+
+async function sweepExpiredRequests(env: Env): Promise<number> {
+  const expired = await expireOverduePending(env.DB);
+  for (const row of expired) {
+    // Best-effort: push request_resolved to the device so a polling block
+    // page learns "expired" without spinning forever.
+    const id = env.DEVICE_CONN.idFromName(row.device_id);
+    const stub = env.DEVICE_CONN.get(id);
+    stub.fetch('http://device-conn/notify', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'request_resolved', requestId: row.id, status: 'expired' }),
+    }).catch(() => { /* offline */ });
+  }
+  return expired.length;
+}
 
 // ── Health ─────────────────────────────────────────────────────────────────
 add('GET',  '/healthz', async () => json({ ok: true, version: '0.2.0' }));
@@ -61,6 +82,13 @@ add('GET',  '/api/v1/notifications',              listNotificationsHandler);
 add('POST', '/api/v1/notifications/:id/read',     markReadHandler);
 add('POST', '/api/v1/notifications/read-all',     markAllReadHandler);
 
+// ── Approval Requests (Phase 3.2) ──────────────────────────────────────────
+add('POST', '/api/v1/family/requests',                createRequestHandler);
+add('GET',  '/api/v1/family/requests/:id',            parentGetRequestHandler);
+add('POST', '/api/v1/family/requests/:id/approve',    approveRequestHandler);
+add('POST', '/api/v1/family/requests/:id/deny',       denyRequestHandler);
+add('GET',  '/api/v1/device/requests/:id',            deviceGetRequestHandler);
+
 // ── CORS ───────────────────────────────────────────────────────────────────
 // The Tauri desktop app fetches this Worker from a `tauri://localhost` (mac)
 // or `https://tauri.localhost` (win) origin. WebKit treats POSTs with a
@@ -94,10 +122,17 @@ export default {
   // Cloudflare invokes this on the cron schedule defined in wrangler.toml.
   // We run via ctx.waitUntil so the platform considers the job done only
   // once the digest writes have committed.
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(runWeeklyDigests(env).then(
-      n => console.log(`weekly digest: wrote ${n} notifications`),
-      err => console.error('weekly digest failed', err),
-    ));
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (controller.cron === '0 14 * * 1') {
+      ctx.waitUntil(runWeeklyDigests(env).then(
+        n => console.log(`weekly digest: wrote ${n} notifications`),
+        err => console.error('weekly digest failed', err),
+      ));
+    } else if (controller.cron === '* * * * *') {
+      ctx.waitUntil(sweepExpiredRequests(env).then(
+        n => { if (n > 0) console.log(`approval sweep: expired ${n} requests`); },
+        err => console.error('approval sweep failed', err),
+      ));
+    }
   },
 } satisfies ExportedHandler<Env>;

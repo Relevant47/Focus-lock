@@ -212,6 +212,12 @@ struct IpcResponse: Codable {
     static func familyEnvironment(_ e: FamilyEnvironment) -> IpcResponse {
         IpcResponse(type: "family_environment", payload: AnyCodable(e))
     }
+    static func requestUnblock(_ r: RequestUnblockResult) -> IpcResponse {
+        IpcResponse(type: "request_unblock_result", payload: AnyCodable(r))
+    }
+    static func requestStatus(_ r: RequestStatusResult) -> IpcResponse {
+        IpcResponse(type: "request_status_result", payload: AnyCodable(r))
+    }
 }
 
 // Wire-level error codes matching the C# daemon and shared/protocol.ts.

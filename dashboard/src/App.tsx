@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getSupabase } from './supabase';
-import { fetchStats, fetchOpenText, downloadCsv, NotAdminError, type Stats, type OpenTextRow } from './api';
-import { Card, BarView, PieView, LineView, toData } from './charts';
+import { fetchStats, fetchOpenText, fetchReleases, downloadCsv,
+  NotAdminError, type Stats, type OpenTextRow, type ReleaseRow } from './api';
+import { Card, BarView, PieView, LineView, AreaView, FunnelView, toData, total } from './charts';
 
 type Phase = 'loading' | 'login' | 'sent' | 'loading-data' | 'ready' | 'not-admin' | 'error';
 
@@ -12,6 +13,7 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [stats, setStats] = useState<Stats | null>(null);
   const [openText, setOpenText] = useState<OpenTextRow[]>([]);
+  const [releases, setReleases] = useState<ReleaseRow[]>([]);
   const [err, setErr] = useState('');
   // Login-form-specific error so we can show inline and let the user retry,
   // separate from the dead-end `err` we use for the loading-data path.
@@ -40,9 +42,16 @@ export default function App() {
     const token = session.access_token;
     (async () => {
       try {
-        const [s, ot] = await Promise.all([fetchStats(token), fetchOpenText(token)]);
+        // Releases are a "nice to have" — fetched in parallel but never block
+        // the page on a GitHub rate-limit hiccup.
+        const [s, ot, rels] = await Promise.all([
+          fetchStats(token),
+          fetchOpenText(token),
+          fetchReleases(token),
+        ]);
         setStats(s);
         setOpenText(ot);
+        setReleases(rels);
         setPhase('ready');
       } catch (e) {
         if (e instanceof NotAdminError) setPhase('not-admin');
@@ -54,10 +63,6 @@ export default function App() {
   async function sendMagicLink() {
     setLoginErr('');
     const sb = await getSupabase();
-    // shouldCreateUser:false makes Supabase reject unknown emails immediately
-    // (no email sent, no auth.users row created). Combined with the project-level
-    // "Allow new user signups" toggle being off, this enforces the admin
-    // allowlist at the auth layer rather than discovering it post-click.
     const { error } = await sb.auth.signInWithOtp({
       email,
       options: {
@@ -66,8 +71,6 @@ export default function App() {
       },
     });
     if (error) {
-      // We deliberately don't surface the raw Supabase error text — it can leak
-      // whether the email exists. Same message regardless of cause.
       setLoginErr("That email isn't authorized for admin access.");
       return;
     }
@@ -121,7 +124,14 @@ export default function App() {
 
   const token = session!.access_token;
   const m = stats.snapshot ?? {};
-  const pct = (n: number | null) => (n == null ? '—' : `${Math.round(n * 100)}%`);
+  const pctFmt = (n: number | null) => (n == null ? '—' : `${Math.round(n * 100)}%`);
+
+  // Plain, cheap derivations — kept as helpers, not hooks, so they can run
+  // after the early-return branches above without breaking rules-of-hooks.
+  const responsesByMonth = buildMonthSeries(m.responses_by_month);
+  const osTrend = buildOsTrend(m.os_by_month);
+  const npsByAge = buildNpsByAge(m.nps_by_age);
+  const releaseChart = buildReleaseChart(releases);
 
   return (
     <div className="wrap">
@@ -138,30 +148,143 @@ export default function App() {
 
       <div className="cards">
         <Stat label="Total responses" value={String(stats.live.responses)} />
-        <Stat label="Response rate" value={pct(stats.responseRate)} hint="completed ÷ prompts shown" />
+        <Stat label="Response rate" value={pctFmt(stats.responseRate)} hint="completed ÷ prompts shown" />
         <Stat label="Avg NPS" value={m.avg_nps != null ? String(m.avg_nps) : '—'} />
         <Stat label="Newsletter" value="Beehiiv ↗" href="https://app.beehiiv.com/subscribers" hint="signups tracked in beehiiv" />
       </div>
 
       <div className="grid">
-        <Card title="Age distribution"><BarView data={toData(m.age_range, 'age_range')} /></Card>
-        <Card title="Profession"><PieView data={toData(m.profession, 'profession')} /></Card>
-        <Card title="How they heard about us" hint="acquisition channel"><BarView data={toData(m.heard_about, 'heard_about', { sort: true })} color="#a855f7" /></Card>
-        <Card title="Primary OS"><PieView data={toData(m.primary_os, 'primary_os')} donut /></Card>
-        <Card title="Top countries"><BarView data={toData(m.country_top, undefined, { sort: true, isCountry: true })} horizontal color="#38bdf8" /></Card>
-        <Card title="Usage frequency"><BarView data={toData(m.usage_frequency, 'usage_frequency')} color="#10b981" /></Card>
-        <Card title="Main reason for using"><BarView data={toData(m.main_reason, 'main_reason', { sort: true })} /></Card>
-        <Card title="Competitor overlap" hint="other apps tried"><BarView data={toData(m.tried_apps, 'tried_apps', { sort: true })} horizontal color="#f59e0b" /></Card>
-        <Card title="Most-wanted features"><BarView data={toData(m.wanted_features, 'wanted_features', { sort: true })} horizontal color="#8b5cf6" /></Card>
-        <Card title="Most blocked categories"><BarView data={toData(m.blocked_categories, 'blocked_categories', { sort: true })} color="#ec4899" /></Card>
-        <Card title="NPS distribution"><BarView data={toData(m.nps_distribution).sort((a, b) => Number(a.name) - Number(b.name))} color="#6366f1" /></Card>
+        <Card title="Responses per month" hint="from survey submissions">
+          <BarView data={responsesByMonth} color="#6366f1" sort={false} />
+        </Card>
+        <Card title="OS mix over time" hint="stacked monthly" total={osTrend.totalAll}>
+          <AreaView data={osTrend.rows} keys={osTrend.keys} labels={OS_LABELS} />
+        </Card>
+        <Card title="Survey funnel" hint="prompts shown → completed">
+          <FunnelView shown={stats.live.promptsShown} completed={stats.live.completed} />
+        </Card>
+        <Card title="Downloads per release" hint="live from GitHub releases">
+          <BarView data={releaseChart} color="#10b981" horizontal sort={false} />
+        </Card>
+
+        <Card title="Age distribution" total={total(toData(m.age_range, 'age_range'))}>
+          <BarView data={toData(m.age_range, 'age_range')} />
+        </Card>
+        <Card title="Avg NPS by age" hint="0–10 scale">
+          <BarView data={npsByAge} color="#ec4899" sort={false} />
+        </Card>
+        <Card title="Profession" total={total(toData(m.profession, 'profession'))}>
+          <PieView data={toData(m.profession, 'profession')} />
+        </Card>
+        <Card title="How they heard about us" hint="acquisition channel" total={total(toData(m.heard_about, 'heard_about'))}>
+          <BarView data={toData(m.heard_about, 'heard_about', { sort: true })} color="#a855f7" />
+        </Card>
+        <Card title="Primary OS" total={total(toData(m.primary_os, 'primary_os'))}>
+          <PieView data={toData(m.primary_os, 'primary_os')} donut />
+        </Card>
+        <Card title="Top countries" total={total(toData(m.country_top, undefined, { isCountry: true }))}>
+          <BarView data={toData(m.country_top, undefined, { sort: true, isCountry: true })} horizontal color="#38bdf8" />
+        </Card>
+        <Card title="Usage frequency" total={total(toData(m.usage_frequency, 'usage_frequency'))}>
+          <BarView data={toData(m.usage_frequency, 'usage_frequency')} color="#10b981" />
+        </Card>
+        <Card title="Main reason for using" total={total(toData(m.main_reason, 'main_reason'))}>
+          <BarView data={toData(m.main_reason, 'main_reason', { sort: true })} />
+        </Card>
+        <Card title="Competitor overlap" hint="other apps tried">
+          <BarView data={toData(m.tried_apps, 'tried_apps', { sort: true })} horizontal color="#f59e0b" />
+        </Card>
+        <Card title="Most-wanted features">
+          <BarView data={toData(m.wanted_features, 'wanted_features', { sort: true })} horizontal color="#8b5cf6" />
+        </Card>
+        <Card title="Most blocked categories">
+          <BarView data={toData(m.blocked_categories, 'blocked_categories', { sort: true })} color="#ec4899" />
+        </Card>
+        <Card title="NPS distribution" hint="0–10">
+          <BarView
+            data={toData(m.nps_distribution).sort((a, b) => Number(a.name) - Number(b.name))}
+            color="#6366f1"
+            sort={false}
+          />
+        </Card>
         <Card title="NPS trend"><LineView data={stats.trend} /></Card>
-        <Card title="Bypass attempts"><PieView data={toData(m.bypassed, 'bypassed')} /></Card>
+        <Card title="Bypass attempts" total={total(toData(m.bypassed, 'bypassed'))}>
+          <PieView data={toData(m.bypassed, 'bypassed')} />
+        </Card>
         <OpenText rows={openText} wide />
       </div>
     </div>
   );
 }
+
+// ---- Derived chart data ---------------------------------------------------
+
+const OS_LABELS: Record<string, string> = {
+  macos: 'macOS', windows: 'Windows', linux: 'Linux',
+  ios: 'iOS', android: 'Android', multiple: 'Multiple',
+};
+
+/** {"2026-01": 12, ...} → [{ name: "Jan 2026", value: 12, rawKey: "2026-01" }] in chronological order. */
+function buildMonthSeries(dict: Record<string, number> | undefined) {
+  if (!dict) return [];
+  return Object.entries(dict)
+    .map(([k, v]) => ({ name: prettyMonth(k), value: Number(v), rawKey: k }))
+    .sort((a, b) => (a.rawKey > b.rawKey ? 1 : -1));
+}
+
+/** os_by_month: {"2026-01": {"macos":3,"windows":1}, ...} → rows + key list for stacked area. */
+function buildOsTrend(dict: Record<string, Record<string, number>> | undefined) {
+  if (!dict) return { rows: [] as Array<Record<string, any>>, keys: [] as string[], totalAll: 0 };
+  const months = Object.keys(dict).sort();
+  const keySet = new Set<string>();
+  for (const m of months) Object.keys(dict[m] ?? {}).forEach((k) => keySet.add(k));
+  const keys = [...keySet];
+  let totalAll = 0;
+  const rows = months.map((m) => {
+    const row: Record<string, any> = { month: prettyMonth(m) };
+    for (const k of keys) {
+      const v = Number(dict[m]?.[k] ?? 0);
+      row[k] = v;
+      totalAll += v;
+    }
+    return row;
+  });
+  return { rows, keys, totalAll };
+}
+
+/** {"18_24": 7.3, ...} → bar rows ordered by the canonical age bracket sequence. */
+const AGE_ORDER = ['under_18', '18_24', '25_34', '35_44', '45_54', '55_plus', 'prefer_not_to_say'];
+const AGE_LABEL: Record<string, string> = {
+  under_18: 'Under 18', '18_24': '18–24', '25_34': '25–34', '35_44': '35–44',
+  '45_54': '45–54', '55_plus': '55+', prefer_not_to_say: 'Prefer N/A',
+};
+function buildNpsByAge(dict: Record<string, number> | undefined) {
+  if (!dict) return [];
+  return AGE_ORDER
+    .filter((k) => dict[k] != null)
+    .map((k) => ({ name: AGE_LABEL[k] ?? k, value: Number(dict[k]), rawKey: k }));
+}
+
+/** GitHub release rows → horizontal bar, newest at top, prereleases marked. */
+function buildReleaseChart(releases: ReleaseRow[]) {
+  return releases
+    .filter((r) => r.downloads > 0)
+    .slice(0, 12)
+    .map((r) => ({
+      name: r.prerelease ? `${r.tag} (pre)` : r.tag,
+      value: r.downloads,
+      rawKey: r.tag,
+    }));
+}
+
+function prettyMonth(ym: string) {
+  // ym is "YYYY-MM"; build a Date at the 1st so toLocaleString returns "Jan 2026".
+  const [y, m] = ym.split('-').map(Number);
+  if (!y || !m) return ym;
+  return new Date(y, m - 1, 1).toLocaleString('en', { month: 'short', year: 'numeric' });
+}
+
+// ---- UI bits --------------------------------------------------------------
 
 function Stat({ label, value, hint, href }: { label: string; value: string; hint?: string; href?: string }) {
   return (

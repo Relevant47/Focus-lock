@@ -126,6 +126,8 @@ public sealed class IpcResponse
     public static IpcResponse FamilyStatus(FamilyStatus s) => new() { Type = "family_status", Payload = s };
     public static IpcResponse FamilyPaired(FamilyRedeemResult r) => new() { Type = "family_paired", Payload = r };
     public static IpcResponse FamilyEnvironment(FamilyEnvironment e) => new() { Type = "family_environment", Payload = e };
+    public static IpcResponse RequestUnblock(RequestUnblockResult r) => new() { Type = "request_unblock_result", Payload = r };
+    public static IpcResponse RequestStatus(RequestStatusResult r)   => new() { Type = "request_status_result", Payload = r };
 }
 
 public sealed class DaemonStatus

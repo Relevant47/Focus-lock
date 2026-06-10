@@ -227,18 +227,69 @@
 
   <div class="timeline" id="timeline">
 
-    <!-- ───── 2026-06-09 (latest) — design preview ───── -->
-    <article class="entry" data-type="web">
+    <!-- ───── 2026-06-10 (latest) ───── -->
+    <article class="entry" data-type="app">
       <div class="entry-meta">
-        <div class="entry-date">June 9, 2026</div>
-        <span class="badge web">Roadmap</span>
+        <div class="entry-date">June 10, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">1.4.0</span>
       </div>
       <div class="entry-body">
-        <h2>Coming next — kids ask for unblock, parents say yes or no in one tap</h2>
+        <h2>Kids ask, parents approve — Family Approval Requests are live</h2>
         <ul>
-          <li><strong>The next thing we're building.</strong> When the kid hits a blocked site or app, they'll see a small "Ask parent" panel with 5 / 15 / 30 / 60-minute options. The parent gets a desktop notification + a card in the Family Inbox with one-tap <em>Approve</em> or <em>Deny</em>. Approvals lift the block for that one thing for the requested window, then re-engage automatically. Asks expire after an hour if nobody answers.</li>
-          <li><strong>Why we picked this shape.</strong> Narrow (one app or one site per ask), opinionated (kid picks the time so there's nothing for the parent to fiddle with), and built on the Inbox we just shipped — no new place to check.</li>
-          <li><strong>Design is public.</strong> Full write-up is at <a href="https://github.com/Relevant47/focus-lock/blob/main/docs/superpowers/specs/2026-06-09-family-approval-requests-design.md">docs/superpowers/specs/2026-06-09-family-approval-requests-design.md</a>. Implementation lands in 1.4.0.</li>
+          <li><strong>Kid taps "Ask for N min" on any active block.</strong> 5 / 15 / 30 / 60-minute options. The parent sees a card in the Family Inbox with one-tap <em>Approve</em> or <em>Deny</em>, and a desktop notification fires the moment it arrives.</li>
+          <li><strong>Approvals lift the block for just that one thing, for just that long.</strong> Approving "reddit.com for 15 min" lifts reddit.com for 15 minutes — everything else stays blocked. When the timer hits zero, the block re-engages automatically.</li>
+          <li><strong>Asks expire after an hour.</strong> If nobody answers in an hour, the request quietly expires — no stale "yes" 6 hours later. The kid sees "No reply — try again later."</li>
+          <li><strong>No emails.</strong> Lives in the Inbox we shipped last week. One surface for everything family-related.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-10 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">June 10, 2026</div>
+        <span class="badge app">App</span>
+        <span class="version-tag">1.4.0</span>
+      </div>
+      <div class="entry-body">
+        <h2>You can always see — and stop — your running session</h2>
+        <ul>
+          <li><strong>A persistent banner across every page.</strong> A sticky top bar now appears on Dashboard, Block Lists, Profiles, Schedules, Family, Analytics, and Settings whenever a session is active. Big bold label ("BLOCKING — Normal" / "BLOCKING — Hardcore" / "BLOCKING — Friend lock"), a pulsing colour-keyed dot, and the live countdown. Before, the banner only showed on two of the seven pages — and on the others the only signal was a small pill at the bottom of the sidebar.</li>
+          <li><strong>End session button is reachable from anywhere now.</strong> In Normal mode the banner shows a prominent red <strong>End session</strong> button on the right; clicking it stops the session immediately, on any page. Before this, you had to navigate back to Dashboard (or be on Profiles / Block Lists) just to find a stop control.</li>
+          <li><strong>Hardcore mode means something again.</strong> In Hardcore mode the End button is replaced with a "🔒 Locked until end" label. That contrast — big red button in Normal, padlock in Hardcore — is what gives Hardcore its meaning. Previously, if you couldn't even stop a Normal-mode session from most pages, Hardcore wasn't any different.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-10 ───── -->
+    <article class="entry" data-type="web">
+      <div class="entry-meta">
+        <div class="entry-date">June 10, 2026</div>
+        <span class="badge web">Web</span>
+      </div>
+      <div class="entry-body">
+        <h2>Admin analytics — five new charts and a coat of polish</h2>
+        <ul>
+          <li><strong>Five new visualizations.</strong> Responses per month (bar), OS mix over time (stacked area, Mac vs Windows growth side by side), survey funnel (prompts shown → completed with a completion-rate readout), downloads per release (pulled live from GitHub for every shipped version), and average NPS by age bracket — so we can finally see which age group is happiest with the app.</li>
+          <li><strong>Polish across the board.</strong> Tooltips now show percentages alongside counts. Each card shows its sample size in the title (e.g. "Profession · 487"). Bar charts sort biggest-first by default. macOS and Windows now use the same colour everywhere they appear. Pie slices are labelled with their percent. The grid collapses cleanly on phones instead of squishing the charts.</li>
+          <li><strong>Behind the scenes.</strong> A new Supabase aggregation (<code>0005_survey_crosstabs</code>) snapshots <code>responses_by_month</code>, <code>os_by_month</code>, and <code>nps_by_age</code> nightly alongside the existing breakdowns. Release counts come from a new admin-only <code>/api/survey/releases</code> endpoint that proxies GitHub Releases with our auth token so we don't burn through the unauthenticated rate limit.</li>
+        </ul>
+      </div>
+    </article>
+
+
+    <!-- ───── 2026-06-09 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">June 9, 2026</div>
+        <span class="badge app">App</span>
+      </div>
+      <div class="entry-body">
+        <h2>Admin analytics sign-in actually works now</h2>
+        <ul>
+          <li><strong>The internal analytics dashboard couldn't send its magic-link email.</strong> When we verified <code>tryfocuslock.com</code> in Resend back on June 5, that switched the <em>family-server</em> emails (password reset, etc.) to deliver from a real domain — but Supabase has its own separate SMTP config for the analytics dashboard's admin sign-in, and that one was still pointed at Resend's sandbox sender (<code>onboarding@resend.dev</code>). Resend's sandbox only delivers to the Resend account owner, so any other admin email got rejected with a 550. From the dashboard side it looked identical to "email not authorized." Sender is now <code>hello@tryfocuslock.com</code> and magic links arrive.</li>
+          <li><strong>No user-visible behavior change.</strong> Only the internal analytics dashboard is affected — the desktop app and family-server flows were already on the verified domain.</li>
         </ul>
       </div>
     </article>

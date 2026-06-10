@@ -12,6 +12,7 @@ import CommandPalette from './components/CommandPalette';
 import AchievementToast from './components/AchievementToast';
 import Aurora from './components/Aurora';
 import ParentUnlockModal from './components/ParentUnlockModal';
+import ActiveSessionBanner from './components/ActiveSessionBanner';
 import SurveyNudge from './components/SurveyNudge';
 import SurveyModal from './components/SurveyModal';
 import { useSurvey } from './stores/survey';
@@ -122,6 +123,7 @@ export default function App() {
         <Aurora />
         <Nav />
         <main className="flex-1 overflow-auto">
+          <ActiveSessionBanner />
           <RoutedShell />
         </main>
         {showOnboarding && <Onboarding onDone={complete} />}

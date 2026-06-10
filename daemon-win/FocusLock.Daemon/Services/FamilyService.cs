@@ -164,6 +164,113 @@ public sealed class FamilyService
         _log.LogInformation("Family device unpaired locally");
     }
 
+    /// <summary>
+    /// POST /api/v1/family/requests with the kid's Authorization: Bearer device token.
+    /// Server is idempotent on (device, target_kind, target) for pending rows —
+    /// a retry returns the existing one.
+    /// </summary>
+    public async Task<(string? Error, RequestUnblockResult? Result)> RequestUnblockAsync(
+        string target, string targetKind, int minutes, CancellationToken ct)
+    {
+        FamilyConfig? cfg;
+        lock (_lock) cfg = _config;
+        if (cfg == null || string.IsNullOrEmpty(cfg.DeviceToken))
+            return ("Device is not paired", null);
+
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", cfg.DeviceToken);
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("FocusLock-Daemon/1.3.0");
+
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await http.PostAsJsonAsync(
+                $"{cfg.ServerUrl.TrimEnd('/')}/api/v1/family/requests",
+                new { target, targetKind, requestedMinutes = minutes },
+                JsonOpts, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Request-unblock network error");
+            return ($"Could not reach family server: {ex.Message}", null);
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            return ($"Request failed ({(int)resp.StatusCode}): {body}", null);
+        }
+
+        var env = await resp.Content.ReadFromJsonAsync<RequestEnvelope>(JsonOpts, ct).ConfigureAwait(false);
+        if (env?.Request == null || string.IsNullOrEmpty(env.Request.Id))
+            return ("Server returned an invalid response", null);
+
+        return (null, new RequestUnblockResult
+        {
+            RequestId = env.Request.Id,
+            ExpiresAt = env.Request.ExpiresAt,
+        });
+    }
+
+    /// <summary>GET /api/v1/device/requests/:id — kid polls the verdict.</summary>
+    public async Task<(string? Error, RequestStatusResult? Result)> RequestStatusAsync(
+        string requestId, CancellationToken ct)
+    {
+        FamilyConfig? cfg;
+        lock (_lock) cfg = _config;
+        if (cfg == null || string.IsNullOrEmpty(cfg.DeviceToken))
+            return ("Device is not paired", null);
+
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", cfg.DeviceToken);
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("FocusLock-Daemon/1.3.0");
+
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await http.GetAsync(
+                $"{cfg.ServerUrl.TrimEnd('/')}/api/v1/device/requests/{requestId}",
+                ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Request-status network error");
+            return ($"Could not reach family server: {ex.Message}", null);
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            return ($"Status check failed ({(int)resp.StatusCode}): {body}", null);
+        }
+
+        var env = await resp.Content.ReadFromJsonAsync<RequestEnvelope>(JsonOpts, ct).ConfigureAwait(false);
+        if (env?.Request == null) return ("Server returned no body", null);
+
+        // We don't fetch the rule's expires_at here in v1 — the daemon's
+        // FamilyEnforcementService.Snapshot() carries that for the UI's own
+        // hydration. Returning null keeps the IPC simple; T19 doesn't depend on it.
+        return (null, new RequestStatusResult
+        {
+            Status = env.Request.Status,
+            ResolutionRuleExpiresAt = null,
+        });
+    }
+
+    private sealed class RequestEnvelope
+    {
+        public RequestRow? Request { get; set; }
+    }
+    private sealed class RequestRow
+    {
+        public string Id        { get; set; } = string.Empty;
+        public string Status    { get; set; } = string.Empty;
+        public string ExpiresAt { get; set; } = string.Empty;
+        public string? ResolutionRuleId { get; set; }
+    }
+
     // ── Persistence ────────────────────────────────────────────────────────
 
     private FamilyConfig? LoadConfig()

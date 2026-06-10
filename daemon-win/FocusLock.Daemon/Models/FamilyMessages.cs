@@ -47,11 +47,12 @@ public sealed class FamilyStatus
 public sealed class FamilyRuleSummary
 {
     public string Id            { get; set; } = string.Empty;
-    public string Kind          { get; set; } = string.Empty; // block_now | schedule | unblock_all
+    public string Kind          { get; set; } = string.Empty; // block_now | schedule | unblock_all | unblock_specific
     public List<string> TargetApps    { get; set; } = new();
     public List<string> TargetDomains { get; set; } = new();
     public string? ScheduleCron       { get; set; }
     public string CreatedAt           { get; set; } = string.Empty;
+    public string? ExpiresAt          { get; set; }
 }
 
 // ── IPC payloads (UI → daemon) ─────────────────────────────────────────────
@@ -113,6 +114,7 @@ public sealed class CloudRule
     public string? ScheduleCron       { get; set; }
     public bool   Active              { get; set; } = true;
     public string CreatedAt           { get; set; } = string.Empty;
+    public string? ExpiresAt          { get; set; }
 }
 
 /// <summary>
@@ -125,4 +127,30 @@ public sealed class CloudMessage
     [JsonPropertyName("rule")]   public CloudRule? Rule { get; set; }
     [JsonPropertyName("ruleId")] public string? RuleId { get; set; }
     [JsonPropertyName("t")]      public long?   T      { get; set; }
+}
+
+// ── Family approval requests (Phase 3.2) ─────────────────────────────────────
+
+public sealed class RequestUnblockPayload
+{
+    public string Target     { get; set; } = string.Empty;
+    public string TargetKind { get; set; } = string.Empty;   // "app" | "domain"
+    public int    Minutes    { get; set; }                   // 5 | 15 | 30 | 60
+}
+
+public sealed class RequestUnblockResult
+{
+    public string RequestId { get; set; } = string.Empty;
+    public string ExpiresAt { get; set; } = string.Empty;
+}
+
+public sealed class RequestStatusPayload
+{
+    public string RequestId { get; set; } = string.Empty;
+}
+
+public sealed class RequestStatusResult
+{
+    public string Status { get; set; } = string.Empty;       // pending | approved | denied | expired
+    public string? ResolutionRuleExpiresAt { get; set; }
 }

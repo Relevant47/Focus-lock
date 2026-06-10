@@ -57,13 +57,14 @@ export interface PairingCodeRow {
 export interface LockRuleRow {
   id: string;
   device_id: string;
-  kind: 'block_now' | 'schedule' | 'unblock_all';
+  kind: 'block_now' | 'schedule' | 'unblock_all' | 'unblock_specific';
   target_apps: string | null;
   target_domains: string | null;
   schedule_cron: string | null;
   active: number;
   created_at: string;
   created_by_account_id: string;
+  expires_at: string | null;
 }
 
 export interface AuditLogRow {
@@ -86,7 +87,7 @@ export interface RateLimitRow {
 export interface NotificationRow {
   id: number;
   account_id: string;
-  kind: 'weekly_digest' | 'device_paired';
+  kind: 'weekly_digest' | 'device_paired' | 'approval_request';
   title: string;
   body: string;
   payload: string | null;
@@ -109,17 +110,18 @@ export interface DeviceSummary {
 export interface LockRule {
   id: string;
   deviceId: string;
-  kind: 'block_now' | 'schedule' | 'unblock_all';
+  kind: 'block_now' | 'schedule' | 'unblock_all' | 'unblock_specific';
   targetApps: string[];
   targetDomains: string[];
   scheduleCron: string | null;
   active: boolean;
   createdAt: string;
+  expiresAt: string | null;
 }
 
 export interface Notification {
   id: number;
-  kind: 'weekly_digest' | 'device_paired';
+  kind: 'weekly_digest' | 'device_paired' | 'approval_request';
   title: string;
   body: string;
   payload: unknown;
@@ -145,10 +147,11 @@ export interface DevicePairedPayload {
 }
 
 export interface CreateRuleRequest {
-  kind: 'block_now' | 'schedule' | 'unblock_all';
+  kind: 'block_now' | 'schedule' | 'unblock_all' | 'unblock_specific';
   targetApps?: string[];
   targetDomains?: string[];
   scheduleCron?: string;
+  expiresAt?: string;   // ISO timestamp; only valid for kind=unblock_specific
 }
 
 export interface PairRedeemRequest {
@@ -156,4 +159,37 @@ export interface PairRedeemRequest {
   hostname?: string;
   os: 'windows' | 'macos';
   osVersion?: string;
+}
+
+export interface ApprovalRequestRow {
+  id: string;
+  account_id: string;
+  device_id: string;
+  target_kind: 'app' | 'domain';
+  target: string;
+  requested_minutes: number;
+  status: 'pending' | 'approved' | 'denied' | 'expired';
+  created_at: string;
+  expires_at: string;
+  resolved_at: string | null;
+  resolution_rule_id: string | null;
+}
+
+export interface ApprovalRequest {
+  id: string;
+  deviceId: string;
+  targetKind: 'app' | 'domain';
+  target: string;
+  requestedMinutes: number;
+  status: 'pending' | 'approved' | 'denied' | 'expired';
+  createdAt: string;
+  expiresAt: string;
+  resolvedAt: string | null;
+  resolutionRuleId: string | null;
+}
+
+export interface CreateApprovalRequestBody {
+  targetKind: 'app' | 'domain';
+  target: string;
+  requestedMinutes: 5 | 15 | 30 | 60;
 }

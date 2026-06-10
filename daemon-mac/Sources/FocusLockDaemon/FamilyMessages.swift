@@ -19,11 +19,12 @@ struct FamilyConfig: Codable {
 
 struct FamilyRuleSummary: Codable {
     var id: String
-    var kind: String          // block_now | schedule | unblock_all
+    var kind: String          // block_now | schedule | unblock_all | unblock_specific
     var targetApps: [String]
     var targetDomains: [String]
     var scheduleCron: String?
     var createdAt: String
+    var expiresAt: String?
 }
 
 struct FamilyStatus: Codable {
@@ -88,6 +89,7 @@ struct CloudRule: Codable {
     var scheduleCron: String?
     var active: Bool
     var createdAt: String
+    var expiresAt: String?
 }
 
 struct CloudRulesEnvelope: Codable {
@@ -106,4 +108,26 @@ struct RedeemResponse: Codable {
     var deviceId: String
     var deviceToken: String
     var expiresInSeconds: Int64
+}
+
+// ── Family approval requests (Phase 3.2) ─────────────────────────────────────
+
+struct RequestUnblockPayload: Codable {
+    var target: String
+    var targetKind: String      // "app" | "domain"
+    var minutes: Int            // 5 | 15 | 30 | 60
+}
+
+struct RequestUnblockResult: Codable {
+    var requestId: String
+    var expiresAt: String
+}
+
+struct RequestStatusPayload: Codable {
+    var requestId: String
+}
+
+struct RequestStatusResult: Codable {
+    var status: String          // "pending" | "approved" | "denied" | "expired"
+    var resolutionRuleExpiresAt: String?
 }
