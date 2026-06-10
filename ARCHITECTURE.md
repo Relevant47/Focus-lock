@@ -43,9 +43,12 @@ focus-lock/
 ├── daemon-mac/
 │   └── Sources/             Swift daemon (SPM)
 └── installer/
-    ├── windows/             PowerShell + WiX scripts
-    └── macos/               Shell scripts + PKG components
+    └── windows/             PowerShell + WiX scripts
 ```
+
+macOS no longer has an `installer/` directory — the daemon ships inside
+`FocusLock.app/Contents/Library/LaunchDaemons/` and is registered via
+`SMAppService`. See "macOS install model" below.
 
 ---
 
@@ -253,13 +256,16 @@ Read via `get_parent_audit` IPC. The read is gated when a PIN is configured; it 
 
 Blocked domains are written as:
 ```
-# ── FocusLock START ──
+# FocusLock START
 # Managed by FocusLock — do not edit manually
 127.0.0.1 youtube.com
 127.0.0.1 www.youtube.com
 127.0.0.1 m.youtube.com
-# ── FocusLock END ──
+# FocusLock END
 ```
+
+The strip regex on both daemons also matches the legacy em-dashed form
+(`# ── FocusLock START ──`) so older blocks self-heal on the next write.
 
 Redirecting to `127.0.0.1` (not `0.0.0.0`) lets the intercept HTTP server
 on port 80 serve a branded block page instead of a generic browser error.
