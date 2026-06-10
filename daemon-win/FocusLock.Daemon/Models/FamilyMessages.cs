@@ -128,3 +128,29 @@ public sealed class CloudMessage
     [JsonPropertyName("ruleId")] public string? RuleId { get; set; }
     [JsonPropertyName("t")]      public long?   T      { get; set; }
 }
+
+// ── Family approval requests (Phase 3.2) ─────────────────────────────────────
+
+public sealed class RequestUnblockPayload
+{
+    public string Target     { get; set; } = string.Empty;
+    public string TargetKind { get; set; } = string.Empty;   // "app" | "domain"
+    public int    Minutes    { get; set; }                   // 5 | 15 | 30 | 60
+}
+
+public sealed class RequestUnblockResult
+{
+    public string RequestId { get; set; } = string.Empty;
+    public string ExpiresAt { get; set; } = string.Empty;
+}
+
+public sealed class RequestStatusPayload
+{
+    public string RequestId { get; set; } = string.Empty;
+}
+
+public sealed class RequestStatusResult
+{
+    public string Status { get; set; } = string.Empty;       // pending | approved | denied | expired
+    public string? ResolutionRuleExpiresAt { get; set; }
+}

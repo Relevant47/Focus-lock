@@ -181,6 +181,8 @@ public sealed class IpcPipeService : BackgroundService
                 "family_check_environment" => IpcResponse.FamilyEnvironment(_envProbe.Probe()),
                 "family_authorize_uninstall" => HandleAuthorizeUninstall(req),
                 "family_set_firewall_lockdown" => HandleSetFirewallLockdown(req),
+                "request_unblock"          => HandleRequestUnblock(req).GetAwaiter().GetResult(),
+                "request_status"           => HandleRequestStatus(req).GetAwaiter().GetResult(),
                 _ => IpcResponse.Error($"Unknown request type: {req.Type}"),
             };
         }
@@ -522,6 +524,42 @@ public sealed class IpcPipeService : BackgroundService
         if (!_family.SetFirewallLockdownEnabled(enabledEl.GetBoolean()))
             return IpcResponse.Error("Device is not paired");
         return IpcResponse.Ok();
+    }
+
+    private async Task<IpcResponse> HandleRequestUnblock(IpcRequest req)
+    {
+        // Intentionally ungated: this is the kid's own request to ask a parent
+        // for more time. Requiring the parent PIN here would defeat the point.
+        var payload = Deserialize<RequestUnblockPayload>(req.Payload);
+        if (payload == null) return IpcResponse.Error("Invalid payload");
+        if (string.IsNullOrWhiteSpace(payload.Target))
+            return IpcResponse.Error("target required");
+        if (payload.TargetKind != "app" && payload.TargetKind != "domain")
+            return IpcResponse.Error("targetKind must be \"app\" or \"domain\"");
+        if (payload.Minutes != 5 && payload.Minutes != 15 && payload.Minutes != 30 && payload.Minutes != 60)
+            return IpcResponse.Error("minutes must be 5, 15, 30, or 60");
+
+        var (err, result) = await _family.RequestUnblockAsync(
+            payload.Target, payload.TargetKind, payload.Minutes, CancellationToken.None)
+            .ConfigureAwait(false);
+        if (err != null) return IpcResponse.Error(err);
+        if (result == null) return IpcResponse.Error("Request failed");
+        return IpcResponse.RequestUnblock(result);
+    }
+
+    private async Task<IpcResponse> HandleRequestStatus(IpcRequest req)
+    {
+        // Intentionally ungated: the kid polls their own pending request.
+        var payload = Deserialize<RequestStatusPayload>(req.Payload);
+        if (payload == null) return IpcResponse.Error("Invalid payload");
+        if (string.IsNullOrWhiteSpace(payload.RequestId))
+            return IpcResponse.Error("requestId required");
+
+        var (err, result) = await _family.RequestStatusAsync(payload.RequestId, CancellationToken.None)
+            .ConfigureAwait(false);
+        if (err != null) return IpcResponse.Error(err);
+        if (result == null) return IpcResponse.Error("Status check failed");
+        return IpcResponse.RequestStatus(result);
     }
 
     private static void RestrictAuthorizationAcl(string path)
