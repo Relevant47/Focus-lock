@@ -36,8 +36,26 @@ a { color: var(--accent); }
 .card { background: linear-gradient(180deg, #15151e, #121219); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
 .card-head h3 { font-size: 0.95rem; font-weight: 600; }
+.card-head h3 .card-total { color: var(--dim); font-weight: 500; font-size: 0.82rem; }
 .card-head .hint { color: var(--dim); font-size: 0.72rem; }
 .empty { color: var(--dim); font-size: 0.85rem; padding: 40px 0; text-align: center; }
+
+/* Funnel summary line under the two bars. */
+.funnel-summary {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 0.78rem;
+}
+.funnel-summary strong { color: #34d399; font-size: 1.1rem; font-weight: 700; }
+
+/* Mobile: charts squish badly under ~480px — let the grid scroll horizontally. */
+@media (max-width: 640px) {
+  .wrap { padding: 20px 16px 60px; }
+  .grid { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .stat .value { font-size: 1.5rem; }
+  .top h1 { font-size: 1.3rem; }
+}
 
 /* Open text */
 .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }

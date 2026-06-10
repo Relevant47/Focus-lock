@@ -227,7 +227,23 @@
 
   <div class="timeline" id="timeline">
 
-    <!-- ───── 2026-06-09 (latest) — design preview ───── -->
+    <!-- ───── 2026-06-10 (latest) ───── -->
+    <article class="entry" data-type="web">
+      <div class="entry-meta">
+        <div class="entry-date">June 10, 2026</div>
+        <span class="badge web">Web</span>
+      </div>
+      <div class="entry-body">
+        <h2>Admin analytics — five new charts and a coat of polish</h2>
+        <ul>
+          <li><strong>Five new visualizations.</strong> Responses per month (bar), OS mix over time (stacked area, Mac vs Windows growth side by side), survey funnel (prompts shown → completed with a completion-rate readout), downloads per release (pulled live from GitHub for every shipped version), and average NPS by age bracket — so we can finally see which age group is happiest with the app.</li>
+          <li><strong>Polish across the board.</strong> Tooltips now show percentages alongside counts. Each card shows its sample size in the title (e.g. "Profession · 487"). Bar charts sort biggest-first by default. macOS and Windows now use the same colour everywhere they appear. Pie slices are labelled with their percent. The grid collapses cleanly on phones instead of squishing the charts.</li>
+          <li><strong>Behind the scenes.</strong> A new Supabase aggregation (<code>0005_survey_crosstabs</code>) snapshots <code>responses_by_month</code>, <code>os_by_month</code>, and <code>nps_by_age</code> nightly alongside the existing breakdowns. Release counts come from a new admin-only <code>/api/survey/releases</code> endpoint that proxies GitHub Releases with our auth token so we don't burn through the unauthenticated rate limit.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-09 — design preview ───── -->
     <article class="entry" data-type="web">
       <div class="entry-meta">
         <div class="entry-date">June 9, 2026</div>
@@ -239,6 +255,21 @@
           <li><strong>The next thing we're building.</strong> When the kid hits a blocked site or app, they'll see a small "Ask parent" panel with 5 / 15 / 30 / 60-minute options. The parent gets a desktop notification + a card in the Family Inbox with one-tap <em>Approve</em> or <em>Deny</em>. Approvals lift the block for that one thing for the requested window, then re-engage automatically. Asks expire after an hour if nobody answers.</li>
           <li><strong>Why we picked this shape.</strong> Narrow (one app or one site per ask), opinionated (kid picks the time so there's nothing for the parent to fiddle with), and built on the Inbox we just shipped — no new place to check.</li>
           <li><strong>Design is public.</strong> Full write-up is at <a href="https://github.com/Relevant47/focus-lock/blob/main/docs/superpowers/specs/2026-06-09-family-approval-requests-design.md">docs/superpowers/specs/2026-06-09-family-approval-requests-design.md</a>. Implementation lands in 1.4.0.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ───── 2026-06-09 ───── -->
+    <article class="entry" data-type="app">
+      <div class="entry-meta">
+        <div class="entry-date">June 9, 2026</div>
+        <span class="badge app">App</span>
+      </div>
+      <div class="entry-body">
+        <h2>Admin analytics sign-in actually works now</h2>
+        <ul>
+          <li><strong>The internal analytics dashboard couldn't send its magic-link email.</strong> When we verified <code>tryfocuslock.com</code> in Resend back on June 5, that switched the <em>family-server</em> emails (password reset, etc.) to deliver from a real domain — but Supabase has its own separate SMTP config for the analytics dashboard's admin sign-in, and that one was still pointed at Resend's sandbox sender (<code>onboarding@resend.dev</code>). Resend's sandbox only delivers to the Resend account owner, so any other admin email got rejected with a 550. From the dashboard side it looked identical to "email not authorized." Sender is now <code>hello@tryfocuslock.com</code> and magic links arrive.</li>
+          <li><strong>No user-visible behavior change.</strong> Only the internal analytics dashboard is affected — the desktop app and family-server flows were already on the verified domain.</li>
         </ul>
       </div>
     </article>
