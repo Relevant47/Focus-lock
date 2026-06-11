@@ -152,6 +152,7 @@ export async function denyRequestHandler(
   const row = await findApprovalRequestById(env.DB, params.id);
   if (!row || row.account_id !== ctx.accountId) return notFound();
   if (row.status !== 'pending') return conflict(`already ${row.status}`);
+  if (Date.parse(row.expires_at) <= Date.now()) return conflict('expired');
 
   const ok = await markApprovalResolved(env.DB, row.id, ctx.accountId, 'denied', null);
   if (!ok) return conflict('already resolved');
