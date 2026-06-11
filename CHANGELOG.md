@@ -4,6 +4,23 @@ All notable changes to FocusLock will be documented here.
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-06-10
+
+### Added — Family Approval Requests ("Kids ask, parents approve")
+
+- **Kid taps "Ask for N min" on any active block.** 5 / 15 / 30 / 60-minute
+  options. The parent sees a card in the Family Inbox with one-tap **Approve**
+  or **Deny**, and a desktop notification fires the moment it arrives.
+- **Approvals lift the block for just that one thing, for just that long.**
+  Approving "reddit.com for 15 min" lifts reddit.com for 15 minutes —
+  everything else stays blocked. When the timer hits zero, the block
+  re-engages automatically.
+- **Asks expire after an hour.** If nobody answers in an hour, the request
+  quietly expires — no stale "yes" 6 hours later. The kid sees "No reply —
+  try again later."
+- **No emails.** Lives in the Inbox that shipped in 1.3.0. One surface for
+  everything family-related.
+
 ### Fixed — Active session is now unmistakable, and stoppable from every page
 
 - **Persistent global session banner.** A sticky top bar now appears on **every**
@@ -23,7 +40,32 @@ All notable changes to FocusLock will be documented here.
   on the configure pages was a small ghost-styled "End early" link, which users
   reported missing entirely.
 
+## [1.3.0] — 2026-06-09
 
+### Added — Family Inbox
+
+- **New "Inbox" card at the top of the Family tab.** Chronological feed of
+  things you'd otherwise miss: weekly recap of which apps and sites got
+  blocked the most, and a notice every time a new device pairs to your
+  account. No emails, nothing in your inbox you didn't ask for.
+- **Mark-read per card or in bulk.** Unread items have an accent border and a
+  dot; click the check to dismiss, or hit "Mark all read" in the header.
+- **Unread badge on the Family nav link.** A small accent pill next to
+  "Family" tells you how many things are waiting without opening the tab.
+- **Foundation for child approval requests.** The same feed surfaces
+  "Sam wants 15 min on reddit.com" once the 1.4.0 Approval Requests feature
+  ships — no second UI surface needed.
+
+### Fixed — Family "Walkthrough" button works again
+
+- Clicking *Walkthrough* on the Family page now actually re-opens the
+  walkthrough. It only worked for signed-out users on an unpaired device — the
+  button cleared the "already seen it" flag, but a second condition further
+  down still suppressed the modal whenever you were signed in or on a paired
+  child device, so the click looked like a no-op. The button now explicitly
+  opens the walkthrough regardless of sign-in state.
+
+## [1.2.1] — 2026-06-05
 
 ### Fixed — Family page no longer crashes the whole app
 
