@@ -21,7 +21,7 @@ import {
   requireAuth, requireDeviceAuth, safeJson, unauthorized,
 } from './utils';
 
-const ALLOWED_MINUTES = new Set([5, 15, 30, 60]);
+const ALLOWED_MINUTES = new Set([15, 30, 60]);
 
 function toApi(row: ApprovalRequestRow): ApprovalRequest {
   return {
@@ -52,7 +52,7 @@ export async function createRequestHandler(req: Request, env: Env): Promise<Resp
     return badRequest('target required');
   }
   if (!ALLOWED_MINUTES.has(Number(body.requestedMinutes))) {
-    return badRequest('requestedMinutes must be 5, 15, 30, or 60');
+    return badRequest('requestedMinutes must be 15, 30, or 60');
   }
   const target = body.target.trim();
 

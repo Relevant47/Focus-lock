@@ -191,5 +191,5 @@ export interface ApprovalRequest {
 export interface CreateApprovalRequestBody {
   targetKind: 'app' | 'domain';
   target: string;
-  requestedMinutes: 5 | 15 | 30 | 60;
+  requestedMinutes: 15 | 30 | 60;
 }
