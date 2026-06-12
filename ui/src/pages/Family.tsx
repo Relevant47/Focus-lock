@@ -1217,7 +1217,15 @@ function AskUnblockRow({ targetKind, target }: {
   const [status, setStatus] = useState<
     'pending' | 'approved' | 'denied' | 'expired' | null
   >(null);
+  const [approvedUntil, setApprovedUntil] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function reset(): void {
+    setRequestId(null);
+    setStatus(null);
+    setApprovedUntil(null);
+    setError(null);
+  }
 
   async function ask(): Promise<void> {
     if (busy) return;
@@ -1226,6 +1234,7 @@ function AskUnblockRow({ targetKind, target }: {
       const res = await requestUnblock(target, targetKind, minutes);
       setRequestId(res.requestId);
       setStatus('pending');
+      setApprovedUntil(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not reach parent');
     } finally { setBusy(false); }
@@ -1238,21 +1247,54 @@ function AskUnblockRow({ targetKind, target }: {
     const tick = async (): Promise<void> => {
       try {
         const r = await requestStatus(requestId);
-        if (!cancelled && r.status !== 'pending') setStatus(r.status);
+        if (cancelled || r.status === 'pending') return;
+        setStatus(r.status);
+        if (r.status === 'approved') {
+          // Fall back to the minutes the kid asked for if the server didn't
+          // surface the rule expiry — the daemon resumes blocking when the
+          // window ends, so we need *some* timer to flip the UI back.
+          const fallbackMs = minutes * 60_000;
+          const until = r.resolutionRuleExpiresAt
+            ? Date.parse(r.resolutionRuleExpiresAt)
+            : Date.now() + fallbackMs;
+          setApprovedUntil(Number.isFinite(until) ? until : Date.now() + fallbackMs);
+        }
       } catch { /* ignore transient errors */ }
     };
     const t = window.setInterval(tick, 5000);
     return () => { cancelled = true; window.clearInterval(t); };
-  }, [requestId, status, requestStatus]);
+  }, [requestId, status, requestStatus, minutes]);
+
+  // When approved, revert to the ask controls once the unblock window expires
+  // so the kid can re-ask. The daemon's FamilyEnforcementService drops the
+  // unblock_specific rule at expiresAt and resumes blocking — without this the
+  // row stays on "Approved" forever even though the block is back in effect.
+  useEffect(() => {
+    if (status !== 'approved' || approvedUntil === null) return;
+    const msLeft = approvedUntil - Date.now();
+    if (msLeft <= 0) { reset(); return; }
+    const t = window.setTimeout(reset, msLeft);
+    return () => window.clearTimeout(t);
+  }, [status, approvedUntil]);
 
   if (status === 'approved') {
     return <p className="text-success">✓ Approved — unblock active</p>;
   }
   if (status === 'denied') {
-    return <p className="text-faint">Denied by parent.</p>;
+    return (
+      <div className="flex items-center gap-2">
+        <p className="text-faint">Denied by parent.</p>
+        <button onClick={reset} className="btn-ghost px-2 py-1 text-xs">Ask again</button>
+      </div>
+    );
   }
   if (status === 'expired') {
-    return <p className="text-faint">No reply — try again later.</p>;
+    return (
+      <div className="flex items-center gap-2">
+        <p className="text-faint">No reply — try again later.</p>
+        <button onClick={reset} className="btn-ghost px-2 py-1 text-xs">Ask again</button>
+      </div>
+    );
   }
   if (status === 'pending') {
     return <p className="text-accent">Waiting for parent…</p>;
