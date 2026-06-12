@@ -254,8 +254,8 @@ final class IpcSocketService {
         if payload.targetKind != "app" && payload.targetKind != "domain" {
             return .error("targetKind must be \"app\" or \"domain\"")
         }
-        if ![5, 15, 30, 60].contains(payload.minutes) {
-            return .error("minutes must be 5, 15, 30, or 60")
+        if ![15, 30, 60].contains(payload.minutes) {
+            return .error("minutes must be 15, 30, or 60")
         }
         let (err, result) = familySvc.requestUnblock(
             target: payload.target,

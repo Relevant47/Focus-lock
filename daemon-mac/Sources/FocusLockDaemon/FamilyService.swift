@@ -202,6 +202,7 @@ final class FamilyService {
         let sem = DispatchSemaphore(value: 0)
         var resultErr: String?
         var resultPayload: Envelope?
+        var conflictResult: RequestUnblockResult?
         URLSession.shared.dataTask(with: req) { data, resp, err in
             defer { sem.signal() }
             if let err = err {
@@ -210,6 +211,25 @@ final class FamilyService {
             }
             guard let http = resp as? HTTPURLResponse else {
                 resultErr = "No HTTP response"; return
+            }
+            if http.statusCode == 409 {
+                struct ConflictBody: Decodable {
+                    var code: String?
+                    var pendingRequestId: String?
+                    var retryAfter: String?
+                }
+                if let body = data,
+                   let conflict = try? JSONDecoder().decode(ConflictBody.self, from: body),
+                   let code = conflict.code,
+                   code == "pending_exists" || code == "deny_cooldown" {
+                    conflictResult = RequestUnblockResult(
+                        requestId: "", expiresAt: "",
+                        conflictCode: code,
+                        pendingRequestId: conflict.pendingRequestId,
+                        retryAfter: conflict.retryAfter
+                    )
+                    return
+                }
             }
             guard (200..<300).contains(http.statusCode) else {
                 let bodyStr = (data.flatMap { String(data: $0, encoding: .utf8) }) ?? ""
@@ -221,6 +241,7 @@ final class FamilyService {
         }.resume()
         sem.wait()
 
+        if let conflictResult = conflictResult { return (nil, conflictResult) }
         if let resultErr = resultErr { return (resultErr, nil) }
         guard let env = resultPayload else { return ("Server returned no body", nil) }
         return (nil, RequestUnblockResult(requestId: env.request.id, expiresAt: env.request.expiresAt))
