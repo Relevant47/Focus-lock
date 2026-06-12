@@ -11,6 +11,7 @@ import type {
   SessionLog,
   StartSessionPayload,
 } from '../types';
+import type { RequestUnblockResult } from '@shared/protocol';
 import { type DaemonError, withParentGate } from '../lib/parentGate';
 
 interface IpcResponse {
@@ -98,10 +99,13 @@ interface Actions {
   /// Toggle the opt-in firewall-lockdown flag on the paired device. Gated.
   setFirewallLockdown(enabled: boolean): Promise<void>;
   /// Kid-initiated request to lift a specific block for a fixed window.
-  /// Returns the server-issued request id so the UI can poll status.
+  /// v1.4.1: returns a discriminated result — `ok: true` with `requestId`
+  /// on success, or `ok: false` with a typed `code` on an anti-spam reject.
+  /// Throws only on genuine transport/server errors (5xx, network), NOT on
+  /// the 409 conflicts which are part of the typed contract.
   requestUnblock(target: string, targetKind: 'app' | 'domain',
-                 minutes: 5 | 15 | 30 | 60):
-    Promise<{ requestId: string; expiresAt: string }>;
+                 minutes: 15 | 30 | 60):
+    Promise<RequestUnblockResult>;
   /// Poll the verdict on a previously-created request.
   requestStatus(requestId: string):
     Promise<{ status: 'pending' | 'approved' | 'denied' | 'expired';
@@ -368,7 +372,20 @@ export const useDaemon = create<State & Actions>((set, get) => ({
     if (res.type !== 'request_unblock_result' || !res.payload) {
       throw new Error('Unexpected response from daemon');
     }
-    return res.payload as { requestId: string; expiresAt: string };
+    const p = res.payload as {
+      requestId?: string; expiresAt?: string;
+      conflictCode?: string; pendingRequestId?: string; retryAfter?: string;
+    };
+    if (p.conflictCode === 'pending_exists' && p.pendingRequestId) {
+      return { ok: false, code: 'pending_exists', pendingRequestId: p.pendingRequestId };
+    }
+    if (p.conflictCode === 'deny_cooldown' && p.retryAfter) {
+      return { ok: false, code: 'deny_cooldown', retryAfter: p.retryAfter };
+    }
+    if (!p.requestId || !p.expiresAt) {
+      throw new Error('Unexpected response from daemon');
+    }
+    return { ok: true, requestId: p.requestId, expiresAt: p.expiresAt };
   },
 
   async requestStatus(requestId) {
