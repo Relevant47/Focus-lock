@@ -2,6 +2,16 @@
 
 All notable changes to FocusLock will be documented here.
 
+## v1.4.1 — 2026-06-12
+
+Policy tightening on Family Approval Requests:
+
+- **Drop the 5-minute preset.** Duration options are now 15 / 30 / 60 minutes.
+- **Extend the pending window to 24 hours** (was 1 hour). The cron sweep is unchanged.
+- **Anti-spam:** one pending request per device at a time; after a deny on a target, the kid can't re-ask for that same target for 10 minutes. Server returns typed 409 codes (`pending_exists`, `deny_cooldown`); the child UI surfaces a friendly message and countdown.
+
+No schema change. No new endpoints. Worker is backwards-compatible with v1.4.0 clients — older clients hitting the new rules see a generic error rather than the targeted UI; the auto-updater rolls them forward within a day.
+
 ## [Unreleased]
 
 ### Fixed — Active session is now unmistakable, and stoppable from every page
