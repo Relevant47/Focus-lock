@@ -196,6 +196,30 @@ public sealed class FamilyService
             return ($"Could not reach family server: {ex.Message}", null);
         }
 
+        if ((int)resp.StatusCode == 409)
+        {
+            // v1.4.1 typed conflict — parse the structured body and bubble up.
+            try
+            {
+                var conflict = await resp.Content
+                    .ReadFromJsonAsync<RequestUnblockConflictBody>(JsonOpts, ct)
+                    .ConfigureAwait(false);
+                if (conflict?.Code == "pending_exists" || conflict?.Code == "deny_cooldown")
+                {
+                    return (null, new RequestUnblockResult
+                    {
+                        ConflictCode     = conflict.Code,
+                        PendingRequestId = conflict.PendingRequestId,
+                        RetryAfter       = conflict.RetryAfter,
+                    });
+                }
+            }
+            catch
+            {
+                // Fall through to the generic-error path on parse failure.
+            }
+        }
+
         if (!resp.IsSuccessStatusCode)
         {
             var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -339,5 +363,12 @@ public sealed class FamilyService
         public string DeviceId    { get; set; } = string.Empty;
         public string DeviceToken { get; set; } = string.Empty;
         public long   ExpiresInSeconds { get; set; }
+    }
+
+    private sealed class RequestUnblockConflictBody
+    {
+        public string? Code             { get; set; }
+        public string? PendingRequestId { get; set; }
+        public string? RetryAfter       { get; set; }
     }
 }
