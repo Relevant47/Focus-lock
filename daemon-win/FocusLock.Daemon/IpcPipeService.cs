@@ -536,8 +536,8 @@ public sealed class IpcPipeService : BackgroundService
             return IpcResponse.Error("target required");
         if (payload.TargetKind != "app" && payload.TargetKind != "domain")
             return IpcResponse.Error("targetKind must be \"app\" or \"domain\"");
-        if (payload.Minutes != 5 && payload.Minutes != 15 && payload.Minutes != 30 && payload.Minutes != 60)
-            return IpcResponse.Error("minutes must be 5, 15, 30, or 60");
+        if (payload.Minutes != 15 && payload.Minutes != 30 && payload.Minutes != 60)
+            return IpcResponse.Error("minutes must be 15, 30, or 60");
 
         var (err, result) = await _family.RequestUnblockAsync(
             payload.Target, payload.TargetKind, payload.Minutes, CancellationToken.None)

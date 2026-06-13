@@ -135,13 +135,21 @@ public sealed class RequestUnblockPayload
 {
     public string Target     { get; set; } = string.Empty;
     public string TargetKind { get; set; } = string.Empty;   // "app" | "domain"
-    public int    Minutes    { get; set; }                   // 5 | 15 | 30 | 60
+    public int    Minutes    { get; set; }                   // 15 | 30 | 60
 }
 
 public sealed class RequestUnblockResult
 {
-    public string RequestId { get; set; } = string.Empty;
-    public string ExpiresAt { get; set; } = string.Empty;
+    // Success case: requestId + expiresAt are populated, ConflictCode is null.
+    public string  RequestId { get; set; } = string.Empty;
+    public string  ExpiresAt { get; set; } = string.Empty;
+
+    // v1.4.1 — Anti-spam conflict case: ConflictCode is "pending_exists" or
+    // "deny_cooldown". Exactly one of PendingRequestId / RetryAfter is set
+    // per code. UI branches on ConflictCode.
+    public string? ConflictCode      { get; set; }
+    public string? PendingRequestId  { get; set; }
+    public string? RetryAfter        { get; set; }
 }
 
 public sealed class RequestStatusPayload

@@ -11,6 +11,7 @@ import type {
   SessionLog,
   StartSessionPayload,
 } from '../types';
+import type { RequestUnblockResult } from '@shared/protocol';
 import { type DaemonError, withParentGate } from '../lib/parentGate';
 
 interface IpcResponse {
@@ -60,6 +61,10 @@ interface State {
   parentToken: string | null;
   parentTokenExpiresAt: number | null; // epoch ms
   parentAudit: ParentAuditEntry[];
+  /// v1.4.1: ids of in-flight approval requests on this device. Used by
+  /// ChildPairedView to disable the Ask button on sibling rows while one
+  /// is pending, mirroring the server-side `pending_exists` rule.
+  pendingRequestIds: string[];
 }
 
 interface Actions {
@@ -98,14 +103,24 @@ interface Actions {
   /// Toggle the opt-in firewall-lockdown flag on the paired device. Gated.
   setFirewallLockdown(enabled: boolean): Promise<void>;
   /// Kid-initiated request to lift a specific block for a fixed window.
-  /// Returns the server-issued request id so the UI can poll status.
+  /// v1.4.1: returns a discriminated result — `ok: true` with `requestId`
+  /// on success, or `ok: false` with a typed `code` on an anti-spam reject.
+  /// Throws only on genuine transport/server errors (5xx, network), NOT on
+  /// the 409 conflicts which are part of the typed contract.
   requestUnblock(target: string, targetKind: 'app' | 'domain',
-                 minutes: 5 | 15 | 30 | 60):
-    Promise<{ requestId: string; expiresAt: string }>;
+                 minutes: 15 | 30 | 60):
+    Promise<RequestUnblockResult>;
   /// Poll the verdict on a previously-created request.
   requestStatus(requestId: string):
     Promise<{ status: 'pending' | 'approved' | 'denied' | 'expired';
               resolutionRuleExpiresAt: string | null }>;
+  /// v1.4.1: register an outstanding approval-request id so other rows on
+  /// the same device see "one pending" and disable their Ask buttons.
+  /// Idempotent — calling with the same id twice is a no-op.
+  trackPendingRequest(id: string): void;
+  /// v1.4.1: clear an approval-request id when it resolves (status leaves
+  /// 'pending') or the row unmounts. Idempotent on unknown ids.
+  untrackPendingRequest(id: string): void;
 }
 
 interface ParentTokenPayload { token: string; expiresAt: string }
@@ -126,6 +141,7 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   parentToken: null,
   parentTokenExpiresAt: null,
   parentAudit: [],
+  pendingRequestIds: [],
 
   async init() {
     await requestNotificationPermission();
@@ -368,7 +384,20 @@ export const useDaemon = create<State & Actions>((set, get) => ({
     if (res.type !== 'request_unblock_result' || !res.payload) {
       throw new Error('Unexpected response from daemon');
     }
-    return res.payload as { requestId: string; expiresAt: string };
+    const p = res.payload as {
+      requestId?: string; expiresAt?: string;
+      conflictCode?: string; pendingRequestId?: string; retryAfter?: string;
+    };
+    if (p.conflictCode === 'pending_exists' && p.pendingRequestId) {
+      return { ok: false, code: 'pending_exists', pendingRequestId: p.pendingRequestId };
+    }
+    if (p.conflictCode === 'deny_cooldown' && p.retryAfter) {
+      return { ok: false, code: 'deny_cooldown', retryAfter: p.retryAfter };
+    }
+    if (!p.requestId || !p.expiresAt) {
+      throw new Error('Unexpected response from daemon');
+    }
+    return { ok: true, requestId: p.requestId, expiresAt: p.expiresAt };
   },
 
   async requestStatus(requestId) {
@@ -380,6 +409,20 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       status: 'pending' | 'approved' | 'denied' | 'expired';
       resolutionRuleExpiresAt: string | null;
     };
+  },
+
+  trackPendingRequest(id) {
+    set((s) => (
+      s.pendingRequestIds.includes(id)
+        ? s
+        : { pendingRequestIds: [...s.pendingRequestIds, id] }
+    ));
+  },
+
+  untrackPendingRequest(id) {
+    set((s) => ({
+      pendingRequestIds: s.pendingRequestIds.filter((x) => x !== id),
+    }));
   },
 }));
 

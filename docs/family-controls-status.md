@@ -1,6 +1,6 @@
 # Family Controls — Status Checkpoint
 
-**As of:** 2026-05-25
+**As of:** 2026-06-12
 **Where to read first:** [`family-controls-design.md`](./family-controls-design.md) — the architecture and the 5 locked product decisions.
 
 This file exists so anyone (you, future-Claude, a contributor) can pick up the cross-device family-controls work without re-reading the whole project. Keep it updated as phases land.
@@ -85,6 +85,10 @@ Parent device (Tauri app, `ui/src/pages/Family.tsx`) signs in to a Cloudflare Wo
 
 ## How to pick this up later
 
-Phases 2.1–2.9 and 3.1 (Family Inbox) are all shipped. The remaining loose ends are the small bullets in "Known issues / TODOs" above and the Resend account-login switch noted under Phase 2.8. The next natural Phase-3 piece is **child approval requests** ("kid wants 15 min on reddit.com" → approve/deny card in the Inbox); the `notifications.kind` column and the Inbox feed already accommodate it.
+Phases 2.1–2.9, 3.1 (Family Inbox), and **3.2 (Family Approval Requests, v1.4.0, June 10)** are all shipped. Before picking the next big thing, the queued item is:
+
+- **Phase 3.2.1 — Approval Requests v1.4.1 policy tightening** (designed 2026-06-12). Three small refinements to the live v1.4.0 feature: drop the 5-minute preset, extend the pending window from 1h to 24h, add anti-spam (one pending per device + 10-min deny cooldown). Design: `docs/superpowers/specs/2026-06-12-approval-requests-v141-tightening-design.md`. No schema change.
+
+After 3.2.1, the remaining loose ends are the small bullets in "Known issues / TODOs" above and the Resend account-login switch noted under Phase 2.8. Genuinely-new Phase-3 work to pick from (none of these are designed yet): parent WS push (live device-online state, currently a 30s poll); approval-request templates ("always allow weekend reddit until 10pm" — closer to a scheduling feature); Vitest + miniflare test suite on the Worker.
 
 Memory at `~/.claude/projects/-Users-oscarpetrikas/memory/MEMORY.md` autoloads with full context.

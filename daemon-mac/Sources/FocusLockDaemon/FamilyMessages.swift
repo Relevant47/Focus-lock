@@ -115,12 +115,30 @@ struct RedeemResponse: Codable {
 struct RequestUnblockPayload: Codable {
     var target: String
     var targetKind: String      // "app" | "domain"
-    var minutes: Int            // 5 | 15 | 30 | 60
+    var minutes: Int            // 15 | 30 | 60
 }
 
+/// v1.4.1: either a freshly-created request (success), or a typed anti-spam
+/// conflict from the family-server. `conflictCode` is nil on success.
+/// Exactly one of `pendingRequestId` / `retryAfter` is set per code.
 struct RequestUnblockResult: Codable {
-    var requestId: String
-    var expiresAt: String
+    var requestId: String      // empty on conflict
+    var expiresAt: String      // empty on conflict
+
+    var conflictCode:     String?   // "pending_exists" | "deny_cooldown" | nil
+    var pendingRequestId: String?
+    var retryAfter:       String?
+
+    init(requestId: String, expiresAt: String,
+         conflictCode: String? = nil,
+         pendingRequestId: String? = nil,
+         retryAfter: String? = nil) {
+        self.requestId        = requestId
+        self.expiresAt        = expiresAt
+        self.conflictCode     = conflictCode
+        self.pendingRequestId = pendingRequestId
+        self.retryAfter       = retryAfter
+    }
 }
 
 struct RequestStatusPayload: Codable {

@@ -336,7 +336,8 @@ export async function markAllNotificationsRead(
 
 // ── approval_requests (Family Approval) ────────────────────────────────────
 
-const APPR_REQUEST_TTL_MS = 60 * 60 * 1000;   // 1 hour pending window
+const APPR_REQUEST_TTL_MS = 24 * 60 * 60 * 1000;   // 24-hour pending window
+export const APPR_DENY_COOLDOWN_MS = 10 * 60 * 1000;   // 10-min re-ask cooldown after a deny
 
 export async function createApprovalRequest(
   db: D1Database,
@@ -381,6 +382,41 @@ export async function findPendingApprovalForTarget(
      WHERE device_id = ? AND target_kind = ? AND target = ? AND status = 'pending'
      LIMIT 1`,
   ).bind(deviceId, targetKind, target).first();
+  return row as ApprovalRequestRow | null;
+}
+
+/// Anti-spam (v1.4.1): true if any pending request exists on this device.
+/// Used to enforce "one pending per device at a time" — the kid can only
+/// have one open ask before it resolves or expires. Mirrors the
+/// expires_at filter the cron sweep applies, so a stale row that the
+/// sweep hasn't flipped yet doesn't count.
+export async function findAnyPendingForDevice(
+  db: D1Database, deviceId: string,
+): Promise<ApprovalRequestRow | null> {
+  const now = new Date().toISOString();
+  const row = await db.prepare(
+    `SELECT * FROM approval_requests
+     WHERE device_id = ? AND status = 'pending' AND expires_at > ?
+     ORDER BY created_at DESC LIMIT 1`,
+  ).bind(deviceId, now).first();
+  return row as ApprovalRequestRow | null;
+}
+
+/// Anti-spam (v1.4.1): most recent denied row for this exact (device, target)
+/// since `sinceIso`. Caller computes `sinceIso = now - APPR_DENY_COOLDOWN_MS`
+/// and treats a non-null result as a cooldown hit. Returning the row
+/// (not just a boolean) lets the handler compute `retryAfter` from
+/// `resolved_at + APPR_DENY_COOLDOWN_MS`.
+export async function findRecentDenialForTarget(
+  db: D1Database, deviceId: string, targetKind: 'app' | 'domain',
+  target: string, sinceIso: string,
+): Promise<ApprovalRequestRow | null> {
+  const row = await db.prepare(
+    `SELECT * FROM approval_requests
+     WHERE device_id = ? AND target_kind = ? AND target = ?
+       AND status = 'denied' AND resolved_at > ?
+     ORDER BY resolved_at DESC LIMIT 1`,
+  ).bind(deviceId, targetKind, target, sinceIso).first();
   return row as ApprovalRequestRow | null;
 }
 

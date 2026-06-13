@@ -175,6 +175,10 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [togglingLockdown, setTogglingLockdown] = useState(false);
+  // v1.4.1: derive from the daemon store, which AskUnblockRow rows register
+  // their pending request ids into. Server is still the source of truth
+  // (`pending_exists` 409), this just removes the foot-gun client-side.
+  const anyPendingOnDevice = useDaemon((s) => s.pendingRequestIds.length > 0);
 
   async function handleUnpair() {
     if (!window.confirm(
@@ -259,7 +263,11 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
                     <p className="font-mono text-muted truncate">domains: {r.targetDomains.join(', ')}</p>
                   )}
                   {askable && (
-                    <AskUnblockRow targetKind={single!.kind} target={single!.target} />
+                    <AskUnblockRow
+                      targetKind={single!.kind}
+                      target={single!.target}
+                      anyPendingOnDevice={anyPendingOnDevice}
+                    />
                   )}
                 </li>
               );
@@ -1201,31 +1209,51 @@ function relativeSeconds(s: number): string {
 
 // ── AskUnblockRow ────────────────────────────────────────────────────────────
 // Kid-initiated "ask for N min" control rendered inline under a single-target
-// block_now/schedule rule. No parent PIN required — fires a request to the
-// family server, then polls every 5s until the parent (or an auto-deny/expiry)
-// resolves it.
+// block_now/schedule rule. v1.4.1 surfaces two server-side anti-spam rejects
+// (pending_exists, deny_cooldown) and disables itself when a sibling row on
+// the same device already has a pending ask.
 
-function AskUnblockRow({ targetKind, target }: {
+function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
   targetKind: 'app' | 'domain';
   target: string;
+  /** v1.4.1: true when ANY row on this device already has a pending ask.
+   *  Disables the Ask button — mirrors the server's `pending_exists` rule
+   *  client-side so the kid doesn't tap into a guaranteed 409. */
+  anyPendingOnDevice: boolean;
 }): JSX.Element {
-  const requestUnblock = useDaemon(s => s.requestUnblock);
-  const requestStatus  = useDaemon(s => s.requestStatus);
-  const [minutes, setMinutes] = useState<5 | 15 | 30 | 60>(15);
+  const requestUnblock        = useDaemon(s => s.requestUnblock);
+  const requestStatus         = useDaemon(s => s.requestStatus);
+  const trackPendingRequest   = useDaemon(s => s.trackPendingRequest);
+  const untrackPendingRequest = useDaemon(s => s.untrackPendingRequest);
+  const [minutes, setMinutes] = useState<15 | 30 | 60>(15);
   const [busy, setBusy] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [status, setStatus] = useState<
     'pending' | 'approved' | 'denied' | 'expired' | null
   >(null);
+  /** v1.4.1: when the row is in `denied`, the ISO timestamp at which the kid
+   *  can re-ask (resolved_at + 10 min). Null in every other state. */
+  const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
+  /** v1.4.1: server-side rejection message for pending_exists. The
+   *  deny_cooldown reject is rendered via the `denied` status branch
+   *  instead, since the visual treatment matches. */
+  const [rejection, setRejection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function ask(): Promise<void> {
     if (busy) return;
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setRejection(null);
     try {
       const res = await requestUnblock(target, targetKind, minutes);
-      setRequestId(res.requestId);
-      setStatus('pending');
+      if (res.ok) {
+        setRequestId(res.requestId);
+        setStatus('pending');
+      } else if (res.code === 'pending_exists') {
+        setRejection('You already have a pending request. Wait for your parent to answer.');
+      } else if (res.code === 'deny_cooldown') {
+        setCooldownUntil(res.retryAfter);
+        setStatus('denied');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not reach parent');
     } finally { setBusy(false); }
@@ -1238,41 +1266,83 @@ function AskUnblockRow({ targetKind, target }: {
     const tick = async (): Promise<void> => {
       try {
         const r = await requestStatus(requestId);
-        if (!cancelled && r.status !== 'pending') setStatus(r.status);
+        if (!cancelled && r.status !== 'pending') {
+          // v1.4.1: when the parent denies from the Inbox while we're polling,
+          // anchor a client-side approximation of the 10-min server cooldown
+          // so the row shows the same "Ask again in N min" countdown the
+          // ask-rejection path renders. The approximation is within the
+          // 5-second poll window of the true server anchor (resolved_at).
+          if (r.status === 'denied') {
+            setCooldownUntil(new Date(Date.now() + 10 * 60 * 1000).toISOString());
+          }
+          setStatus(r.status);
+        }
       } catch { /* ignore transient errors */ }
     };
     const t = window.setInterval(tick, 5000);
     return () => { cancelled = true; window.clearInterval(t); };
   }, [requestId, status, requestStatus]);
 
+  // v1.4.1: register this row's in-flight request id with the store while it's
+  // pending so sibling AskUnblockRow rows see "one pending on this device" and
+  // disable their Ask buttons. Cleanup fires when the row resolves, the
+  // requestId is replaced, or the component unmounts.
+  useEffect(() => {
+    if (!requestId || status !== 'pending') return;
+    trackPendingRequest(requestId);
+    return () => untrackPendingRequest(requestId);
+  }, [requestId, status, trackPendingRequest, untrackPendingRequest]);
+
+  // v1.4.1: auto-recover from a denied row once the 10-min cooldown lapses.
+  useEffect(() => {
+    if (status !== 'denied' || !cooldownUntil) return;
+    const ms = Date.parse(cooldownUntil) - Date.now();
+    if (ms <= 0) { setStatus(null); setCooldownUntil(null); return; }
+    const t = window.setTimeout(() => { setStatus(null); setCooldownUntil(null); }, ms);
+    return () => window.clearTimeout(t);
+  }, [status, cooldownUntil]);
+
   if (status === 'approved') {
     return <p className="text-success">✓ Approved — unblock active</p>;
   }
   if (status === 'denied') {
-    return <p className="text-faint">Denied by parent.</p>;
+    const mins = cooldownUntil
+      ? Math.max(1, Math.ceil((Date.parse(cooldownUntil) - Date.now()) / 60_000))
+      : null;
+    return (
+      <p className="text-faint">
+        Denied by parent. {mins ? `Ask again in ${mins} min.` : 'Ask again in a moment.'}
+      </p>
+    );
   }
   if (status === 'expired') {
-    return <p className="text-faint">No reply — try again later.</p>;
+    return <p className="text-faint">No reply in 24h — try again.</p>;
   }
   if (status === 'pending') {
     return <p className="text-accent">Waiting for parent…</p>;
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <select
-        value={minutes}
-        onChange={e => setMinutes(Number(e.target.value) as 5 | 15 | 30 | 60)}
-        className="input-base px-2 py-1 text-xs">
-        <option value={5}>5 min</option>
-        <option value={15}>15 min</option>
-        <option value={30}>30 min</option>
-        <option value={60}>60 min</option>
-      </select>
-      <button onClick={ask} disabled={busy} className="btn-primary px-2 py-1 text-xs">
-        {busy ? 'Asking…' : `Ask for ${minutes}m`}
-      </button>
-      {error && <span className="text-danger">{error}</span>}
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <select
+          value={minutes}
+          onChange={e => setMinutes(Number(e.target.value) as 15 | 30 | 60)}
+          className="input-base px-2 py-1 text-xs">
+          <option value={15}>15 min</option>
+          <option value={30}>30 min</option>
+          <option value={60}>60 min</option>
+        </select>
+        <button
+          onClick={ask}
+          disabled={busy || anyPendingOnDevice}
+          title={anyPendingOnDevice ? 'One pending request at a time' : undefined}
+          className="btn-primary px-2 py-1 text-xs">
+          {busy ? 'Asking…' : `Ask for ${minutes}m`}
+        </button>
+        {error && <span className="text-danger">{error}</span>}
+      </div>
+      {rejection && <p className="text-faint text-xs">{rejection}</p>}
     </div>
   );
 }

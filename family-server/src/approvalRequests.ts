@@ -10,8 +10,10 @@
 //   POST /api/v1/family/requests/:id/deny     → atomic flip
 
 import {
+  APPR_DENY_COOLDOWN_MS,
   createApprovalRequest, createNotification, createRule, findApprovalRequestById,
-  findPendingApprovalForTarget, markApprovalResolved,
+  findAnyPendingForDevice, findPendingApprovalForTarget,
+  findRecentDenialForTarget, markApprovalResolved,
 } from './db';
 import type {
   ApprovalRequest, ApprovalRequestRow, CreateApprovalRequestBody, Env,
@@ -21,7 +23,7 @@ import {
   requireAuth, requireDeviceAuth, safeJson, unauthorized,
 } from './utils';
 
-const ALLOWED_MINUTES = new Set([5, 15, 30, 60]);
+const ALLOWED_MINUTES = new Set([15, 30, 60]);
 
 function toApi(row: ApprovalRequestRow): ApprovalRequest {
   return {
@@ -52,13 +54,43 @@ export async function createRequestHandler(req: Request, env: Env): Promise<Resp
     return badRequest('target required');
   }
   if (!ALLOWED_MINUTES.has(Number(body.requestedMinutes))) {
-    return badRequest('requestedMinutes must be 5, 15, 30, or 60');
+    return badRequest('requestedMinutes must be 15, 30, or 60');
   }
   const target = body.target.trim();
 
-  // Dedup: if there's already a pending row for the same target, return it.
+  // 1) Idempotent same-target retry: if a pending row matches exactly, return it.
+  //    This MUST run before the anti-spam checks, otherwise a flaky retry on the
+  //    same target trips its own `pending_exists`.
   const existing = await findPendingApprovalForTarget(env.DB, ctx.deviceId, body.targetKind, target);
   if (existing) return json({ request: toApi(existing) });
+
+  // 2) Anti-spam (v1.4.1): one pending per device at a time, across all targets.
+  //    Inline a structured 409 instead of conflict() so the UI gets a typed
+  //    `code` discriminant — conflict() only carries a string message.
+  const anyPending = await findAnyPendingForDevice(env.DB, ctx.deviceId);
+  if (anyPending) {
+    return json({
+      error: 'pending_exists',
+      code: 'pending_exists',
+      pendingRequestId: anyPending.id,
+    }, 409);
+  }
+
+  // 3) Anti-spam (v1.4.1): 10-min cooldown after a deny on this exact target.
+  const sinceIso = new Date(Date.now() - APPR_DENY_COOLDOWN_MS).toISOString();
+  const recentDeny = await findRecentDenialForTarget(
+    env.DB, ctx.deviceId, body.targetKind, target, sinceIso,
+  );
+  if (recentDeny && recentDeny.resolved_at) {
+    const retryAfter = new Date(
+      Date.parse(recentDeny.resolved_at) + APPR_DENY_COOLDOWN_MS,
+    ).toISOString();
+    return json({
+      error: 'deny_cooldown',
+      code: 'deny_cooldown',
+      retryAfter,
+    }, 409);
+  }
 
   const row = await createApprovalRequest(
     env.DB, ctx.accountId, ctx.deviceId, body.targetKind, target, Number(body.requestedMinutes),
@@ -72,7 +104,7 @@ export async function createRequestHandler(req: Request, env: Env): Promise<Resp
   await createNotification(
     env.DB, ctx.accountId, 'approval_request',
     `${host} wants ${target} for ${row.requested_minutes}m`,
-    `Approve or deny in the Family Inbox. Asks expire after an hour.`,
+    `Approve or deny in the Family Inbox. Asks expire after 24 hours.`,
     { requestId: row.id },
   ).catch((err: unknown) => { console.warn('approval notification failed', err); });
 

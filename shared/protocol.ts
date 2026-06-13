@@ -376,13 +376,21 @@ export const CATEGORY_DOMAINS: Record<BlockCategory, string[]> = {
 export interface RequestUnblockPayload {
   target: string;
   targetKind: "app" | "domain";
-  minutes: 5 | 15 | 30 | 60;
+  minutes: 15 | 30 | 60;
 }
 
-export interface RequestUnblockResult {
-  requestId: string;
-  expiresAt: string;
-}
+/**
+ * v1.4.1: either the request was created (`ok: true`, server returned a row),
+ * or the server's anti-spam pre-checks rejected it. The UI pattern-matches on
+ * `ok` and surfaces a tailored message per `code`.
+ *
+ * The daemon propagates the typed payload from the worker's 409 body
+ * unchanged — it does NOT raise an exception for these two states.
+ */
+export type RequestUnblockResult =
+  | { ok: true;  requestId: string; expiresAt: string }
+  | { ok: false; code: "pending_exists"; pendingRequestId: string }
+  | { ok: false; code: "deny_cooldown"; retryAfter: string };  // ISO timestamp
 
 export interface RequestStatusPayload {
   requestId: string;
