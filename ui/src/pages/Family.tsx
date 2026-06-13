@@ -175,12 +175,10 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [togglingLockdown, setTogglingLockdown] = useState(false);
-  // v1.4.1: each AskUnblockRow is independent for now — the server is the
-  // source of truth and rejects duplicate-pending asks with `pending_exists`,
-  // which the row renders gracefully. A follow-up (see
-  // docs/family-controls-status.md) wires a real shared "any pending on this
-  // device" flag through the daemon store.
-  const anyPendingOnDevice = false;
+  // v1.4.1: derive from the daemon store, which AskUnblockRow rows register
+  // their pending request ids into. Server is still the source of truth
+  // (`pending_exists` 409), this just removes the foot-gun client-side.
+  const anyPendingOnDevice = useDaemon((s) => s.pendingRequestIds.length > 0);
 
   async function handleUnpair() {
     if (!window.confirm(
@@ -1223,8 +1221,10 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
    *  client-side so the kid doesn't tap into a guaranteed 409. */
   anyPendingOnDevice: boolean;
 }): JSX.Element {
-  const requestUnblock = useDaemon(s => s.requestUnblock);
-  const requestStatus  = useDaemon(s => s.requestStatus);
+  const requestUnblock        = useDaemon(s => s.requestUnblock);
+  const requestStatus         = useDaemon(s => s.requestStatus);
+  const trackPendingRequest   = useDaemon(s => s.trackPendingRequest);
+  const untrackPendingRequest = useDaemon(s => s.untrackPendingRequest);
   const [minutes, setMinutes] = useState<15 | 30 | 60>(15);
   const [busy, setBusy] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -1282,6 +1282,16 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
     const t = window.setInterval(tick, 5000);
     return () => { cancelled = true; window.clearInterval(t); };
   }, [requestId, status, requestStatus]);
+
+  // v1.4.1: register this row's in-flight request id with the store while it's
+  // pending so sibling AskUnblockRow rows see "one pending on this device" and
+  // disable their Ask buttons. Cleanup fires when the row resolves, the
+  // requestId is replaced, or the component unmounts.
+  useEffect(() => {
+    if (!requestId || status !== 'pending') return;
+    trackPendingRequest(requestId);
+    return () => untrackPendingRequest(requestId);
+  }, [requestId, status, trackPendingRequest, untrackPendingRequest]);
 
   // v1.4.1: auto-recover from a denied row once the 10-min cooldown lapses.
   useEffect(() => {

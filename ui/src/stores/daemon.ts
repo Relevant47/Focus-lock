@@ -61,6 +61,10 @@ interface State {
   parentToken: string | null;
   parentTokenExpiresAt: number | null; // epoch ms
   parentAudit: ParentAuditEntry[];
+  /// v1.4.1: ids of in-flight approval requests on this device. Used by
+  /// ChildPairedView to disable the Ask button on sibling rows while one
+  /// is pending, mirroring the server-side `pending_exists` rule.
+  pendingRequestIds: string[];
 }
 
 interface Actions {
@@ -110,6 +114,13 @@ interface Actions {
   requestStatus(requestId: string):
     Promise<{ status: 'pending' | 'approved' | 'denied' | 'expired';
               resolutionRuleExpiresAt: string | null }>;
+  /// v1.4.1: register an outstanding approval-request id so other rows on
+  /// the same device see "one pending" and disable their Ask buttons.
+  /// Idempotent — calling with the same id twice is a no-op.
+  trackPendingRequest(id: string): void;
+  /// v1.4.1: clear an approval-request id when it resolves (status leaves
+  /// 'pending') or the row unmounts. Idempotent on unknown ids.
+  untrackPendingRequest(id: string): void;
 }
 
 interface ParentTokenPayload { token: string; expiresAt: string }
@@ -130,6 +141,7 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   parentToken: null,
   parentTokenExpiresAt: null,
   parentAudit: [],
+  pendingRequestIds: [],
 
   async init() {
     await requestNotificationPermission();
@@ -397,6 +409,20 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       status: 'pending' | 'approved' | 'denied' | 'expired';
       resolutionRuleExpiresAt: string | null;
     };
+  },
+
+  trackPendingRequest(id) {
+    set((s) => (
+      s.pendingRequestIds.includes(id)
+        ? s
+        : { pendingRequestIds: [...s.pendingRequestIds, id] }
+    ));
+  },
+
+  untrackPendingRequest(id) {
+    set((s) => ({
+      pendingRequestIds: s.pendingRequestIds.filter((x) => x !== id),
+    }));
   },
 }));
 
