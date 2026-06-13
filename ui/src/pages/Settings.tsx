@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getVersion } from '@tauri-apps/api/app';
 import { useDaemon } from '../stores/daemon';
 import { getTheme, setTheme, type Theme } from '../stores/theme';
 import { getDailyGoal, setDailyGoal } from '../lib/goal';
@@ -121,6 +122,11 @@ export default function Settings() {
   const [hardcoreSuccess, setHardcoreSuccess] = useState('');
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'none'>('idle');
   const [updateVersion, setUpdateVersion] = useState('');
+  const [appVersion, setAppVersion] = useState('');
+
+  useEffect(() => {
+    getVersion().then(setAppVersion).catch(() => setAppVersion(''));
+  }, []);
 
   // Parental controls form state
   const [parentMode, setParentMode] = useState<'idle' | 'setup' | 'change' | 'clear' | 'regenerate'>('idle');
@@ -540,7 +546,7 @@ export default function Settings() {
 
           {/* Updates */}
           <Section title="Updates">
-            <Row label="FocusLock" sub={`v${status?.version ?? '1.1.3'} · Free and open source`}>
+            <Row label="FocusLock" sub={`${appVersion ? `v${appVersion} · ` : ''}Free and open source`}>
               <a href="https://github.com/Relevant47/focus-lock/releases" target="_blank" rel="noreferrer" className="text-xs text-muted hover:text-accent transition-colors">GitHub →</a>
             </Row>
             {updateStatus === 'available' ? (

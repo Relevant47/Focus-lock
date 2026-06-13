@@ -144,7 +144,7 @@ struct ParentControlsState: Codable {
     var graceMinutes: Int
 }
 
-let daemonVersion = "1.1.3"
+let daemonVersion = "1.4.0"
 
 struct DaemonStatus: Codable {
     var version: String = daemonVersion
