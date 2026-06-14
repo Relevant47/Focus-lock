@@ -1213,6 +1213,25 @@ function relativeSeconds(s: number): string {
 // (pending_exists, deny_cooldown) and disables itself when a sibling row on
 // the same device already has a pending ask.
 
+// The row's `requestId`/`status` live in component state, so navigating away
+// from the Family page (which fully remounts ChildPairedView and every
+// AskUnblockRow) used to discard the in-flight ask — on return the kid would
+// see the default ask controls again with no indication a real request was
+// still pending server-side, and no polling for the verdict. Persisting the
+// pending request id per-target in localStorage lets a remounted row resume
+// polling. Entries are cleared as soon as the row reaches a terminal status;
+// the 24h TTL is a backstop for entries that never resolved client-side (the
+// server expires unanswered asks in 1h, so any older entry has resolved
+// server-side already and the poller will pick up the verdict on next ask).
+const APPROVAL_REQUEST_STORAGE_PREFIX = 'focus-lock:approval-request:';
+const APPROVAL_REQUEST_STORAGE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function approvalRequestStorageKey(
+  targetKind: 'app' | 'domain', target: string,
+): string {
+  return `${APPROVAL_REQUEST_STORAGE_PREFIX}${targetKind}:${target}`;
+}
+
 function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
   targetKind: 'app' | 'domain';
   target: string;
@@ -1239,6 +1258,40 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
    *  instead, since the visual treatment matches. */
   const [rejection, setRejection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Hydrate from localStorage on mount so a remount (e.g. tab navigation
+  // while waiting on parent) resumes polling instead of resetting to the
+  // default ask controls. See APPROVAL_REQUEST_STORAGE_PREFIX above.
+  useEffect(() => {
+    const key = approvalRequestStorageKey(targetKind, target);
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as { requestId?: unknown; savedAt?: unknown };
+      if (typeof parsed.requestId !== 'string' || typeof parsed.savedAt !== 'number'
+          || Date.now() - parsed.savedAt > APPROVAL_REQUEST_STORAGE_TTL_MS) {
+        localStorage.removeItem(key);
+        return;
+      }
+      setRequestId(parsed.requestId);
+      setStatus('pending');
+    } catch {
+      localStorage.removeItem(key);
+    }
+  }, [targetKind, target]);
+
+  // Persist the pending request id whenever ask() succeeds (or hydration
+  // sets it), and clear the entry as soon as the row reaches a terminal
+  // status. Cleanup on `denied` lets the existing deny-cooldown effect
+  // transition status back to null without leaving an orphan entry.
+  useEffect(() => {
+    const key = approvalRequestStorageKey(targetKind, target);
+    if (requestId && status === 'pending') {
+      localStorage.setItem(key, JSON.stringify({ requestId, savedAt: Date.now() }));
+    } else if (status === 'approved' || status === 'denied' || status === 'expired') {
+      localStorage.removeItem(key);
+    }
+  }, [requestId, status, targetKind, target]);
 
   async function ask(): Promise<void> {
     if (busy) return;
