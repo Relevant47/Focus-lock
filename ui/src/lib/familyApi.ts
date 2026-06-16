@@ -68,9 +68,11 @@ export interface DeviceSummary {
 }
 export interface LockRule {
   id: string; deviceId: string;
-  kind: 'block_now' | 'schedule' | 'unblock_all';
+  kind: 'block_now' | 'schedule' | 'unblock_all' | 'unblock_specific';
   targetApps: string[]; targetDomains: string[];
   scheduleCron: string | null; active: boolean; createdAt: string;
+  /** Non-null only for kind === 'unblock_specific' (Phase 3.2 approvals). */
+  expiresAt: string | null;
 }
 export interface Notification {
   id: number;
@@ -98,8 +100,10 @@ export interface NotificationListResponse {
   unreadCount: number;
 }
 export interface CreateRuleInput {
-  kind: 'block_now' | 'schedule' | 'unblock_all';
+  kind: 'block_now' | 'schedule' | 'unblock_all' | 'unblock_specific';
   targetApps?: string[]; targetDomains?: string[]; scheduleCron?: string;
+  /** ISO timestamp; only valid for kind === 'unblock_specific'. */
+  expiresAt?: string;
 }
 
 // ── Auth ───────────────────────────────────────────────────────────────────
