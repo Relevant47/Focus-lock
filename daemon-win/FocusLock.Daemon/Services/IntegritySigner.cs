@@ -62,11 +62,22 @@ public sealed class IntegritySigner
     /// to <paramref name="path"/>.sig as a sidecar. Atomic across both files
     /// is not guaranteed; readers detect partial writes via the verify step
     /// and treat them as missing.
+    ///
+    /// Both files are ACL-restricted to SYSTEM + Administrators unconditionally,
+    /// mirroring the macOS daemon's unconditional chmod 0o600 on both files.
+    /// This removes the "every caller must remember to restrict the sidecar"
+    /// foot-gun: without it, a non-admin user with write access to the
+    /// containing directory could overwrite both files together with a forged
+    /// (data, sig) pair and defeat the integrity check.
     /// </summary>
     public void WriteSigned(string path, byte[] data)
     {
         File.WriteAllBytes(path, data);
         File.WriteAllText(path + ".sig", Hex(data));
+        try { RestrictAcl(path); }
+        catch (Exception ex) { _log.LogDebug(ex, "Could not restrict ACL on {Path}", path); }
+        try { RestrictAcl(path + ".sig"); }
+        catch (Exception ex) { _log.LogDebug(ex, "Could not restrict ACL on {Path}.sig", path); }
     }
 
     /// <summary>
