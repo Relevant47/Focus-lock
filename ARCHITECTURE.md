@@ -96,7 +96,17 @@ Every message is a single JSON object terminated by `\n`.
 | `verify_parent_pin` | `{ pin }` | `parent_token` / `error` |
 | `change_parent_pin` | `{ oldPin, newPin }` | `ok` / `error` |
 | `clear_parent_pin` | `{ pin }` | `ok` / `error` |
+| `verify_recovery_key` | `{ key }` | `ok_with_recovery_key` → `{ key }` / `error` |
+| `regenerate_recovery_key` | `{ pin, parentToken? }` | `recovery_key` → `{ key }` / `error` |
 | `get_parent_audit` | `{ limit?, parentToken? }` | `parent_audit` → `ParentAuditEntry[]` |
+| `family_redeem_code` | `FamilyRedeemPayload` (+ `parentToken?`) | `family_paired` → `FamilyRedeemResult` / `error` |
+| `family_unpair` | `{ parentToken? }` | `ok` / `error` |
+| `family_get_status` | — | `family_status` → `FamilyStatus` |
+| `family_check_environment` | — | `family_environment` → `FamilyEnvironment` |
+| `family_authorize_uninstall` | `{ parentToken? }` | `ok` / `error` |
+| `family_set_firewall_lockdown` | `{ enabled, parentToken? }` | `ok` / `error` |
+| `request_unblock` | `RequestUnblockPayload` | `request_unblock_result` → `RequestUnblockResult` / `error` |
+| `request_status` | `{ requestId }` | `request_status_result` → `RequestStatusResult` / `error` |
 
 ---
 

@@ -107,7 +107,10 @@ export type IpcRequest =
   | { type: "family_get_status" }
   | { type: "family_check_environment" }
   | { type: "family_authorize_uninstall"; payload?: ParentTokenEnvelope }
-  | { type: "family_set_firewall_lockdown"; payload: { enabled: boolean } & ParentTokenEnvelope };
+  | { type: "family_set_firewall_lockdown"; payload: { enabled: boolean } & ParentTokenEnvelope }
+  // ── Family approval requests (Phase 3.2) — kid asks; kid polls verdict ───
+  | { type: "request_unblock"; payload: RequestUnblockPayload }
+  | { type: "request_status"; payload: RequestStatusPayload };
 
 /// Sensitive commands accept an optional grace token from a recent verify_parent_pin.
 /// When a parent PIN is configured, the daemon rejects gated commands without a valid token.
@@ -155,6 +158,8 @@ export type IpcResponse =
   | { type: "family_status"; payload: FamilyStatus }
   | { type: "family_paired"; payload: FamilyRedeemResult }
   | { type: "family_environment"; payload: FamilyEnvironment }
+  | { type: "request_unblock_result"; payload: RequestUnblockResult }
+  | { type: "request_status_result"; payload: RequestStatusResult }
   | { type: "error"; message: string; code?: ErrorCode };
 
 export interface ParentAuditEntry {
