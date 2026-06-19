@@ -24,7 +24,8 @@ export async function fetchStats(token: string): Promise<Stats> {
 
 export async function fetchOpenText(token: string): Promise<OpenTextRow[]> {
   const r = await fetch('/api/survey/stats?view=opentext', { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) return [];
+  if (r.status === 403) throw new NotAdminError();
+  if (!r.ok) throw new Error(`opentext failed (${r.status})`);
   const data = await r.json();
   return data.responses ?? [];
 }
