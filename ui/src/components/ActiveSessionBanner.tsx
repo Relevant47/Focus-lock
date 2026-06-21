@@ -10,7 +10,7 @@
 // banner reappears automatically with the correct countdown. No client-side
 // timer state required.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDaemon } from '../stores/daemon';
 import { Icon } from './Icons';
 import { fmtClock } from '../lib/fmt';
@@ -28,6 +28,18 @@ export default function ActiveSessionBanner() {
   const [unlockInput, setUnlockInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  // The banner is mounted once for the lifetime of the app and just returns
+  // null between sessions, so its local state would otherwise leak across
+  // session boundaries — a stale error/unlock-token from a previous session
+  // could reappear under a brand-new session's banner.
+  const sessionId = status?.session?.sessionId;
+  useEffect(() => {
+    setShowUnlock(false);
+    setUnlockInput('');
+    setError('');
+    setBusy(false);
+  }, [sessionId]);
 
   if (!sessionActive) return null;
 
