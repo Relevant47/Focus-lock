@@ -119,9 +119,24 @@ async function detectInitialState(): Promise<ScreenState> {
 
     const raw = await invoke<string>('daemon_status_macos');
     const status = JSON.parse(raw) as DaemonStatus;
-    if (status.kind === 'requires_approval') return { kind: 'disabled' };
-    if (status.kind === 'not_found') return { kind: 'tampered' };
-    return { kind: 'first_run' };
+    switch (status.kind) {
+      case 'requires_approval':
+        return { kind: 'disabled' };
+      case 'not_found':
+        return { kind: 'tampered' };
+      case 'enabled':
+        // Registered + approved per SMAppService, but the daemon socket never
+        // answered (App.tsx routes here on bootChecked && !connected). The
+        // service config is fine; the daemon process is the problem.
+        return {
+          kind: 'error',
+          message:
+            "FocusLock's background service is registered but isn't responding. Try again, or restart your Mac if this persists.",
+        };
+      case 'not_registered':
+      case 'unknown':
+        return { kind: 'first_run' };
+    }
   } catch (e) {
     return { kind: 'error', message: String(e) };
   }
