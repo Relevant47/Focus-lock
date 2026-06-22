@@ -46,6 +46,10 @@ final class FirewallLockdownService {
     /// Domain set we've already resolved + applied. Tracked so we can detect
     /// when the cache changes and re-apply.
     private var lastAppliedDomains: Set<String> = []
+    /// IP set we've already loaded into the pfctl anchor. Tracked separately
+    /// from `lastAppliedDomains` so an unchanged domain set whose CDN IPs
+    /// have rotated still triggers a reload.
+    private var lastAppliedIPs: Set<String> = []
 
     var isLocked: Bool {
         queue.sync { currentlyLocked }
@@ -81,6 +85,7 @@ final class FirewallLockdownService {
         flushAnchor()
         currentlyLocked = false
         lastAppliedDomains = []
+        lastAppliedIPs = []
     }
 
     private func evaluate() {
@@ -99,6 +104,7 @@ final class FirewallLockdownService {
             flushAnchor()
             currentlyLocked = false
             lastAppliedDomains = []
+            lastAppliedIPs = []
         }
     }
 
@@ -116,22 +122,29 @@ final class FirewallLockdownService {
             if !lastAppliedDomains.isEmpty {
                 flushAnchor()
                 lastAppliedDomains = []
+                lastAppliedIPs = []
             }
             return
         }
-        if cleaned == lastAppliedDomains { return }  // already current
 
+        // Re-resolve every tick (decoupled from the domain-set early-return),
+        // so CDN-backed targets that rotate IPs mid-session don't slip past.
+        // The expensive pfctl reload is still gated by the IP set actually
+        // changing.
         let ips = resolveAll(domains: cleaned)
         if ips.isEmpty {
             fputs("[firewall-lockdown] no IPs resolved for \(cleaned.count) domains; skipping apply\n", stderr)
             return
         }
+        let ipSet = Set(ips)
+        if cleaned == lastAppliedDomains && ipSet == lastAppliedIPs { return }
 
         guard let conf = writeAnchorFile(ips: ips) else { return }
         // Make sure pf is enabled (no-op if already running).
         _ = runPfctl(["-E"])
         if runPfctl(["-a", Self.anchorName, "-f", conf]) {
             lastAppliedDomains = cleaned
+            lastAppliedIPs = ipSet
             fputs("[firewall-lockdown] applied \(ips.count) IP block(s) for \(cleaned.count) domain(s)\n", stderr)
         }
         try? FileManager.default.removeItem(atPath: conf)
