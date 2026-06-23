@@ -297,7 +297,21 @@ export default function Profiles() {
       const parsed = JSON.parse(text) as FocusProfile;
       if (!parsed.name || !parsed.id) throw new Error('Invalid profile file');
       const now = new Date().toISOString();
-      await saveProfile({ ...parsed, id: crypto.randomUUID(), name: `${parsed.name} (imported)`, createdAt: now, updatedAt: now });
+      // Default array fields so a hand-edited / truncated .focuslock file can't
+      // crash the Profiles or Dashboard render with `Cannot read properties of
+      // undefined`. Mirrors the EnvironmentWarning.localUsers defaulting in the
+      // [Unreleased] changelog entry.
+      await saveProfile({
+        ...parsed,
+        blockedCategories: Array.isArray(parsed.blockedCategories) ? parsed.blockedCategories : [],
+        customBlockedDomains: Array.isArray(parsed.customBlockedDomains) ? parsed.customBlockedDomains : [],
+        customBlockedProcesses: Array.isArray(parsed.customBlockedProcesses) ? parsed.customBlockedProcesses : [],
+        allowlistedDomains: Array.isArray(parsed.allowlistedDomains) ? parsed.allowlistedDomains : [],
+        id: crypto.randomUUID(),
+        name: `${parsed.name} (imported)`,
+        createdAt: now,
+        updatedAt: now,
+      });
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Failed to import profile');
     }
