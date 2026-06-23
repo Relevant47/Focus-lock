@@ -35,7 +35,9 @@ function downloadFile(content: string, filename: string, mime: string) {
 
 function csvEscape(v: unknown): string {
   const s = v == null ? '' : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  // Per RFC 4180, fields containing CR (in addition to LF, comma, or quote)
+  // must be quoted — an unquoted bare \r breaks row alignment in Excel/Numbers.
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 function exportCsv(logs: SessionLog[]) {
