@@ -304,7 +304,10 @@ final class SessionService {
     }
 
     func getLogs(limit: Int) -> [SessionLog] {
-        guard let content = try? String(contentsOf: Self.logPath, encoding: .utf8) else { return [] }
+        let content: String? = lock.withLock {
+            try? String(contentsOf: Self.logPath, encoding: .utf8)
+        }
+        guard let content else { return [] }
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
         return content

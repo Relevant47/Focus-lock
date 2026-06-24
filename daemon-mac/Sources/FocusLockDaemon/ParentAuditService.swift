@@ -55,7 +55,10 @@ final class ParentAuditService {
 
     /// Returns the most recent `limit` entries, newest first.
     func recent(limit: Int) -> [ParentAuditEntry] {
-        guard let content = try? String(contentsOf: Self.logPath, encoding: .utf8) else { return [] }
+        let content: String? = writeLock.withLock {
+            try? String(contentsOf: Self.logPath, encoding: .utf8)
+        }
+        guard let content else { return [] }
         return content
             .components(separatedBy: "\n")
             .filter { !$0.isEmpty }
