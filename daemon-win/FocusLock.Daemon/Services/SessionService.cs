@@ -500,7 +500,11 @@ public sealed class SessionService
     public IReadOnlyList<SessionLog> GetLogs(int limit)
     {
         if (!File.Exists(LogPath)) return Array.Empty<SessionLog>();
-        var lines = File.ReadAllLines(LogPath);
+        string[] lines;
+        lock (_lock)
+        {
+            lines = File.ReadAllLines(LogPath);
+        }
         return lines
             .Reverse()
             .Take(limit)
