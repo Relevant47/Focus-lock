@@ -136,15 +136,21 @@ export default function BlockLists() {
     if (status?.sessionActive) return;
     setBusy(true); setError('');
     try {
-      const blockedDomains = [
+      const blockedDomains = Array.from(new Set([
         ...Array.from(selectedCats).flatMap(c => CATEGORY_DOMAINS[c] ?? []),
         ...customDomains.split('\n').map(s => s.trim()).filter(Boolean),
-      ];
+      ]));
+      const blockedProcesses = Array.from(new Set(
+        customProcesses.split('\n').map(s => s.trim()).filter(Boolean),
+      ));
+      const allowlistedDomains = Array.from(new Set(
+        allowlist.split('\n').map(s => s.trim()).filter(Boolean),
+      ));
       const payload: StartSessionPayload = {
         profileId: null, durationMinutes: duration,
         blockedDomains,
-        blockedProcesses: customProcesses.split('\n').map(s => s.trim()).filter(Boolean),
-        allowlistedDomains: allowlist.split('\n').map(s => s.trim()).filter(Boolean),
+        blockedProcesses,
+        allowlistedDomains,
         hardcoreMode: false, pomodoroConfig: null,
       };
       await startSession(payload);
