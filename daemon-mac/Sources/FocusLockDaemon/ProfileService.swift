@@ -1,6 +1,14 @@
 import Foundation
 
 /// JSON-file-backed persistence for focus profiles and scheduled sessions.
+///
+/// `IpcSocketService` spawns one thread per accepted connection, so two
+/// near-simultaneous IPC requests can race the read-modify-write inside
+/// `saveProfile`/`deleteProfile`/`saveSchedule`/`deleteSchedule`, silently
+/// losing whichever write lands second. A single `NSLock` serializes the
+/// mutating paths to give us the same atomicity the Windows daemon gets for
+/// free from SQLite (`ProfileService.cs` uses `INSERT OR REPLACE` /
+/// `DELETE` transactions).
 final class ProfileService {
     private static let dataDir: URL = {
         let base = URL(fileURLWithPath: "/Library/Application Support/FocusLock")
@@ -16,49 +24,62 @@ final class ProfileService {
         return e
     }()
     private let dec = JSONDecoder()
+    private let lock = NSLock()
 
     // ── Profiles ──────────────────────────────────────────────────────────────
 
     func getProfiles() -> [FocusProfile] {
-        load([FocusProfile].self, from: Self.profilesPath) ?? []
+        lock.withLock {
+            load([FocusProfile].self, from: Self.profilesPath) ?? []
+        }
     }
 
     func saveProfile(_ profile: FocusProfile) {
-        var profiles = getProfiles()
-        if let idx = profiles.firstIndex(where: { $0.id == profile.id }) {
-            profiles[idx] = profile
-        } else {
-            profiles.append(profile)
+        lock.withLock {
+            var profiles = load([FocusProfile].self, from: Self.profilesPath) ?? []
+            if let idx = profiles.firstIndex(where: { $0.id == profile.id }) {
+                profiles[idx] = profile
+            } else {
+                profiles.append(profile)
+            }
+            save(profiles, to: Self.profilesPath)
         }
-        save(profiles, to: Self.profilesPath)
     }
 
     func deleteProfile(id: String) {
-        var profiles = getProfiles()
-        profiles.removeAll { $0.id == id }
-        save(profiles, to: Self.profilesPath)
+        lock.withLock {
+            var profiles = load([FocusProfile].self, from: Self.profilesPath) ?? []
+            profiles.removeAll { $0.id == id }
+            save(profiles, to: Self.profilesPath)
+        }
     }
 
     // ── Schedules ─────────────────────────────────────────────────────────────
 
     func getSchedules() -> [ScheduledSession] {
-        load([ScheduledSession].self, from: Self.schedulesPath) ?? []
+        lock.withLock {
+            load([ScheduledSession].self, from: Self.schedulesPath) ?? []
+        }
     }
 
     func saveSchedule(_ schedule: ScheduledSession) {
-        var schedules = getSchedules()
-        if let idx = schedules.firstIndex(where: { $0.id == schedule.id }) {
-            schedules[idx] = schedule
-        } else {
-            schedules.append(schedule)
+        lock.withLock {
+            var schedules = load([ScheduledSession].self, from: Self.schedulesPath) ?? []
+            if let idx = schedules.firstIndex(where: { $0.id == schedule.id }) {
+                schedules[idx] = schedule
+            } else {
+                schedules.append(schedule)
+            }
+            save(schedules, to: Self.schedulesPath)
         }
-        save(schedules, to: Self.schedulesPath)
     }
 
     func deleteSchedule(id: String) {
-        var schedules = getSchedules()
-        schedules.removeAll { $0.id == id }
-        save(schedules, to: Self.schedulesPath)
+        lock.withLock {
+            var schedules = load([ScheduledSession].self, from: Self.schedulesPath) ?? []
+            schedules.removeAll { $0.id == id }
+            save(schedules, to: Self.schedulesPath)
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
