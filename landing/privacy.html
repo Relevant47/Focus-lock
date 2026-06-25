@@ -28,10 +28,10 @@
   <nav><a href="/">← Back to FocusLock</a></nav>
 
   <h1>Privacy Policy</h1>
-  <p class="date">Last updated: May 2026</p>
+  <p class="date">Last updated: June 2026</p>
 
   <div class="highlight">
-    <p><strong>Short version:</strong> Your focus data stays on your device — no account, no background tracking of your activity. The one exception is entirely optional and entirely up to you: if you choose to take our in-app survey, your <strong>anonymous</strong> answers are sent to us, and an email address is sent only if you separately opt into our newsletter. You can skip the survey, and you can delete your response at any time.</p>
+    <p><strong>Short version:</strong> Core blocking runs entirely on your device — no account, no payments, no background tracking of your activity. Two optional features collect data on our servers only if you choose to use them: the <strong>in-app survey</strong> (anonymous answers, plus an email only if you separately opt into our newsletter) and <strong>Family Controls</strong> (a parent account with email + password used to manage rules on paired child devices). You can skip both, and either can be deleted on request.</p>
   </div>
 
   <h2>1. What stays on your device</h2>
@@ -57,17 +57,29 @@
   <h2>4. Optional newsletter</h2>
   <p>At the end of the survey you may choose to receive occasional email updates. <strong>Only if you opt in and confirm consent</strong> do we collect your email address. It is sent to our newsletter provider, <a href="https://www.beehiiv.com" target="_blank">Beehiiv</a> (a third-party processor), and is kept separate from your anonymous survey answers. Every email includes an unsubscribe link, and you can unsubscribe at any time.</p>
 
-  <h2>5. No account, no payments</h2>
-  <p>FocusLock does not require an account to download or use, and it is completely free — we do not process payments or collect financial information.</p>
+  <h2>5. No payments, no account for core blocking</h2>
+  <p>FocusLock is completely free — we do not process payments or collect financial information. Downloading and running the app, configuring profiles, starting sessions, and all single-device blocking work with <strong>no account</strong>. An account is only required for the optional Family Controls feature described in §6.</p>
 
-  <h2>6. Children's privacy</h2>
-  <p>The survey is anonymous for everyone. If a respondent indicates they are under 18, the newsletter email opt-in is not offered, so no identifiable contact information is ever collected from a minor.</p>
+  <h2>6. Family Controls (optional)</h2>
+  <p>Family Controls is an opt-in feature that lets a parent manage blocking rules across one or more paired child devices from the same FocusLock app. Unlike core blocking, this feature requires a cloud account and stores data on our servers (Cloudflare D1). It is entirely separate from the on-device data described in §1 — if you do not set up Family Controls, none of the data below is ever created.</p>
+  <ul>
+    <li><strong>Parent account.</strong> When you create a Family Controls account we store your <strong>email address</strong> and a <strong>salted hash of your password</strong> (the plaintext password is never stored or logged). The email is used to sign you in, to send password-reset links, and to send optional Family Inbox digest notifications.</li>
+    <li><strong>Paired devices.</strong> Each child device you pair creates a <strong>device record</strong> bound to your account (a device-chosen display name and a long-lived authentication token used by that device to call our server). You can unpair a device at any time, which deletes its record.</li>
+    <li><strong>Rules and approval requests.</strong> The lock rules you set, and any unblock/approval requests a child device sends, are stored on our server so they can sync between the parent's app and the child's daemon. Requests carry the domain or app the child asked about.</li>
+    <li><strong>Audit log.</strong> So a parent can see what's happening across paired devices, we record enforcement and tamper events (e.g. a rule fired, an approval was granted, a device went offline) in an audit log tied to your account.</li>
+    <li><strong>Transactional email.</strong> Password-reset emails and Family Inbox digest emails are sent through our transactional email provider, <a href="https://resend.com" target="_blank">Resend</a> (a third-party processor). Your email address is shared with Resend only for the purpose of delivering these messages.</li>
+    <li><strong>Deletion.</strong> Deleting your Family Controls account from in-app Settings removes your account record, paired-device records, rules, approval requests, and audit log entries from our database. You can also request deletion by email (see §9).</li>
+  </ul>
+  <p>Family Controls is the only part of FocusLock that involves a server-side account or stored personal data. None of the activity statistics described in §1 (which sites you block, how long you focus, how you use the app day to day) are sent to our server, whether or not you use Family Controls.</p>
 
-  <h2>7. Changes to this policy</h2>
+  <h2>7. Children's privacy</h2>
+  <p>The survey is anonymous for everyone. If a respondent indicates they are under 18, the newsletter email opt-in is not offered, so no identifiable contact information is ever collected from a minor through the survey. Family Controls is designed to be set up and operated by a parent or guardian; child devices are paired by code and do not have their own accounts or stored email addresses.</p>
+
+  <h2>8. Changes to this policy</h2>
   <p>If we make material changes to this policy, we will update the "Last updated" date above. Changes will also be reflected in the GitHub repository.</p>
 
-  <h2>8. Contact</h2>
-  <p>Privacy questions, or to request deletion of survey or newsletter data: <a href="mailto:hello@tryfocuslock.com">hello@tryfocuslock.com</a> or open an issue on <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank">GitHub</a>.</p>
+  <h2>9. Contact</h2>
+  <p>Privacy questions, or to request deletion of survey, newsletter, or Family Controls data: <a href="mailto:hello@tryfocuslock.com">hello@tryfocuslock.com</a> or open an issue on <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank">GitHub</a>.</p>
 
   <footer>© 2026 FocusLock · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></footer>
 </div>
