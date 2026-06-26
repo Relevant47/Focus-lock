@@ -146,7 +146,7 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   async init() {
     await requestNotificationPermission();
 
-    listen<DaemonStatus | null>('daemon-status', (event) => {
+    listen<DaemonStatus | null>('daemon-status', async (event) => {
       const prev = get().status;
       const next = event.payload;
 
@@ -162,8 +162,12 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       // Session completed notification
       if (prev?.sessionActive && !next.sessionActive) {
         notify('FocusLock — Session complete!', 'Great work. Your focus session has ended.');
-        // Reload logs to get the new completed entry
-        get().loadLogs();
+        // Reload logs to get the new completed entry *before* flipping `status`
+        // below — otherwise the achievements effect in App.tsx reacts to a
+        // status-changed render with stale logs, consumes its sessionJustEnded
+        // gate against the previous session's data, and never re-checks once
+        // the right log entry arrives.
+        await get().loadLogs();
       }
 
       // Session started notification
