@@ -522,6 +522,14 @@ public sealed class SessionService
     {
         private readonly PomodoroConfig _cfg;
         private readonly DateTime _sessionStart;
+        // Sanitised copies: a profile with 0 (or negative) cyclesBeforeLongBreak
+        // would otherwise hit DivideByZeroException inside Tick() and crash the
+        // daemon process. UI validation only enforces a soft HTML `min`; treat
+        // anything < 1 as 1 so the state machine still makes progress.
+        private readonly int _workMinutes;
+        private readonly int _breakMinutes;
+        private readonly int _longBreakMinutes;
+        private readonly int _cyclesBeforeLongBreak;
         private int _completedCycles;
         public string Phase { get; private set; } = "work";
         public double SecondsRemaining { get; private set; }
@@ -531,7 +539,11 @@ public sealed class SessionService
         {
             _cfg = cfg;
             _sessionStart = sessionStart;
-            _phaseEnd = sessionStart.AddMinutes(cfg.WorkMinutes);
+            _workMinutes = Math.Max(1, cfg.WorkMinutes);
+            _breakMinutes = Math.Max(1, cfg.BreakMinutes);
+            _longBreakMinutes = Math.Max(1, cfg.LongBreakMinutes);
+            _cyclesBeforeLongBreak = Math.Max(1, cfg.CyclesBeforeLongBreak);
+            _phaseEnd = sessionStart.AddMinutes(_workMinutes);
             Phase = "work";
         }
 
@@ -543,14 +555,14 @@ public sealed class SessionService
             if (Phase == "work")
             {
                 _completedCycles++;
-                bool longBreak = _completedCycles % _cfg.CyclesBeforeLongBreak == 0;
+                bool longBreak = _completedCycles % _cyclesBeforeLongBreak == 0;
                 Phase = longBreak ? "long_break" : "break";
-                _phaseEnd = now.AddMinutes(longBreak ? _cfg.LongBreakMinutes : _cfg.BreakMinutes);
+                _phaseEnd = now.AddMinutes(longBreak ? _longBreakMinutes : _breakMinutes);
             }
             else
             {
                 Phase = "work";
-                _phaseEnd = now.AddMinutes(_cfg.WorkMinutes);
+                _phaseEnd = now.AddMinutes(_workMinutes);
             }
             SecondsRemaining = (_phaseEnd - now).TotalSeconds;
         }
@@ -560,7 +572,7 @@ public sealed class SessionService
         public void SkipToWork()
         {
             Phase = "work";
-            _phaseEnd = DateTime.UtcNow.AddMinutes(_cfg.WorkMinutes);
+            _phaseEnd = DateTime.UtcNow.AddMinutes(_workMinutes);
             SecondsRemaining = (_phaseEnd - DateTime.UtcNow).TotalSeconds;
         }
     }

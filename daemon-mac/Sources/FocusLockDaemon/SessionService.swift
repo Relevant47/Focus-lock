@@ -5,6 +5,14 @@ import CryptoKit
 
 private final class PomodoroState {
     let config: PomodoroConfig
+    // Sanitised copies: a profile with 0 (or negative) cyclesBeforeLongBreak
+    // would otherwise trap inside Swift's `%` operator and abort the daemon
+    // process. UI validation only enforces a soft HTML `min`; treat anything
+    // < 1 as 1 so the state machine still makes progress.
+    private let workMinutes: Int
+    private let breakMinutes: Int
+    private let longBreakMinutes: Int
+    private let cyclesBeforeLongBreak: Int
     private(set) var phase: String = "work"
     private(set) var secondsRemaining: Double = 0
     private var phaseEnd: Date
@@ -12,7 +20,11 @@ private final class PomodoroState {
 
     init(config: PomodoroConfig, sessionStart: Date) {
         self.config = config
-        self.phaseEnd = sessionStart.addingTimeInterval(Double(config.workMinutes) * 60)
+        self.workMinutes = max(1, config.workMinutes)
+        self.breakMinutes = max(1, config.breakMinutes)
+        self.longBreakMinutes = max(1, config.longBreakMinutes)
+        self.cyclesBeforeLongBreak = max(1, config.cyclesBeforeLongBreak)
+        self.phaseEnd = sessionStart.addingTimeInterval(Double(self.workMinutes) * 60)
         self.secondsRemaining = phaseEnd.timeIntervalSinceNow
     }
 
@@ -22,13 +34,13 @@ private final class PomodoroState {
 
         if phase == "work" {
             completedCycles += 1
-            let long = completedCycles % config.cyclesBeforeLongBreak == 0
+            let long = completedCycles % cyclesBeforeLongBreak == 0
             phase = long ? "long_break" : "break"
-            let mins = long ? config.longBreakMinutes : config.breakMinutes
+            let mins = long ? longBreakMinutes : breakMinutes
             phaseEnd = now.addingTimeInterval(Double(mins) * 60)
         } else {
             phase = "work"
-            phaseEnd = now.addingTimeInterval(Double(config.workMinutes) * 60)
+            phaseEnd = now.addingTimeInterval(Double(workMinutes) * 60)
         }
         secondsRemaining = phaseEnd.timeIntervalSince(now)
     }
@@ -37,7 +49,7 @@ private final class PomodoroState {
 
     func skipToWork() {
         phase = "work"
-        phaseEnd = Date().addingTimeInterval(Double(config.workMinutes) * 60)
+        phaseEnd = Date().addingTimeInterval(Double(workMinutes) * 60)
         secondsRemaining = phaseEnd.timeIntervalSinceNow
     }
 }
