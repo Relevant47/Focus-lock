@@ -20,7 +20,12 @@ namespace FocusLock.Daemon.Services;
 /// </summary>
 public sealed class SafeModeRegistration : IHostedService
 {
-    private const string ServiceName = "FocusLock";
+    // Must exactly match the SCM service key created by install-service.ps1 /
+    // nsis-hook.nsh (sc.exe create FocusLockDaemon ...). Windows only honours
+    // SafeBoot\Minimal|Network subkeys whose names match a real service key
+    // under SYSTEM\CurrentControlSet\Services\, so the old "FocusLock" name
+    // silently registered nothing — Safe Mode booted with no daemon at all.
+    private const string ServiceName = "FocusLockDaemon";
     private const string ValueData   = "Service";
 
     private static readonly string[] SafeBootKeys =
