@@ -36,7 +36,7 @@ async function isAdmin(req: Req): Promise<boolean> {
 function csvCell(v: unknown): string {
   if (v == null) return '';
   const s = Array.isArray(v) ? v.join('; ') : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 export default async function handler(req: Req, res: Res) {
