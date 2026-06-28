@@ -41,6 +41,9 @@
         <Directory Id="DAEMONDIR" Name="daemon">
           <Component Id="DaemonBinary" Guid="B1C2D3E4-F5A6-7890-BCDE-F12345678901">
             <File Id="DaemonExe" Name="FocusLock.Daemon.exe" Source="daemon\FocusLock.Daemon.exe" KeyPath="yes" />
+            <!-- MSI won't delete an emptied directory on uninstall unless a RemoveFolder
+                 directive targets it explicitly — anchor that here on the keypath component. -->
+            <RemoveFolder Id="RemoveDaemonDir" Directory="DAEMONDIR" On="uninstall" />
           </Component>
           <!-- Additional daemon files (dlls, runtimeconfig.json, etc.) -->
           <Component Id="DaemonFiles" Guid="C2D3E4F5-A6B7-8901-CDEF-012345678902">
@@ -52,12 +55,15 @@
         <Directory Id="UIDIR" Name="ui">
           <Component Id="UIBinary" Guid="D3E4F5A6-B7C8-9012-DEFA-123456789003">
             <File Id="UIExe" Name="FocusLock.exe" Source="ui\FocusLock.exe" KeyPath="yes" />
+            <RemoveFolder Id="RemoveUIDir" Directory="UIDIR" On="uninstall" />
           </Component>
         </Directory>
 
         <!-- Uninstaller script -->
         <Component Id="UninstallScript" Guid="E4F5A6B7-C8D9-0123-EFAB-234567890004">
-          <File Id="UninstallPs1" Name="uninstall.ps1" Source="uninstall.ps1" />
+          <File Id="UninstallPs1" Name="uninstall.ps1" Source="uninstall.ps1" KeyPath="yes" />
+          <!-- INSTALLDIR is removed once DAEMONDIR/UIDIR (its subdirs) are gone. -->
+          <RemoveFolder Id="RemoveInstallDir" Directory="INSTALLDIR" On="uninstall" />
         </Component>
 
       </Directory>
