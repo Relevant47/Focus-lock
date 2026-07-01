@@ -176,10 +176,17 @@ export const useDaemon = create<State & Actions>((set, get) => ({
 
       // Pomodoro phase transition notification
       if (prev?.pomodoroPhase && next.pomodoroPhase && prev.pomodoroPhase !== next.pomodoroPhase) {
+        const strict = next.session?.pomodoroConfig?.strictMode ?? false;
         if (next.pomodoroPhase === 'break') {
-          notify('FocusLock — Break time!', 'Take a short break. Blocks are lifted.');
+          const body = strict
+            ? 'Short break — blocks remain active (strict mode).'
+            : 'Take a short break. Blocks are lifted.';
+          notify('FocusLock — Break time!', body);
         } else if (next.pomodoroPhase === 'long_break') {
-          notify('FocusLock — Long break!', 'You earned a longer break. Blocks are lifted.');
+          const body = strict
+            ? 'Long break — blocks remain active (strict mode).'
+            : 'You earned a longer break. Blocks are lifted.';
+          notify('FocusLock — Long break!', body);
         } else if (next.pomodoroPhase === 'work') {
           notify('FocusLock — Back to work', 'Break over. Blocks are back in effect.');
         }
