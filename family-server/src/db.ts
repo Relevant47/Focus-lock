@@ -157,7 +157,13 @@ const PAIR_CODE_TTL_SECONDS = 10 * 60;
 export async function createPairingCode(db: D1Database, accountId: string): Promise<PairingCodeRow> {
   // 6-digit numeric. Retry on the (rare) collision with an active code.
   for (let attempt = 0; attempt < 5; attempt++) {
-    const code = String(Math.floor(Math.random() * 10 ** PAIR_CODE_LENGTH)).padStart(PAIR_CODE_LENGTH, '0');
+    // Cryptographic RNG: a stolen or predicted pair code lets an unauthorized
+    // device silently join a family and receive all its lock rules.
+    // Math.random() (V8 xorshift128+) is unsuitable for that threat model.
+    const buf = new Uint8Array(4);
+    crypto.getRandomValues(buf);
+    const n = new DataView(buf.buffer).getUint32(0) % 10 ** PAIR_CODE_LENGTH;
+    const code = String(n).padStart(PAIR_CODE_LENGTH, '0');
     const now = Date.now();
     const created = new Date(now).toISOString();
     const expires = new Date(now + PAIR_CODE_TTL_SECONDS * 1000).toISOString();
