@@ -208,8 +208,12 @@ export async function createRule(
   targetDomains: string[] | undefined,
   scheduleCron: string | null,
   expiresAt: string | null = null,
+  // Optional pre-generated id — used by approval-request flow so the
+  // approval row can be atomically resolved with the future rule id
+  // *before* the rule row is inserted. See approvalRequests.approveRequestHandler.
+  preassignedId?: string,
 ): Promise<LockRule> {
-  const id = crypto.randomUUID();
+  const id = preassignedId ?? crypto.randomUUID();
   const now = new Date().toISOString();
   const apps = targetApps && targetApps.length ? JSON.stringify(targetApps) : null;
   const domains = targetDomains && targetDomains.length ? JSON.stringify(targetDomains) : null;
