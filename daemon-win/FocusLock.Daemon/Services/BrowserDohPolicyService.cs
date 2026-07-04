@@ -70,8 +70,15 @@ public class BrowserDohPolicyService
             // captured the *original* user preference, which is what we need
             // to restore. Re-snapshotting now would lock in our own "off"
             // value as the user's preference, defeating the restore.
+            //
+            // Trust the loaded dict, not File.Exists: a corrupt or empty file
+            // used to satisfy File.Exists but produced an empty dict, which
+            // caused Apply to skip capture *and* skip save (leaving the
+            // corrupt file in place) — and later caused Restore to delete
+            // every DoH policy value. LoadBackup now clears corrupt files;
+            // dict.Count > 0 is the ground truth.
             Dictionary<string, BackupEntry> backup = LoadBackup();
-            bool backupExisted = backup.Count > 0 || File.Exists(_backupPath);
+            bool backupExisted = backup.Count > 0;
 
             foreach (var key in Keys)
             {
@@ -117,6 +124,18 @@ public class BrowserDohPolicyService
             }
 
             var backup = LoadBackup();
+
+            if (backup.Count == 0)
+            {
+                // Backup file was empty or unreadable (LoadBackup already
+                // cleared it if it was corrupt). We have no record of the
+                // user's original DoH preferences — deleting all four values
+                // now would silently wipe them. Leave the current "off"
+                // values in place; the operator can rerun a fresh session to
+                // re-capture, or manually reconfigure their browser DoH.
+                _log.LogWarning("DoH backup was empty or unreadable — skipping restore to avoid wiping unknown originals");
+                return;
+            }
 
             foreach (var key in Keys)
             {
@@ -258,7 +277,15 @@ public class BrowserDohPolicyService
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "DoH backup file unreadable — treating as empty");
+            _log.LogWarning(ex, "DoH backup file unreadable — deleting and treating as fresh");
+            try
+            {
+                File.Delete(_backupPath);
+            }
+            catch (Exception deleteEx)
+            {
+                _log.LogWarning(deleteEx, "Could not delete corrupt DoH backup file at {Path}", _backupPath);
+            }
             return new Dictionary<string, BackupEntry>(StringComparer.Ordinal);
         }
     }
