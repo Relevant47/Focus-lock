@@ -104,6 +104,16 @@ function UninstallAuthorizationButton({ authorize }: { authorize: () => Promise<
 }
 
 function useCooldownTimer(isoString: string | null | undefined) {
+  // Force a re-render every 30 seconds so the countdown / progress bar / and
+  // `elapsed` flag update in real time instead of only when the daemon status
+  // event happens to arrive. 30 s is fine for a 24-hour cooldown display.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!isoString) return;
+    const t = window.setInterval(() => { setTick(n => n + 1); }, 30_000);
+    return () => window.clearInterval(t);
+  }, [isoString]);
+
   if (!isoString) return null;
   const until = new Date(isoString).getTime();
   const diff = Math.max(0, until - Date.now());
