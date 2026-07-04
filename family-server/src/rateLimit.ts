@@ -44,6 +44,18 @@ export const RESET_POLICY: RateLimitPolicy = {
   blockSeconds: 60 * 60,    // 1 hour
 };
 
+// Pair-redeem is unauthenticated and validates a 6-digit code (1M-space,
+// 10-minute TTL). Without per-IP throttling an attacker who knows a parent is
+// currently pairing can enumerate the whole space during the window. 10
+// attempts / 5 min with a 30-minute lockout keeps the effective search rate
+// well below the space size while still tolerating a real user mistyping a
+// couple of times.
+export const PAIR_REDEEM_POLICY: RateLimitPolicy = {
+  maxAttempts: 10,
+  windowSeconds: 5 * 60,    // 5 minutes
+  blockSeconds: 30 * 60,    // 30 minutes
+};
+
 export interface RateLimitState {
   blocked: boolean;
   /// Seconds the caller should wait before the key unblocks. 0 when not blocked.
@@ -125,3 +137,4 @@ export async function recordSuccess(env: Env, key: string): Promise<void> {
 
 export function loginKey(email: string): string { return `login:${email.toLowerCase()}`; }
 export function resetKey(email: string): string { return `reset:${email.toLowerCase()}`; }
+export function pairRedeemKey(ip: string): string { return `pair_redeem:${ip}`; }
