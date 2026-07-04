@@ -138,9 +138,38 @@ public sealed class ScheduleService
     }
 
     // POSIX cron treats weekday 7 as Sunday (alias of 0). DayOfWeek only
-    // produces 0-6, so a literal 7 would never match. Weekday field values
-    // are single-digit 0-7, so plain char replacement is safe.
-    private static string NormalizeWeekday(string field) => field.Replace("7", "0");
+    // produces 0-6, so a literal 7 would never match. Rewrite only value
+    // positions (single tokens and range endpoints) — never the step of `*/N`
+    // or `A-B/N`, where 7 means "every 7 days", not Sunday. Character-level
+    // replace would corrupt `*/7` into `*/0` (DivideByZeroException, silently
+    // swallowed but blocks the schedule from ever firing) and `1-7` into `1-0`
+    // (empty range).
+    private static string NormalizeWeekday(string field) =>
+        string.Join(',', field.Split(',').Select(NormalizeWeekdayItem));
+
+    private static string NormalizeWeekdayItem(string item)
+    {
+        if (item.Contains('/'))
+        {
+            var p = item.Split('/');
+            if (p.Length != 2) return item;
+            return NormalizeWeekdayValue(p[0]) + "/" + p[1];
+        }
+        return NormalizeWeekdayValue(item);
+    }
+
+    private static string NormalizeWeekdayValue(string value)
+    {
+        if (value.Contains('-'))
+        {
+            var p = value.Split('-');
+            if (p.Length != 2) return value;
+            return NormalizeWeekdaySingle(p[0]) + "-" + NormalizeWeekdaySingle(p[1]);
+        }
+        return NormalizeWeekdaySingle(value);
+    }
+
+    private static string NormalizeWeekdaySingle(string s) => s == "7" ? "0" : s;
 
     private static bool FieldMatches(string field, int value)
     {
@@ -149,7 +178,9 @@ public sealed class ScheduleService
         if (field.Contains('/'))
         {
             var p = field.Split('/');
+            if (p.Length != 2) return false;
             int step = int.Parse(p[1]);
+            if (step <= 0) return false;
             int start = p[0] == "*" ? 0 : int.Parse(p[0]);
             return value >= start && (value - start) % step == 0;
         }
