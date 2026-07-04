@@ -2339,6 +2339,34 @@
   </div>
 </div>
 
+<!-- ── macOS download modal ── -->
+<div class="dl-overlay" id="dl-mac-overlay">
+  <div class="dl-modal" role="dialog" aria-modal="true" aria-labelledby="dl-mac-modal-title">
+    <div class="dl-modal-header">
+      <span class="dl-modal-title" id="dl-mac-modal-title">Download FocusLock for macOS</span>
+      <button class="dl-modal-close" id="dl-mac-modal-close" aria-label="Close">✕</button>
+    </div>
+    <p class="dl-modal-sub">Which Mac do you have? If your Mac is from late 2020 or newer, pick Apple Silicon.</p>
+    <div class="dl-arch-list">
+      <button class="dl-arch-btn recommended" data-mac-arch="aarch64">
+        <span class="dl-arch-icon">🍎</span>
+        <div>
+          <div class="dl-arch-name">Apple Silicon <span class="dl-badge">Recommended</span></div>
+          <div class="dl-arch-desc">M1 / M2 / M3 / M4 — any Mac released from late 2020 onward</div>
+        </div>
+      </button>
+      <button class="dl-arch-btn" data-mac-arch="x64">
+        <span class="dl-arch-icon">💻</span>
+        <div>
+          <div class="dl-arch-name">Intel Mac</div>
+          <div class="dl-arch-desc">Intel-based Macs released before late 2020</div>
+        </div>
+      </button>
+    </div>
+    <div class="dl-modal-status" id="dl-mac-status"></div>
+  </div>
+</div>
+
 <!-- ── Post-download install-help modal ── -->
 <div class="ih-overlay" id="ih-overlay" role="dialog" aria-modal="true" aria-labelledby="ih-title">
   <div class="ih-modal">
@@ -2768,23 +2796,55 @@
     }
   }
 
-  async function triggerMacDownload(btn) {
-    const orig = btn.style.cssText;
-    btn.style.opacity = '.6';
-    btn.style.pointerEvents = 'none';
+  const dlMacOverlay = document.getElementById('dl-mac-overlay');
+  const dlMacStatus = document.getElementById('dl-mac-status');
+
+  function openMacModal() {
+    dlMacOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    dlMacStatus.className = 'dl-modal-status';
+    dlMacStatus.textContent = '';
+    dlMacOverlay.querySelectorAll('.dl-arch-btn').forEach(b => { b.disabled = false; });
+  }
+
+  function closeMacModal() {
+    dlMacOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('dl-mac-modal-close').addEventListener('click', closeMacModal);
+  dlMacOverlay.addEventListener('click', e => { if (e.target === dlMacOverlay) closeMacModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && dlMacOverlay.classList.contains('open')) closeMacModal();
+  });
+
+  dlMacOverlay.querySelectorAll('.dl-arch-btn').forEach(btn => {
+    btn.addEventListener('click', () => triggerMacDownload(btn.dataset.macArch));
+  });
+
+  async function triggerMacDownload(arch) {
+    dlMacOverlay.querySelectorAll('.dl-arch-btn').forEach(b => { b.disabled = true; });
+    dlMacStatus.className = 'dl-modal-status show';
+    dlMacStatus.textContent = 'Preparing download…';
     try {
-      const resp = await fetch('/api/download?os=mac');
+      const resp = await fetch(`/api/download?os=mac&arch=${arch}`);
       const data = await resp.json();
-      const url = data.ok && data.url
-        ? data.url
-        : 'https://github.com/Relevant47/Focus-lock/releases/latest';
-      startBrowserDownload(url);
-      openInstallHelp('mac', data && data.sha256);
+      if (!data.ok || !data.url) {
+        dlMacStatus.className = 'dl-modal-status show error';
+        dlMacStatus.textContent = data.error === 'no_release'
+          ? 'No release published yet — check back soon!'
+          : 'Download unavailable right now. Please try again.';
+        dlMacOverlay.querySelectorAll('.dl-arch-btn').forEach(b => { b.disabled = false; });
+        return;
+      }
+      dlMacStatus.textContent = 'Download starting…';
+      startBrowserDownload(data.url);
+      closeMacModal();
+      openInstallHelp('mac', data.sha256);
     } catch {
-      startBrowserDownload('https://github.com/Relevant47/Focus-lock/releases/latest');
-      openInstallHelp('mac');
-    } finally {
-      btn.style.cssText = orig;
+      dlMacStatus.className = 'dl-modal-status show error';
+      dlMacStatus.textContent = 'Network error. Please try again.';
+      dlMacOverlay.querySelectorAll('.dl-arch-btn').forEach(b => { b.disabled = false; });
     }
   }
 
@@ -2806,7 +2866,7 @@
     if (!btn) return;
     e.preventDefault();
     if (btn.dataset.dl === 'win') openWinModal();
-    else if (btn.dataset.dl === 'mac') triggerMacDownload(btn);
+    else if (btn.dataset.dl === 'mac') openMacModal();
   });
 
   // ── Install-help modal ────────────────────────────────────────────────
