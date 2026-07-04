@@ -86,7 +86,9 @@ function UninstallAuthorizationButton({ authorize }: { authorize: () => Promise<
             Uninstall authorized — {mm}:{ss.toString().padStart(2, '0')} remaining
           </p>
           <p className="text-faint">
-            Open Windows Settings → Apps → FocusLock → Uninstall within this window. Past 15 minutes the lock re-engages.
+            {IS_MACOS
+              ? 'Drag FocusLock to the Trash within this window. Past 15 minutes the lock re-engages.'
+              : 'Open Windows Settings → Apps → FocusLock → Uninstall within this window. Past 15 minutes the lock re-engages.'}
           </p>
         </div>
       </div>
