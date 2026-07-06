@@ -148,21 +148,27 @@ export async function approveRequestHandler(
   if (row.status !== 'pending') return conflict(`already ${row.status}`);
   if (Date.parse(row.expires_at) <= Date.now()) return conflict('expired');
 
-  // Create the time-limited rule first so we can stamp its id on the request.
+  // Pre-generate the rule id so we can commit resolution atomically before the
+  // rule row exists. If we crash between resolve and insert, the request row
+  // references a rule that never got created — the child device never receives
+  // a phantom `unblock_specific` rule and no unearned unblock window opens.
+  // Rolling back after createRule (the previous order) leaves a live rule if
+  // the Worker dies between the INSERT and the rollback DELETE (see #197).
+  const ruleId = crypto.randomUUID();
   const expires = new Date(Date.now() + row.requested_minutes * 60 * 1000).toISOString();
+
+  const ok = await markApprovalResolved(env.DB, row.id, ctx.accountId, 'approved', ruleId);
+  if (!ok) {
+    // Lost the race — another approve / expiry beat us.
+    return conflict('already resolved');
+  }
+
   const rule = await createRule(
     env.DB, row.device_id, ctx.accountId, 'unblock_specific',
     row.target_kind === 'app' ? [row.target] : undefined,
     row.target_kind === 'domain' ? [row.target] : undefined,
-    null, expires,
+    null, expires, ruleId,
   );
-
-  const ok = await markApprovalResolved(env.DB, row.id, ctx.accountId, 'approved', rule.id);
-  if (!ok) {
-    // Lost the race — another approve / expiry beat us. Roll back the rule.
-    await env.DB.prepare('DELETE FROM lock_rules WHERE id = ?').bind(rule.id).run();
-    return conflict('already resolved');
-  }
 
   // Push the new rule to the device so it lifts the block within seconds.
   await notifyDevice(env, row.device_id, { type: 'rule_change', rule }).catch(() => { /* offline */ });

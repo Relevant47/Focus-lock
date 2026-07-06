@@ -208,8 +208,9 @@ export async function createRule(
   targetDomains: string[] | undefined,
   scheduleCron: string | null,
   expiresAt: string | null = null,
+  ruleId?: string,
 ): Promise<LockRule> {
-  const id = crypto.randomUUID();
+  const id = ruleId ?? crypto.randomUUID();
   const now = new Date().toISOString();
   const apps = targetApps && targetApps.length ? JSON.stringify(targetApps) : null;
   const domains = targetDomains && targetDomains.length ? JSON.stringify(targetDomains) : null;
