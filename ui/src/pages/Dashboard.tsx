@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useDaemon } from '../stores/daemon';
 import { useBlockList, resolveBlockList } from '../stores/blocklist';
+import { useTrayIntent } from '../stores/trayIntent';
 import { CATEGORY_DOMAINS, type StartSessionPayload } from '../types';
 import { Icon } from '../components/Icons';
 import { Page, Pill, Toggle } from '../components/ui';
@@ -288,6 +289,20 @@ export default function Dashboard() {
     if (payload.hardcoreMode) setShowHardcoreConfirm(true);
     else setShowIntention(true);
   }
+
+  // Tray → quick-start bridge. Rust routes the profile submenu clicks through a
+  // `tray-start-profile` event (see issue #212) so hardcore profiles still hit
+  // the LOCK ME IN modal that the direct ipc_call path bypassed.
+  const pendingTrayProfile = useTrayIntent(s => s.pendingProfileId);
+  const consumeTrayProfile = useTrayIntent(s => s.consume);
+  useEffect(() => {
+    if (!pendingTrayProfile) return;
+    const pid = consumeTrayProfile();
+    if (pid) void handleQuickStart(pid);
+    // handleQuickStart isn't memoised, but re-triggering on its identity would
+    // spuriously restart; the store's consume() gates against re-entry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingTrayProfile]);
 
   async function handleStop() {
     setError('');
