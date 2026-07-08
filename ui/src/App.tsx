@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { listen } from '@tauri-apps/api/event';
 import { useDaemon } from './stores/daemon';
+import { useTrayIntent } from './stores/trayIntent';
 import { applyTheme, getTheme } from './stores/theme';
 import { evaluate, rememberSessionStart, type Achievement } from './lib/achievements';
 import Nav from './components/Nav';
@@ -25,6 +27,19 @@ import Family from './pages/Family';
 import Settings from './pages/Settings';
 import SetupRequired from './pages/SetupRequired';
 import { familyEnabled } from './lib/familyApi';
+
+function TrayIntentBridge() {
+  const navigate = useNavigate();
+  const setPending = useTrayIntent(s => s.set);
+  useEffect(() => {
+    const p = listen<string>('tray-start-profile', (e) => {
+      setPending(e.payload);
+      navigate('/');
+    });
+    return () => { void p.then(fn => fn()); };
+  }, [navigate, setPending]);
+  return null;
+}
 
 function RoutedShell() {
   const location = useLocation();
@@ -124,6 +139,7 @@ export default function App() {
         <Nav />
         <main className="flex-1 overflow-auto">
           <ActiveSessionBanner />
+          <TrayIntentBridge />
           <RoutedShell />
         </main>
         {showOnboarding && <Onboarding onDone={complete} />}

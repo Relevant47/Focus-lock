@@ -230,6 +230,7 @@ fn session_label(status: &Value) -> String {
     }
 }
 
+#[allow(dead_code)] // now only reachable if any future non-UI path needs it
 fn category_domains(cat: &str) -> &'static [&'static str] {
     match cat {
         "social_media" => &["instagram.com","tiktok.com","twitter.com","x.com","reddit.com","facebook.com","snapchat.com","linkedin.com","pinterest.com","tumblr.com","threads.net","bereal.com"],
@@ -309,36 +310,15 @@ pub fn run() {
                         }
                         "quit" => app.exit(0),
                         id if id.starts_with("profile_") => {
+                            // Route the tray profile pick through the UI so hardcore
+                            // profiles still get the "LOCK ME IN" confirmation modal
+                            // (same gate Quick Start chips go through). See issue #212.
                             let profile_id = id.trim_start_matches("profile_").to_string();
-                            if let Ok(resp) = ipc_call(&json!({"type": "get_profiles"})) {
-                                if let Some(profiles) = resp.get("payload").and_then(|p| p.as_array()) {
-                                    if let Some(p) = profiles.iter().find(|p| {
-                                        p.get("id").and_then(|v| v.as_str()) == Some(&profile_id)
-                                    }) {
-                                        let duration = p.get("defaultDurationMinutes").and_then(|v| v.as_u64()).unwrap_or(25);
-                                        let cats     = p.get("blockedCategories").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-                                        let custom   = p.get("customBlockedDomains").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-                                        let mut domains: Vec<Value> = cats.iter()
-                                            .filter_map(|c| c.as_str())
-                                            .flat_map(|cat| category_domains(cat))
-                                            .map(|d| json!(d))
-                                            .collect();
-                                        domains.extend(custom);
-                                        let _ = ipc_call(&json!({
-                                            "type": "start_session",
-                                            "payload": {
-                                                "profileId": profile_id,
-                                                "durationMinutes": duration,
-                                                "blockedDomains": domains,
-                                                "blockedProcesses": p.get("customBlockedProcesses").cloned().unwrap_or(json!([])),
-                                                "allowlistedDomains": p.get("allowlistedDomains").cloned().unwrap_or(json!([])),
-                                                "hardcoreMode": p.get("hardcoreMode").and_then(|v| v.as_bool()).unwrap_or(false),
-                                                "pomodoroConfig": p.get("pomodoroConfig").cloned().unwrap_or(json!(null)),
-                                            }
-                                        }));
-                                    }
-                                }
+                            if let Some(w) = app.get_webview_window("main") {
+                                let _ = w.show();
+                                let _ = w.set_focus();
                             }
+                            let _ = app.emit("tray-start-profile", profile_id);
                         }
                         _ => {}
                     }
