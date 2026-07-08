@@ -566,8 +566,13 @@ export default function Settings() {
               </Pill>
             </Row>
             {!connected && (
-              <div className="rounded-lg bg-bg/40 border border-border px-3 py-2.5 text-xs text-muted font-mono">
-                {IS_MACOS ? 'sudo launchctl load /Library/LaunchDaemons/com.focuslock.daemon.plist' : 'sc start FocusLockDaemon'}
+              <div className={cn(
+                'rounded-lg bg-bg/40 border border-border px-3 py-2.5 text-xs text-muted',
+                IS_MACOS ? '' : 'font-mono',
+              )}>
+                {IS_MACOS
+                  ? 'Open System Settings → General → Login Items and re-enable FocusLock Helper, or reinstall the app.'
+                  : 'sc start FocusLockDaemon'}
               </div>
             )}
           </Section>
