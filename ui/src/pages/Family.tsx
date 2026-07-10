@@ -1161,12 +1161,16 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
 function RuleRow({ rule, onRemove }: { rule: LockRule; onRemove: () => void }) {
   const apps = rule.targetApps.join(', ');
   const domains = rule.targetDomains.join(', ');
+  const isUnblock = rule.kind === 'unblock_all' || rule.kind === 'unblock_specific';
   return (
     <li className="flex items-start justify-between gap-3 text-xs border border-border/50 rounded-md p-2">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <Pill tone={rule.kind === 'unblock_all' ? 'success' : 'danger'}>{rule.kind.replace('_', ' ')}</Pill>
+          <Pill tone={isUnblock ? 'success' : 'danger'}>{rule.kind.replace('_', ' ')}</Pill>
           <span className="text-faint">{relativeTime(rule.createdAt)}</span>
+          {rule.expiresAt && (
+            <span className="text-faint">· {formatExpiry(rule.expiresAt)}</span>
+          )}
         </div>
         {apps && <p className="font-mono text-muted truncate">apps: {apps}</p>}
         {domains && <p className="font-mono text-muted truncate">domains: {domains}</p>}
@@ -1205,6 +1209,12 @@ function relativeSeconds(s: number): string {
   if (s < 3600)  return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   return `${Math.floor(s / 86400)}d`;
+}
+
+function formatExpiry(iso: string): string {
+  const remaining = Math.floor((Date.parse(iso) - Date.now()) / 1000);
+  if (remaining <= 0) return 'expired';
+  return `expires in ${relativeSeconds(remaining)}`;
 }
 
 // ── AskUnblockRow ────────────────────────────────────────────────────────────

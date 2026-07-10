@@ -186,6 +186,10 @@ export interface ApprovalRequest {
   expiresAt: string;
   resolvedAt: string | null;
   resolutionRuleId: string | null;
+  // Present when status = 'approved' and the corresponding unblock_specific
+  // rule is still on the row. Lets the parent's inbox show when the
+  // temporary unblock window closes instead of a stale "unblock active" badge.
+  resolutionRuleExpiresAt: string | null;
 }
 
 export interface CreateApprovalRequestBody {
