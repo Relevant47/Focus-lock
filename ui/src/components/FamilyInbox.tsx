@@ -175,7 +175,7 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
         </>
       )}
       {request.status === 'approved' && (
-        <p className="text-xs text-success mt-2">✓ Approved · unblock active</p>
+        <ApprovedBadge ruleExpiresAt={request.resolutionRuleExpiresAt} />
       )}
       {request.status === 'denied' && (
         <p className="text-xs text-faint mt-2">Denied</p>
@@ -185,6 +185,23 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
       ) : null}
     </li>
   );
+}
+
+// The temporary unblock rule tied to an approved request eventually elapses;
+// once it does the child is blocked again server-side. Reflect that here so the
+// inbox doesn't lie about the unblock still being active.
+function ApprovedBadge({ ruleExpiresAt }: { ruleExpiresAt: string | null }): JSX.Element {
+  const secondsLeft = useCountdown(ruleExpiresAt);
+  if (!ruleExpiresAt) {
+    return <p className="text-xs text-success mt-2">✓ Approved</p>;
+  }
+  if (secondsLeft <= 0) {
+    return <p className="text-xs text-faint mt-2">✓ Approved · unblock ended</p>;
+  }
+  const expiresAtDate = new Date(ruleExpiresAt);
+  const hh = String(expiresAtDate.getHours()).padStart(2, '0');
+  const mm = String(expiresAtDate.getMinutes()).padStart(2, '0');
+  return <p className="text-xs text-success mt-2">✓ Approved · expires {hh}:{mm}</p>;
 }
 
 function useCountdown(iso: string | null): number {
