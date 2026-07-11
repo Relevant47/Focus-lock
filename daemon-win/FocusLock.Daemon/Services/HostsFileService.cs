@@ -132,7 +132,7 @@ public sealed class HostsFileService
 
         if (domains.Count == 0)
         {
-            File.WriteAllText(HostsPath, cleaned.Length > 0 ? cleaned + "\r\n" : string.Empty, Encoding.ASCII);
+            WriteAtomic(HostsPath, cleaned.Length > 0 ? cleaned + "\r\n" : string.Empty);
             return;
         }
 
@@ -149,7 +149,20 @@ public sealed class HostsFileService
             sb.AppendLine($"127.0.0.1 {d}");
         sb.AppendLine(BlockMarkerEnd);
 
-        File.WriteAllText(HostsPath, sb.ToString(), Encoding.ASCII);
+        WriteAtomic(HostsPath, sb.ToString());
+    }
+
+    // Write to a sibling temp file, then rename over the target. `File.Move`
+    // with `overwrite: true` is an atomic rename on NTFS on the same volume,
+    // so a crash / power loss before the rename leaves the original file
+    // intact — the failure mode `File.WriteAllText` had was truncating the
+    // hosts file to zero bytes and leaving it that way. Mirrors macOS's
+    // `write(atomically: true)` in HostsService.swift.
+    private static void WriteAtomic(string path, string contents)
+    {
+        var tmp = path + ".focuslock.tmp";
+        File.WriteAllText(tmp, contents, Encoding.ASCII);
+        File.Move(tmp, path, overwrite: true);
     }
 
     /// <summary>
