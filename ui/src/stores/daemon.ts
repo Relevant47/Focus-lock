@@ -104,7 +104,7 @@ interface Actions {
   setFirewallLockdown(enabled: boolean): Promise<void>;
   /// Kid-initiated request to lift a specific block for a fixed window.
   /// v1.4.1: returns a discriminated result — `ok: true` with `requestId`
-  /// on success, or `ok: false` with a typed `code` on an anti-spam reject.
+  /// on success, or `ok: false` with a typed `conflictCode` on an anti-spam reject.
   /// Throws only on genuine transport/server errors (5xx, network), NOT on
   /// the 409 conflicts which are part of the typed contract.
   requestUnblock(target: string, targetKind: 'app' | 'domain',
@@ -389,10 +389,10 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       conflictCode?: string; pendingRequestId?: string; retryAfter?: string;
     };
     if (p.conflictCode === 'pending_exists' && p.pendingRequestId) {
-      return { ok: false, code: 'pending_exists', pendingRequestId: p.pendingRequestId };
+      return { ok: false, conflictCode: 'pending_exists', pendingRequestId: p.pendingRequestId };
     }
     if (p.conflictCode === 'deny_cooldown' && p.retryAfter) {
-      return { ok: false, code: 'deny_cooldown', retryAfter: p.retryAfter };
+      return { ok: false, conflictCode: 'deny_cooldown', retryAfter: p.retryAfter };
     }
     if (!p.requestId || !p.expiresAt) {
       throw new Error('Unexpected response from daemon');

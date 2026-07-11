@@ -382,15 +382,20 @@ export interface RequestUnblockPayload {
 /**
  * v1.4.1: either the request was created (`ok: true`, server returned a row),
  * or the server's anti-spam pre-checks rejected it. The UI pattern-matches on
- * `ok` and surfaces a tailored message per `code`.
+ * `ok` and surfaces a tailored message per `conflictCode`.
  *
  * The daemon propagates the typed payload from the worker's 409 body
  * unchanged — it does NOT raise an exception for these two states.
+ *
+ * NOTE: the conflict discriminant on the wire is `conflictCode` (both daemons
+ * serialize it that way and the UI store reads it as `conflictCode`). An
+ * earlier version of this type spelled the field `code`, which never matched
+ * the wire — see #229.
  */
 export type RequestUnblockResult =
   | { ok: true;  requestId: string; expiresAt: string }
-  | { ok: false; code: "pending_exists"; pendingRequestId: string }
-  | { ok: false; code: "deny_cooldown"; retryAfter: string };  // ISO timestamp
+  | { ok: false; conflictCode: "pending_exists"; pendingRequestId: string }
+  | { ok: false; conflictCode: "deny_cooldown"; retryAfter: string };  // ISO timestamp
 
 export interface RequestStatusPayload {
   requestId: string;
