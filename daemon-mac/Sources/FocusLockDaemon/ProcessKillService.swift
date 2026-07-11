@@ -40,53 +40,63 @@ final class ProcessKillService {
 
         if sessionProcs.isEmpty && familyProcs.isEmpty { return }
 
-        let unionProcs = sessionProcs + familyProcs
-
         // Split inputs into three buckets based on shape:
         //   - "/Applications/Foo.app/Contents/MacOS/Foo" → full path match
         //   - "com.foo.bar"                              → NSWorkspace bundle-id match
         //   - "Steam"                                    → ps-name match
-        var blockedNames = Set<String>()
-        var blockedPaths = Set<String>()
-        var blockedBundleIds = Set<String>()
-        for entry in unionProcs {
-            let trimmed = entry.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty { continue }
-            if trimmed.hasPrefix("/") {
-                blockedPaths.insert(trimmed.lowercased())
-            } else if trimmed.contains(".") && !trimmed.hasSuffix(".exe") {
-                // Looks like a bundle identifier (e.g. com.spotify.client).
-                // .exe is a Windows-only convention so we route those through
-                // the name matcher for cross-platform blocklists.
-                blockedBundleIds.insert(trimmed.lowercased())
-            } else {
-                let name = URL(fileURLWithPath: trimmed)
-                    .deletingPathExtension()
-                    .lastPathComponent
-                    .lowercased()
-                if !name.isEmpty { blockedNames.insert(name) }
+        // Sets are kept per-source (session vs family) so blockAttempts only
+        // counts session-rule kills — killing an app that only a parent's
+        // family rule wanted blocked isn't the user "trying to break their own
+        // session" and shouldn't inflate the focus-score penalty.
+        func classify(_ entries: [String])
+            -> (names: Set<String>, paths: Set<String>, bundleIds: Set<String>) {
+            var names = Set<String>()
+            var paths = Set<String>()
+            var bundleIds = Set<String>()
+            for entry in entries {
+                let trimmed = entry.trimmingCharacters(in: .whitespaces)
+                if trimmed.isEmpty { continue }
+                if trimmed.hasPrefix("/") {
+                    paths.insert(trimmed.lowercased())
+                } else if trimmed.contains(".") && !trimmed.hasSuffix(".exe") {
+                    // Looks like a bundle identifier (e.g. com.spotify.client).
+                    // .exe is a Windows-only convention so we route those through
+                    // the name matcher for cross-platform blocklists.
+                    bundleIds.insert(trimmed.lowercased())
+                } else {
+                    let name = URL(fileURLWithPath: trimmed)
+                        .deletingPathExtension()
+                        .lastPathComponent
+                        .lowercased()
+                    if !name.isEmpty { names.insert(name) }
+                }
             }
+            return (names, paths, bundleIds)
         }
+        let s = classify(sessionProcs)
+        let f = classify(familyProcs)
 
         // ── Bundle-ID matching via NSWorkspace ───────────────────────────
         // This is the only way to reliably target .app bundles whose process
         // name on disk is something obscure (e.g. Discord ships as "Discord"
         // but Slack ships as "Slack Helper" subprocesses). NSWorkspace does
         // not require accessibility permissions.
-        if !blockedBundleIds.isEmpty {
+        if !s.bundleIds.isEmpty || !f.bundleIds.isEmpty {
             for app in NSWorkspace.shared.runningApplications {
                 guard let bid = app.bundleIdentifier?.lowercased() else { continue }
-                if blockedBundleIds.contains(bid) {
+                let sessionMatch = s.bundleIds.contains(bid)
+                let familyMatch = !sessionMatch && f.bundleIds.contains(bid)
+                if sessionMatch || familyMatch {
                     let pid = app.processIdentifier
                     if pid > 0 && isSafeToKill(pid: pid, name: app.localizedName?.lowercased() ?? "") {
                         kill(pid, SIGKILL)
-                        session.incrementBlockAttempt()
+                        if sessionMatch { session.incrementBlockAttempt() }
                     }
                 }
             }
         }
 
-        if blockedNames.isEmpty && blockedPaths.isEmpty { return }
+        if s.names.isEmpty && s.paths.isEmpty && f.names.isEmpty && f.paths.isEmpty { return }
 
         // ── Name / path matching via ps ──────────────────────────────────
         // Adding `uid` lets us filter out root and other system service users
@@ -112,9 +122,12 @@ final class ProcessKillService {
                 .deletingPathExtension()
                 .lastPathComponent
                 .lowercased()
+            let commLower = comm.lowercased()
 
-            let matched = blockedNames.contains(name) || blockedPaths.contains(comm.lowercased())
-            if !matched { continue }
+            let sessionMatch = s.names.contains(name) || s.paths.contains(commLower)
+            let familyMatch = !sessionMatch
+                && (f.names.contains(name) || f.paths.contains(commLower))
+            if !sessionMatch && !familyMatch { continue }
 
             // Bail before signalling if the target looks like a system process.
             // uid 0 is root; uid < 100 is reserved for built-in service users
@@ -123,7 +136,7 @@ final class ProcessKillService {
             if !isSafeToKill(pid: pid, name: name) { continue }
 
             kill(pid, SIGKILL)
-            session.incrementBlockAttempt()
+            if sessionMatch { session.incrementBlockAttempt() }
         }
     }
 
