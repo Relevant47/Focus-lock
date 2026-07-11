@@ -148,10 +148,33 @@ public sealed class ScheduleService
 
         if (field.Contains('/'))
         {
+            // Parse `body/step` where body is `*`, a range `A-B`, or a bare
+            // integer. Previous code did `int.Parse(p[0])` on the body — that
+            // threw on the standard POSIX `A-B/N` form (e.g. `1-5/2`), and the
+            // outer try/catch in CronMatches then swallowed the exception, so
+            // the schedule never fired.
             var p = field.Split('/');
-            int step = int.Parse(p[1]);
-            int start = p[0] == "*" ? 0 : int.Parse(p[0]);
-            return value >= start && (value - start) % step == 0;
+            if (p.Length != 2 || !int.TryParse(p[1], out var step) || step <= 0) return false;
+            var body = p[0];
+            int rangeStart, rangeEnd;
+            if (body == "*")
+            {
+                rangeStart = 0; rangeEnd = int.MaxValue;
+            }
+            else if (body.Contains('-'))
+            {
+                var r = body.Split('-');
+                if (r.Length != 2
+                    || !int.TryParse(r[0], out rangeStart)
+                    || !int.TryParse(r[1], out rangeEnd)) return false;
+            }
+            else
+            {
+                if (!int.TryParse(body, out rangeStart)) return false;
+                rangeEnd = int.MaxValue;
+            }
+            return value >= rangeStart && value <= rangeEnd
+                && (value - rangeStart) % step == 0;
         }
 
         if (field.Contains(','))
