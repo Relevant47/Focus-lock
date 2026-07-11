@@ -331,6 +331,14 @@ final class SessionService {
     }
 
     private static func sign(_ s: SessionState, key: SymmetricKey) -> String {
+        // pomodoroConfig fields are covered — without them an attacker with
+        // write access to session.json could flip strictMode from true to
+        // false (or lengthen breakMinutes) without invalidating the
+        // signature, defeating the exact mechanism strictMode is supposed to
+        // provide. Non-pomodoro sessions (pomodoroConfig == nil) serialize
+        // each field as the empty string; the payload shape is stable across
+        // nil vs. non-nil, so the format is unambiguous.
+        let pc = s.pomodoroConfig
         let parts: [String] = [
             s.sessionId,
             s.startTime.iso8601,
@@ -340,6 +348,11 @@ final class SessionService {
             s.blockedProcesses.joined(separator: ","),
             s.allowlistedDomains.joined(separator: ","),
             s.unlockTokenHash ?? "",
+            pc.map { "\($0.strictMode)" } ?? "",
+            pc.map { "\($0.workMinutes)" } ?? "",
+            pc.map { "\($0.breakMinutes)" } ?? "",
+            pc.map { "\($0.longBreakMinutes)" } ?? "",
+            pc.map { "\($0.cyclesBeforeLongBreak)" } ?? "",
         ]
         let payload = parts.joined(separator: "|")
         let mac = HMAC<SHA256>.authenticationCode(for: Data(payload.utf8), using: key)

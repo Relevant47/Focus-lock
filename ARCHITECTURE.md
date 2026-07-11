@@ -128,9 +128,18 @@ Stored at:
 ```
 payload = sessionId|startTime|endTime|hardcoreMode|
           blockedDomains(csv)|blockedProcesses(csv)|
-          allowlistedDomains(csv)|unlockTokenHash
+          allowlistedDomains(csv)|unlockTokenHash|
+          pomodoroConfig.strictMode|pomodoroConfig.workMinutes|
+          pomodoroConfig.breakMinutes|pomodoroConfig.longBreakMinutes|
+          pomodoroConfig.cyclesBeforeLongBreak
 signature = HMAC-SHA256(signingKey, payload)
 ```
+
+When `pomodoroConfig` is `null` (non-pomodoro session) each of its 5
+fields serializes as the empty string. `motivationalMessage`,
+`intention`, and `blockAttempts` are intentionally excluded from the
+payload — the first two are cosmetic strings and the third is a
+running counter that legitimately changes mid-session.
 
 The signing key is a 32-byte random value stored at:
 - Windows: `%ProgramData%\FocusLock\daemon.key` (SYSTEM-only ACL)
