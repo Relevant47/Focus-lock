@@ -162,7 +162,7 @@ export default function BlockLists() {
 
         {/* Suggested */}
         <div className="card p-5">
-          <SectionHeader title="Suggested domains" hint={`One-click adds to custom domains below. These block website domains only — blocking desktop apps (e.g. ${IS_MACOS ? 'Steam, Discord' : 'Steam.exe, Discord.exe'}) is a separate feature coming later.`} />
+          <SectionHeader title="Suggested domains" hint="One-click adds to custom domains below. These block website domains only — to block desktop apps, use the Suggested apps section below." />
           <div className="space-y-3">
             {(['Social', 'Entertainment', 'Gaming', 'News'] as const).map(group => {
               const items = SUGGESTED_GROUPED[group];
