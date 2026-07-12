@@ -306,7 +306,11 @@ export default function Dashboard() {
         <EmptyState
           art="daemon"
           title="Daemon not running"
-          body={`FocusLock needs a background daemon as ${isMac() ? 'root' : 'Administrator'}. Open Settings → Daemon to install, or run ${isMac() ? 'FocusLockDaemon' : 'FocusLockDaemon.exe'} directly.`}
+          body={
+            isMac()
+              ? 'FocusLock needs a background daemon running as root. Open Settings → Daemon to reinstall it, or try quitting and relaunching FocusLock. If the problem persists, restart your Mac.'
+              : 'FocusLock needs a background daemon running as Administrator. Open Settings → Daemon to install, or run FocusLockDaemon.exe directly.'
+          }
         />
       </Page>
     );
