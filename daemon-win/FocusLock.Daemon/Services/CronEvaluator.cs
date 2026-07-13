@@ -44,9 +44,14 @@ public sealed class CronEvaluator
         var hour       = ParseField(parts[1], 0, 23);
         var dayOfMonth = ParseField(parts[2], 1, 31);
         var month      = ParseField(parts[3], 1, 12);
-        var dayOfWeek  = ParseField(parts[4], 0, 6);  // Sunday = 0
+        // POSIX cron treats weekday 7 as Sunday (alias of 0). Accept 0-7 during
+        // parse and collapse 7 → 0 afterwards so a family-pushed rule like
+        // "0 9 * * 7" (Sunday 9am) matches instead of silently failing —
+        // ScheduleService already does this, CronEvaluator did not. See #247.
+        var dayOfWeek  = ParseField(parts[4], 0, 7);
         if (minute == null || hour == null || dayOfMonth == null
             || month == null || dayOfWeek == null) return null;
+        if (dayOfWeek.Remove(7)) dayOfWeek.Add(0);
 
         return new CronEvaluator(true, minute, hour, dayOfMonth, month, dayOfWeek);
     }

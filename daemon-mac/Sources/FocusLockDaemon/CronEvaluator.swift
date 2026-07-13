@@ -27,9 +27,15 @@ struct CronEvaluator {
               let h  = parseField(parts[1], min: 0, max: 23),
               let d  = parseField(parts[2], min: 1, max: 31),
               let mo = parseField(parts[3], min: 1, max: 12),
-              let dw = parseField(parts[4], min: 0, max: 6) else { return nil }
+              // POSIX cron treats weekday 7 as Sunday (alias of 0). Accept 0-7
+              // during parse and collapse 7 → 0 afterwards so a family-pushed
+              // rule like "0 9 * * 7" (Sunday 9am) matches instead of silently
+              // failing — mirrors ScheduleService. See #247.
+              let dw = parseField(parts[4], min: 0, max: 7) else { return nil }
+        var normalizedDw = dw
+        if normalizedDw.remove(7) != nil { normalizedDw.insert(0) }
 
-        return CronEvaluator(minute: m, hour: h, dayOfMonth: d, month: mo, dayOfWeek: dw)
+        return CronEvaluator(minute: m, hour: h, dayOfMonth: d, month: mo, dayOfWeek: normalizedDw)
     }
 
     func matches(_ now: Date) -> Bool {
