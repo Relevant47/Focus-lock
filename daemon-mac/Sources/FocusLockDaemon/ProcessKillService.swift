@@ -135,11 +135,14 @@ final class ProcessKillService {
         let lowered = name.lowercased()
         if Self.protectedNames.contains(lowered) { return false }
         // Also block obvious substrings — NSWorkspace may report "Finder" as
-        // the localized name but the user could disguise input. Match in either
-        // direction so e.g. "WindowServer_helper" or a short alias of a
-        // protected name is also refused.
+        // the localized name but the user could disguise input. Only match
+        // when the running process name CONTAINS a protected name (e.g.
+        // "WindowServer_helper"). The reverse direction was incorrect: a
+        // user-blocked app named "log" is a substring of "loginwindow" and
+        // was silently protected even though nothing about the running
+        // process is protected. See #246.
         for protected in Self.protectedNames {
-            if lowered.contains(protected) || protected.contains(lowered) { return false }
+            if lowered.contains(protected) { return false }
         }
         return true
     }
