@@ -151,7 +151,10 @@ function WeeklyBars({ logs }: { logs: SessionLog[] }) {
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(today); d.setDate(today.getDate() - (6 - i)); return d; });
   const data = days.map(day => {
     const dayStr = day.toDateString();
-    const minutes = Math.round(logs.filter(l => new Date(l.startTime).toDateString() === dayStr && l.endTime)
+    // Only count completed sessions so this matches the heatmap and the
+    // streak counter — otherwise the same day can show 0m in the heatmap
+    // and >0m in the weekly bar for stopped-early sessions.
+    const minutes = Math.round(logs.filter(l => new Date(l.startTime).toDateString() === dayStr && l.endTime && l.completed)
       .reduce((acc, l) => acc + (new Date(l.endTime!).getTime() - new Date(l.startTime).getTime()) / 60_000, 0));
     return { label: day.toLocaleDateString('en', { weekday: 'short' }), minutes, isToday: dayStr === today.toDateString() };
   });
