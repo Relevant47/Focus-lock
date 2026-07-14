@@ -19,7 +19,20 @@ export function registerParentUnlockListener(fn: (p: PendingPrompt) => void) {
   return () => { if (listener === fn) listener = null; };
 }
 
-/** Open the unlock modal. Resolves once verify_parent_pin succeeds, rejects if the user cancels. */
+/**
+ * Thrown by the unlock modal when the user dismisses it (Cancel button or
+ * backdrop click). Distinguished from real verification failures so callers
+ * — and `withParentGate` itself — can swallow it silently instead of
+ * surfacing "Parent unlock cancelled" in a red error banner.
+ */
+export class ParentUnlockCancelledError extends Error {
+  constructor() {
+    super('Parent unlock cancelled');
+    this.name = 'ParentUnlockCancelledError';
+  }
+}
+
+/** Open the unlock modal. Resolves once verify_parent_pin succeeds, rejects with `ParentUnlockCancelledError` if the user cancels. */
 export function promptParentUnlock(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     if (!listener) { reject(new Error('Parent unlock modal not mounted')); return; }
@@ -43,14 +56,22 @@ function isParentLockRequired(err: unknown): boolean {
 
 /**
  * Wrap a gated mutation. If the daemon refuses with `parent_lock_required`,
- * prompt the user, then retry exactly once. Other errors propagate unchanged.
+ * prompt the user, then retry exactly once. If the user cancels the prompt,
+ * resolves to `undefined` — callers should treat that as "user chose not to
+ * proceed" and neither surface an error nor perform side-effects. Other
+ * errors propagate unchanged.
  */
-export async function withParentGate<T>(action: () => Promise<T>): Promise<T> {
+export async function withParentGate<T>(action: () => Promise<T>): Promise<T | undefined> {
   try {
     return await action();
   } catch (err) {
     if (!isParentLockRequired(err)) throw err;
-    await promptParentUnlock();
+    try {
+      await promptParentUnlock();
+    } catch (promptErr) {
+      if (promptErr instanceof ParentUnlockCancelledError) return undefined;
+      throw promptErr;
+    }
     return action();
   }
 }

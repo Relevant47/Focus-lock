@@ -94,7 +94,8 @@ interface Actions {
   /// Regenerate the recovery key. Requires current PIN. Returns the new key.
   regenerateRecoveryKey(pin: string): Promise<string>;
   // Family (cross-device child-side)
-  redeemFamilyCode(code: string, serverUrl: string): Promise<FamilyRedeemResult>;
+  // `undefined` on user cancel of the settings-lock PIN gate; otherwise the pairing result.
+  redeemFamilyCode(code: string, serverUrl: string): Promise<FamilyRedeemResult | undefined>;
   unpairFamily(): Promise<void>;
   checkFamilyEnvironment(): Promise<FamilyEnvironment>;
   /// Authorize a Windows uninstall. Gated by the settings-lock PIN if one is
