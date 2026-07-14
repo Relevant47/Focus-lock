@@ -166,8 +166,10 @@ export const useDaemon = create<State & Actions>((set, get) => ({
         get().loadLogs();
       }
 
-      // Session started notification
-      if (!prev?.sessionActive && next.sessionActive) {
+      // Session started notification. Skip on first status event of the app's
+      // lifetime (prev === null) so relaunching mid-session doesn't fire a
+      // spurious "started" toast for a session that was already running.
+      if (prev !== null && !prev.sessionActive && next.sessionActive) {
         const mins = next.session
           ? Math.round((new Date(next.session.endTime).getTime() - new Date(next.session.startTime).getTime()) / 60000)
           : 0;
