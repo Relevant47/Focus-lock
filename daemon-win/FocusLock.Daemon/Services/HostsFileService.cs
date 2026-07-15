@@ -17,13 +17,23 @@ public sealed class HostsFileService
             @"drivers\etc\hosts");
 
     // ASCII-only markers. Pre-v1.1.6 these had Unicode em-dashes (──) but the
-    // file is written with `Encoding.ASCII`, which silently turns them into `?`
-    // on disk. The next Apply's `IndexOf(...)` searched for the (still-Unicode)
-    // in-memory marker, never matched the corrupted on-disk form, and appended
-    // a fresh block instead of replacing — one new block per 30s re-enforce
-    // tick. Issue #62 (113 duplicates observed on a real dev box).
+    // file was written with `Encoding.ASCII`, which silently turned them into
+    // `?` on disk. The next Apply's `IndexOf(...)` searched for the (still-
+    // Unicode) in-memory marker, never matched the corrupted on-disk form, and
+    // appended a fresh block instead of replacing — one new block per 30s
+    // re-enforce tick. Issue #62 (113 duplicates observed on a real dev box).
+    // Keeping the markers ASCII-clean is defensive: we now write UTF-8 so
+    // this is no longer strictly required, but the mac side uses the same
+    // ASCII markers and staying identical simplifies the strip regex.
     private const string BlockMarkerStart = "# FocusLock START";
     private const string BlockMarkerEnd   = "# FocusLock END";
+
+    // UTF-8 without BOM matches the Windows/Unix hosts-file convention and the
+    // macOS daemon (HostsService.swift writes .utf8). Prior versions wrote
+    // Encoding.ASCII, silently transcoding any non-ASCII bytes in the user's
+    // pre-existing hosts content (BOMs, unicode comments, IDNs) to `?` on
+    // every 30-second re-enforce tick. Issue #259.
+    private static readonly Encoding HostsEncoding = new UTF8Encoding(false);
 
     // Permissive regex: matches the canonical ASCII markers AND the legacy
     // em-dashed AND ASCII-corrupted (`# ?? FocusLock START ??`) forms, so
@@ -132,7 +142,7 @@ public sealed class HostsFileService
 
         if (domains.Count == 0)
         {
-            File.WriteAllText(HostsPath, cleaned.Length > 0 ? cleaned + "\r\n" : string.Empty, Encoding.ASCII);
+            File.WriteAllText(HostsPath, cleaned.Length > 0 ? cleaned + "\r\n" : string.Empty, HostsEncoding);
             return;
         }
 
@@ -149,7 +159,7 @@ public sealed class HostsFileService
             sb.AppendLine($"127.0.0.1 {d}");
         sb.AppendLine(BlockMarkerEnd);
 
-        File.WriteAllText(HostsPath, sb.ToString(), Encoding.ASCII);
+        File.WriteAllText(HostsPath, sb.ToString(), HostsEncoding);
     }
 
     /// <summary>
