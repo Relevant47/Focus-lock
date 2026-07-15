@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using FocusLock.Daemon.Models;
 using Microsoft.Extensions.Logging;
@@ -96,9 +97,13 @@ public sealed class ProcessKillService
                         proc.ProcessName, proc.Id);
                 }
             }
-            catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is InvalidOperationException
+                                            or UnauthorizedAccessException
+                                            or Win32Exception)
             {
-                // Process already exited or access denied — ignore
+                // Process already exited, access denied, or Win32-level failure
+                // (e.g. ERROR_ACCESS_DENIED for cross-session/other-user processes)
+                // — swallow so the loop keeps scanning the remaining PIDs on this tick.
             }
             finally
             {
