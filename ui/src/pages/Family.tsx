@@ -36,8 +36,10 @@ export default function Family() {
 
   // Tamper / extended-offline alerts: poll the local audit log when this is a
   // paired child device or when a parent is signed in, fire OS notifications
-  // for tamper-class events that we haven't seen before.
-  useTamperAlerts(showChildView || !!session);
+  // for tamper-class events that we haven't seen before. Paused (and surfaced
+  // via a badge below) when a settings-lock PIN is set but not entered — see
+  // issue #263.
+  const { paused: tamperPaused } = useTamperAlerts(showChildView || !!session);
 
   // Watch for new approval-request notifications and fire an OS notification
   // when a new one first appears.
@@ -66,6 +68,16 @@ export default function Family() {
             </button>
           }
         />
+        {tamperPaused && (
+          <div className="mb-4 flex items-start gap-2 rounded-md border border-warn/30 bg-warn/5 px-3 py-2 text-xs text-muted">
+            <Icon.Shield size={12} className="mt-0.5 text-warn shrink-0" />
+            <span>
+              <span className="text-text font-medium">Rule integrity check paused</span> — settings-lock
+              PIN is set but not entered this session. Local rule tampering won't trigger an alert until
+              a parent unlocks.
+            </span>
+          </div>
+        )}
         {showChildView
           ? <ChildPairedView family={family!} />
           : session ? <SignedInView /> : <SignedOutView mode={signedOutMode} onModeChange={setSignedOutMode} />}
@@ -89,7 +101,7 @@ export default function Family() {
 const TAMPER_LAST_SEEN_KEY = 'focus-lock:family-tamper-last-seen';
 const TAMPER_POLL_INTERVAL_MS = 60_000;
 
-function useTamperAlerts(active: boolean) {
+function useTamperAlerts(active: boolean): { paused: boolean } {
   const loadParentAudit = useDaemon(s => s.loadParentAudit);
   const enabled = useDaemon(s => !!s.status?.parentControls?.enabled);
   const parentToken = useDaemon(s => s.parentToken);
@@ -105,11 +117,12 @@ function useTamperAlerts(active: boolean) {
 
   // Poll loop. We skip when a settings-lock PIN is set and the parent hasn't
   // unlocked it this session — the daemon will refuse the read anyway, and
-  // we'd just keep tripping the parent-unlock modal.
+  // we'd just keep tripping the parent-unlock modal. When we do skip, callers
+  // surface a badge so the parent knows monitoring is off (#263).
+  const unlocked = !!parentToken && !!parentTokenExpiresAt && parentTokenExpiresAt > Date.now();
+  const paused = active && enabled && !unlocked;
   useEffect(() => {
-    if (!active) return;
-    const unlocked = !!parentToken && !!parentTokenExpiresAt && parentTokenExpiresAt > Date.now();
-    if (enabled && !unlocked) return;
+    if (!active || paused) return;
 
     let cancelled = false;
     const tick = () => {
@@ -119,7 +132,7 @@ function useTamperAlerts(active: boolean) {
     tick();
     const t = window.setInterval(tick, TAMPER_POLL_INTERVAL_MS);
     return () => { cancelled = true; window.clearInterval(t); };
-  }, [active, enabled, parentToken, parentTokenExpiresAt, loadParentAudit]);
+  }, [active, paused, loadParentAudit]);
 
   // React to new entries that crossed our last-seen marker. Fires after each
   // audit reload completes (entries reference identity changes).
@@ -142,6 +155,8 @@ function useTamperAlerts(active: boolean) {
       localStorage.setItem(TAMPER_LAST_SEEN_KEY, String(highest));
     }
   }, [active, entries]);
+
+  return { paused };
 }
 
 function fireTamperNotification(event: string, detail: string | null) {
