@@ -23,11 +23,16 @@ struct CronEvaluator {
         let parts = expr.split(separator: " ").map(String.init)
         guard parts.count == 5 else { return nil }
 
+        // POSIX cron treats weekday 7 as Sunday (alias of 0). Accept 0-7 during
+        // parse and collapse 7 → 0 afterwards so a family-pushed rule like
+        // "0 9 * * 7" (Sunday 9am) matches instead of silently failing —
+        // ScheduleService already does this, CronEvaluator did not. See #273.
         guard let m  = parseField(parts[0], min: 0, max: 59),
               let h  = parseField(parts[1], min: 0, max: 23),
               let d  = parseField(parts[2], min: 1, max: 31),
               let mo = parseField(parts[3], min: 1, max: 12),
-              let dw = parseField(parts[4], min: 0, max: 6) else { return nil }
+              var dw = parseField(parts[4], min: 0, max: 7) else { return nil }
+        if dw.remove(7) != nil { dw.insert(0) }
 
         return CronEvaluator(minute: m, hour: h, dayOfMonth: d, month: mo, dayOfWeek: dw)
     }
