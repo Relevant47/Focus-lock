@@ -10,10 +10,42 @@ private final class PomodoroState {
     private var phaseEnd: Date
     private var completedCycles = 0
 
-    init(config: PomodoroConfig, sessionStart: Date) {
+    init(config: PomodoroConfig, sessionStart: Date, now: Date = Date()) {
         self.config = config
-        self.phaseEnd = sessionStart.addingTimeInterval(Double(config.workMinutes) * 60)
-        self.secondsRemaining = phaseEnd.timeIntervalSinceNow
+        // Fast-forward the phase sequence from sessionStart to `now` so a
+        // daemon restart mid-session lands in the phase that actually straddles
+        // now, not always in "work" starting at sessionStart. Without this, any
+        // restart after the first work cycle spuriously flips phase on the
+        // very next tick.
+        // max(1, …) on the minute values guarantees each iteration advances
+        // phaseEnd by at least 60s, so a pathological zero-minute config
+        // can't spin forever; the 100k iteration cap is a belt-and-suspenders.
+        let workSec = Double(max(1, config.workMinutes)) * 60
+        let breakSec = Double(max(1, config.breakMinutes)) * 60
+        let longBreakSec = Double(max(1, config.longBreakMinutes)) * 60
+        let cyclesBefore = max(1, config.cyclesBeforeLongBreak)
+
+        var currentPhase = "work"
+        var currentEnd = sessionStart.addingTimeInterval(workSec)
+        var cycles = 0
+        var guardCount = 0
+        while currentEnd <= now && guardCount < 100_000 {
+            guardCount += 1
+            if currentPhase == "work" {
+                cycles += 1
+                let long = cycles % cyclesBefore == 0
+                currentPhase = long ? "long_break" : "break"
+                currentEnd = currentEnd.addingTimeInterval(long ? longBreakSec : breakSec)
+            } else {
+                currentPhase = "work"
+                currentEnd = currentEnd.addingTimeInterval(workSec)
+            }
+        }
+
+        self.phase = currentPhase
+        self.phaseEnd = currentEnd
+        self.secondsRemaining = phaseEnd.timeIntervalSince(now)
+        self.completedCycles = cycles
     }
 
     func tick(now: Date) {
