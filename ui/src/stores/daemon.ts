@@ -65,6 +65,10 @@ interface State {
   /// ChildPairedView to disable the Ask button on sibling rows while one
   /// is pending, mirroring the server-side `pending_exists` rule.
   pendingRequestIds: string[];
+  /// Handle for the `daemon-status` event subscription registered in init().
+  /// Stored so a second init() (e.g. from SetupRequired after registration)
+  /// can tear down the prior listener instead of stacking duplicates.
+  _unlistenDaemonStatus: (() => void) | null;
 }
 
 interface Actions {
@@ -142,11 +146,17 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   parentTokenExpiresAt: null,
   parentAudit: [],
   pendingRequestIds: [],
+  _unlistenDaemonStatus: null,
 
   async init() {
     await requestNotificationPermission();
 
-    listen<DaemonStatus | null>('daemon-status', (event) => {
+    // If a prior init() already registered a listener (e.g. App.tsx mount +
+    // SetupRequired.tsx post-registration), tear it down so we don't stack
+    // duplicate subscribers that fire every notification/reload twice.
+    get()._unlistenDaemonStatus?.();
+
+    const unlisten = await listen<DaemonStatus | null>('daemon-status', (event) => {
       const prev = get().status;
       const next = event.payload;
 
@@ -187,6 +197,7 @@ export const useDaemon = create<State & Actions>((set, get) => ({
 
       set({ connected: true, status: next });
     });
+    set({ _unlistenDaemonStatus: unlisten });
 
     await Promise.allSettled([
       get().loadProfiles(),
