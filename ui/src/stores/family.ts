@@ -203,9 +203,13 @@ export const useFamily = create<Store>((set, get) => ({
     } catch (e) {
       if (e instanceof FamilyApiError && e.status === 409) {
         // Already resolved by another path — refresh notifications so the card
-        // updates with the new status.
+        // updates with the new status. Not an error the caller needs to see.
         await get().loadNotifications();
-      } else { console.warn('approveRequest failed', id, e); }
+        return;
+      }
+      // Rethrow so the caller can surface a retry-able error to the user
+      // instead of silently marking the notification as read.
+      throw e;
     }
   },
 
@@ -218,7 +222,9 @@ export const useFamily = create<Store>((set, get) => ({
     } catch (e) {
       if (e instanceof FamilyApiError && e.status === 409) {
         await get().loadNotifications();
-      } else { console.warn('denyRequest failed', id, e); }
+        return;
+      }
+      throw e;
     }
   },
 

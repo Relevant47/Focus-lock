@@ -125,6 +125,7 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
   const approveRequest = useFamily(s => s.approveRequest);
   const denyRequest    = useFamily(s => s.denyRequest);
   const [busy, setBusy] = useState<'approve' | 'deny' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const expiresAt = request?.expiresAt ?? null;
   const secondsLeft = useCountdown(expiresAt);
@@ -133,14 +134,24 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
   async function approve() {
     if (busy) return;
     setBusy('approve');
-    try { await approveRequest(request!.id); onMarkRead(); }
-    finally { setBusy(null); }
+    setError(null);
+    try {
+      await approveRequest(request!.id);
+      onMarkRead();
+    } catch {
+      setError('Failed to approve. Check your connection and try again.');
+    } finally { setBusy(null); }
   }
   async function deny() {
     if (busy) return;
     setBusy('deny');
-    try { await denyRequest(request!.id); onMarkRead(); }
-    finally { setBusy(null); }
+    setError(null);
+    try {
+      await denyRequest(request!.id);
+      onMarkRead();
+    } catch {
+      setError('Failed to deny. Check your connection and try again.');
+    } finally { setBusy(null); }
   }
 
   if (!request) {
@@ -172,6 +183,7 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
               {busy === 'deny' ? 'Working…' : 'Deny'}
             </button>
           </div>
+          {error && <p className="text-xs text-danger mt-2">{error}</p>}
         </>
       )}
       {request.status === 'approved' && (
