@@ -6,6 +6,7 @@ import { cn } from '../lib/cn';
 import { fmtClock } from '../lib/fmt';
 import { getDailyGoal, minutesToday } from '../lib/goal';
 import { familyEnabled } from '../lib/familyApi';
+import { IS_MACOS } from '../lib/platform';
 
 interface LinkDef { to: string; label: string; Icon: (p: any) => JSX.Element; end?: boolean; }
 
@@ -194,10 +195,10 @@ export default function Nav() {
         </div>
       )}
 
-      {/* ⌘K hint */}
+      {/* Command palette hint — platform-aware modifier glyph. */}
       <div className="mt-auto pt-4 px-2">
         <div className="flex items-center gap-1.5 text-[10px] text-faint">
-          <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface/60 text-[10px] font-mono leading-none">⌘</kbd>
+          <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface/60 text-[10px] font-mono leading-none">{IS_MACOS ? '⌘' : 'Ctrl'}</kbd>
           <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface/60 text-[10px] font-mono leading-none">K</kbd>
           <span>command palette</span>
         </div>
