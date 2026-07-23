@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
+    <OutputType>WinExe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>FocusLockUsageTracker</AssemblyName>
+    <RootNamespace>FocusLock.Tracker</RootNamespace>
+    <Version>1.1.3</Version>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
+  <!-- No NuGet package references by design (Phase 3 spec). We rely solely on
+       the .NET 8 SDK: named pipes, P/Invoke, System.Text.Json. Deliberately
+       does NOT reference FocusLock.Daemon — the tracker is a separate process
+       that talks to the daemon over the named pipe. -->
+
+</Project>
