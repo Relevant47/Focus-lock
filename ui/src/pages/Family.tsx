@@ -1016,6 +1016,7 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
   const [domains, setDomains] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [unblocking, setUnblocking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const activeUnblockAll = rules.find(r => r.kind === 'unblock_all' && r.active);
 
@@ -1025,9 +1026,9 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
     const appList = apps.split(',').map(s => s.trim()).filter(Boolean);
     const domainList = domains.split(',').map(s => s.trim()).filter(Boolean);
     if (appList.length === 0 && domainList.length === 0) return;
-    setSubmitting(true);
+    setSubmitting(true); setError(null);
     try { await blockNow(device.id, appList, domainList); setApps(''); setDomains(''); }
-    catch { /* error in store */ }
+    catch (e) { setError(e instanceof Error ? e.message : 'Failed to create block — try again'); }
     finally { setSubmitting(false); }
   }
 
@@ -1035,9 +1036,9 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
     if (activeUnblockAll) {
       // Toggle off: remove the existing kill-switch rule.
       if (!window.confirm('Re-enable all family rules on this device?')) return;
-      setUnblocking(true);
+      setUnblocking(true); setError(null);
       try { await removeRule(device.id, activeUnblockAll.id); }
-      catch { /* error in store */ }
+      catch (e) { setError(e instanceof Error ? e.message : 'Failed to re-enable rules — try again'); }
       finally { setUnblocking(false); }
       return;
     }
@@ -1045,15 +1046,17 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
       `Lift ALL family rules on ${device.hostname ?? 'this device'}?\n\n` +
       "Block-now and scheduled rules will be suppressed until you clear the unblock. The kid will be able to use everything until then. Use this for emergencies only — homework site got blocked, kid needs to call you, etc."
     )) return;
-    setUnblocking(true);
+    setUnblocking(true); setError(null);
     try { await emergencyUnblock(device.id); }
-    catch { /* error in store */ }
+    catch (e) { setError(e instanceof Error ? e.message : 'Failed to lift locks — try again'); }
     finally { setUnblocking(false); }
   }
 
   async function confirmUnpair() {
     if (!window.confirm(`Unpair ${device.hostname ?? 'this device'}? All cloud rules for it will be deleted. The local FocusLock install on that machine will keep running but will no longer receive remote commands.`)) return;
-    try { await unpairDevice(device.id); } catch { /* error in store */ }
+    setError(null);
+    try { await unpairDevice(device.id); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Failed to unpair — try again'); }
   }
 
   return (
@@ -1078,6 +1081,23 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
 
       {expanded && (
         <div className="space-y-3 pt-2 border-t border-border/50">
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start justify-between gap-2 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger"
+            >
+              <span className="min-w-0 break-words">{error}</span>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="text-danger/70 hover:text-danger shrink-0"
+                aria-label="Dismiss error"
+              >
+                <Icon.Close size={12} />
+              </button>
+            </div>
+          )}
+
           {/* Emergency unblock — at the top because it's the panic button */}
           <div className={cn(
             'rounded-md border p-3',
