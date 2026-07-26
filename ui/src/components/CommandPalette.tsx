@@ -5,7 +5,7 @@ import { useDaemon } from '../stores/daemon';
 import { getTheme, setTheme } from '../stores/theme';
 import { Icon } from './Icons';
 import { cn } from '../lib/cn';
-import type { SessionLog } from '../types';
+import { CATEGORY_DOMAINS, type SessionLog } from '../types';
 
 interface Command {
   id: string;
@@ -98,7 +98,10 @@ export default function CommandPalette() {
         disabled: sessionActive,
         run: () => start({
           profileId: p.id, durationMinutes: p.defaultDurationMinutes,
-          blockedDomains: [...p.customBlockedDomains],
+          blockedDomains: [
+            ...p.blockedCategories.flatMap(c => CATEGORY_DOMAINS[c as keyof typeof CATEGORY_DOMAINS] ?? []),
+            ...p.customBlockedDomains,
+          ],
           blockedProcesses: p.customBlockedProcesses,
           allowlistedDomains: p.allowlistedDomains,
           hardcoreMode: p.hardcoreMode, pomodoroConfig: p.pomodoroConfig,
