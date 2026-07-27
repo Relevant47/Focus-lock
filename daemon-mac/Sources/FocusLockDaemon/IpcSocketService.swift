@@ -19,7 +19,11 @@ final class IpcSocketService {
 
     private let jsonEnc: JSONEncoder = {
         let e = JSONEncoder()
-        e.keyEncodingStrategy = .convertToSnakeCase
+        // Wire format is camelCase (see shared/protocol.ts). Do NOT enable
+        // keyEncodingStrategy = .convertToSnakeCase — it cascades through
+        // AnyCodable into every auto-synthesised struct and turns every
+        // response field snake_case, which the UI (reading camelCase) then
+        // reads as `undefined`.
         e.dateEncodingStrategy = .iso8601
         return e
     }()
