@@ -198,14 +198,27 @@ export const useFamily = create<Store>((set, get) => ({
     const s = get().session;
     if (!s) return;
     try {
-      const { request } = await familyRequests.approve(s.token, id);
+      const { request, rule } = await familyRequests.approve(s.token, id);
       set({ requestsById: { ...get().requestsById, [id]: request } });
+      // Server returns the freshly-created unblock rule alongside the request.
+      // Hydrate rulesByDevice so the parent UI reflects the new rule immediately
+      // instead of waiting for the next manual loadRules() pass.
+      if (rule) {
+        const deviceId = request.deviceId;
+        const existing = get().rulesByDevice[deviceId] ?? [];
+        set({ rulesByDevice: { ...get().rulesByDevice, [deviceId]: [rule, ...existing] } });
+      }
     } catch (e) {
       if (e instanceof FamilyApiError && e.status === 409) {
         // Already resolved by another path — refresh notifications so the card
         // updates with the new status.
         await get().loadNotifications();
-      } else { console.warn('approveRequest failed', id, e); }
+      } else {
+        // Re-throw so the caller (ApprovalRequestCard) skips onMarkRead() and
+        // surfaces the failure instead of silently marking the notification read.
+        console.warn('approveRequest failed', id, e);
+        throw e;
+      }
     }
   },
 

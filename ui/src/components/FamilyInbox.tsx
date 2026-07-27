@@ -133,8 +133,15 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
   async function approve() {
     if (busy) return;
     setBusy('approve');
-    try { await approveRequest(request!.id); onMarkRead(); }
-    finally { setBusy(null); }
+    try {
+      await approveRequest(request!.id);
+      onMarkRead();
+    } catch (e) {
+      // approveRequest re-throws non-409 errors so we can skip onMarkRead()
+      // and leave the notification unread — the parent will see a stale card
+      // instead of a silently-vanished one.
+      console.warn('approve failed', e);
+    } finally { setBusy(null); }
   }
   async function deny() {
     if (busy) return;
