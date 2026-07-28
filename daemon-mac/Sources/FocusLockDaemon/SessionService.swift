@@ -250,11 +250,15 @@ final class SessionService {
 
     private func finalizeSession(completed: Bool) {
         guard let active = _active else { return }
+        // For naturally-completed sessions use the scheduled endTime —
+        // expired-while-offline sessions (sleep/crash/shutdown) would
+        // otherwise log the daemon-restart time and show hours of ghost
+        // focus in Analytics totals.
         let log = SessionLog(
             sessionId: active.sessionId,
             profileId: active.profileId,
             startTime: active.startTime,
-            endTime: Date(),
+            endTime: completed ? active.endTime : Date(),
             completed: completed,
             blockAttempts: _blockAttempts,
             focusScore: calculateScore(completed: completed),
