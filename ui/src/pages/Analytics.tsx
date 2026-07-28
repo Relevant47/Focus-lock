@@ -19,7 +19,9 @@ function computeStreaks(logs: SessionLog[]) {
   const sorted = Array.from(days).map(s => new Date(s)).sort((a, b) => a.getTime() - b.getTime());
   let longest = 1, run = 1;
   for (let i = 1; i < sorted.length; i++) {
-    const diff = (sorted[i].getTime() - sorted[i - 1].getTime()) / 86_400_000;
+    // Local-midnight diff can be 23h or 25h across DST transitions; round to the
+    // nearest whole day so a spring-forward or fall-back night doesn't break the run.
+    const diff = Math.round((sorted[i].getTime() - sorted[i - 1].getTime()) / 86_400_000);
     run = diff === 1 ? run + 1 : 1;
     if (run > longest) longest = run;
   }
