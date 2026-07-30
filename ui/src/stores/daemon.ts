@@ -262,7 +262,7 @@ export const useDaemon = create<State & Actions>((set, get) => ({
     await get().loadSchedules();
   },
 
-  async loadLogs(limit = 50) {
+  async loadLogs(limit = 100) {
     const res = await request('get_logs', { limit }).catch(() => null);
     if (res?.payload) set({ logs: res.payload as SessionLog[] });
   },
