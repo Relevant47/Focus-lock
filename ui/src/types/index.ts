@@ -16,6 +16,13 @@ export type {
   FamilyRedeemPayload,
   FamilyRedeemResult,
   LocalUserAccount,
+  UsageRetentionDays,
+  UsageReportSamplePayload,
+  UsageQueryPayload,
+  UsageQueryRow,
+  UsageQueryResult,
+  UsageSetSettingsPayload,
+  UsageGetSettingsResult,
 } from '@shared/protocol';
 
 export { CATEGORY_DOMAINS } from '@shared/protocol';
