@@ -10,6 +10,11 @@ import type {
   ScheduledSession,
   SessionLog,
   StartSessionPayload,
+  UsageGetSettingsResult,
+  UsageQueryPayload,
+  UsageQueryResult,
+  UsageRetentionDays,
+  UsageSetSettingsPayload,
 } from '../types';
 import type { RequestUnblockResult } from '@shared/protocol';
 import { type DaemonError, withParentGate } from '../lib/parentGate';
@@ -65,6 +70,16 @@ interface State {
   /// ChildPairedView to disable the Ask button on sibling rows while one
   /// is pending, mirroring the server-side `pending_exists` rule.
   pendingRequestIds: string[];
+  /// Device-local usage-analytics settings. Off by default. `loaded` gates
+  /// UI so the Usage page can distinguish "haven't fetched yet" from
+  /// "confirmed disabled". Hydrated by `loadUsageSettings()`.
+  usageTracking: {
+    enabled: boolean;
+    retention_days: UsageRetentionDays;
+    sample_rate_seconds: number;
+    enabled_at_utc: string | null;
+    loaded: boolean;
+  };
 }
 
 interface Actions {
@@ -121,6 +136,23 @@ interface Actions {
   /// v1.4.1: clear an approval-request id when it resolves (status leaves
   /// 'pending') or the row unmounts. Idempotent on unknown ids.
   untrackPendingRequest(id: string): void;
+  // ── Usage analytics ──────────────────────────────────────────────────────
+  /// Fetch settings from the daemon and hydrate the `usageTracking` slice.
+  /// Sets `loaded: true` regardless of the enabled state.
+  loadUsageSettings(): Promise<void>;
+  /// Turn on collection (creates the DB, seeds meta on first call).
+  /// Refreshes the slice via loadUsageSettings.
+  enableUsage(): Promise<void>;
+  /// Turn off collection. Existing samples are retained (use
+  /// `clearAllUsageData` to erase). Refreshes the slice to defaults.
+  disableUsage(): Promise<void>;
+  /// Patch retention_days and/or sample_rate_seconds. Refreshes the slice.
+  setUsageSettings(patch: UsageSetSettingsPayload): Promise<void>;
+  /// Delete every row in usage_samples. Refreshes the slice.
+  clearAllUsageData(): Promise<void>;
+  /// One-shot aggregated query. Result is transient — not stored on the
+  /// store; callers hold it in local component state.
+  queryUsage(params: UsageQueryPayload): Promise<UsageQueryResult>;
 }
 
 interface ParentTokenPayload { token: string; expiresAt: string }
@@ -142,6 +174,13 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   parentTokenExpiresAt: null,
   parentAudit: [],
   pendingRequestIds: [],
+  usageTracking: {
+    enabled: false,
+    retention_days: 90,
+    sample_rate_seconds: 5,
+    enabled_at_utc: null,
+    loaded: false,
+  },
 
   async init() {
     await requestNotificationPermission();
@@ -424,7 +463,79 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       pendingRequestIds: s.pendingRequestIds.filter((x) => x !== id),
     }));
   },
+
+  // ── Usage analytics ────────────────────────────────────────────────────────
+  // NOTE: usage.* commands are user-controlled and MUST NOT be wrapped in
+  // withParentGate. They also never carry a parentToken — the daemon rejects
+  // one on this surface. See docs/usage-analytics-schema.md.
+
+  async loadUsageSettings() {
+    const res = await request('usage.get_settings');
+    if (res.type !== 'usage_settings' || !res.payload) {
+      throw new Error('Unexpected response from daemon');
+    }
+    const p = res.payload as UsageGetSettingsResult;
+    set({
+      usageTracking: {
+        enabled: p.enabled,
+        retention_days: p.retention_days,
+        sample_rate_seconds: p.sample_rate_seconds,
+        enabled_at_utc: p.enabled_at_utc,
+        loaded: true,
+      },
+    });
+  },
+
+  async enableUsage() {
+    await request('usage.enable');
+    await get().loadUsageSettings();
+  },
+
+  async disableUsage() {
+    await request('usage.disable');
+    // Reset slice to defaults locally; loadUsageSettings would repopulate,
+    // but the daemon may already have zeroed enabled_at_utc so we mirror
+    // the spec exactly and let the next explicit load reconcile.
+    set({
+      usageTracking: {
+        enabled: false,
+        retention_days: 90,
+        sample_rate_seconds: 5,
+        enabled_at_utc: null,
+        loaded: true,
+      },
+    });
+  },
+
+  async setUsageSettings(patch) {
+    await request('usage.set_settings', patch);
+    await get().loadUsageSettings();
+  },
+
+  async clearAllUsageData() {
+    await request('usage.clear_all_data');
+    await get().loadUsageSettings();
+  },
+
+  async queryUsage(params) {
+    const res = await request('usage.query', params);
+    if (res.type !== 'usage_query_result' || !res.payload) {
+      throw new Error('Unexpected response from daemon');
+    }
+    return res.payload as UsageQueryResult;
+  },
 }));
+
+// Dev-only escape hatch for screenshot / storybook / E2E flows: exposes
+// the raw Zustand store on window so a Vite-dev-standalone session (which
+// can't reach the Tauri IPC) can seed connected/bootChecked and the
+// usageTracking slice from DevTools without wiring up a real daemon.
+// Stripped from the production bundle by Vite's DCE — `import.meta.env.DEV`
+// is a compile-time constant.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as { __focusLockDaemonStore?: typeof useDaemon })
+    .__focusLockDaemonStore = useDaemon;
+}
 
 // Ergonomic selector for "is a session running right now?" — used by every
 // Start surface (Dashboard, BlockLists, Quick Start chips, the new

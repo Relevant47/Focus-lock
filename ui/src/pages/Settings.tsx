@@ -11,6 +11,56 @@ import { AUDIT_EVENT_LABEL, formatAuditTime } from '../lib/auditEvents';
 import { useSurvey } from '../stores/survey';
 import { IS_MACOS } from '../lib/platform';
 
+// ── Lightweight confirm modal (used by Usage tracking) ──────────────────────
+// Deliberately smaller than HardcoreConfirmModal — no phrase-typing gate. For
+// destructive-but-reversible actions ("clear all data", "turn off tracking")
+// where a single confirmation is enough friction.
+function ConfirmModal({
+  open, title, body, confirmLabel, danger, busy, onCancel, onConfirm,
+}: {
+  open: boolean;
+  title: string;
+  body: string;
+  confirmLabel: string;
+  danger?: boolean;
+  busy?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div
+        onClick={e => e.stopPropagation()}
+        className={cn(
+          'w-full max-w-md mx-4 bg-surface border rounded-2xl shadow-hero overflow-hidden',
+          danger ? 'border-danger/40' : 'border-border',
+        )}
+      >
+        <div className="p-6">
+          <h2 className="text-lg font-semibold tracking-tightish text-text">{title}</h2>
+          <p className="text-sm text-muted mt-2 leading-relaxed">{body}</p>
+        </div>
+        <div className="flex items-center justify-between gap-3 px-6 py-3 border-t border-border bg-bg/30">
+          <button onClick={onCancel} className="text-sm text-muted hover:text-text transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={busy}
+            className={cn(
+              danger ? 'btn-danger' : 'btn-primary',
+              'px-4 py-2 text-sm disabled:opacity-40',
+            )}
+          >
+            {busy ? 'Working…' : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Section primitive ────────────────────────────────────────────────────────
 function Section({
   title, hint, danger, children,
@@ -111,7 +161,8 @@ function useCooldownTimer(isoString: string | null | undefined) {
 }
 
 export default function Settings() {
-  const { connected, status, requestDisableHardcore, setParentPin, changeParentPin, clearParentPin, loadParentAudit, parentAudit, parentToken, parentTokenExpiresAt, regenerateRecoveryKey, authorizeUninstall } = useDaemon();
+  const { connected, status, requestDisableHardcore, setParentPin, changeParentPin, clearParentPin, loadParentAudit, parentAudit, parentToken, parentTokenExpiresAt, regenerateRecoveryKey, authorizeUninstall,
+    usageTracking, loadUsageSettings, enableUsage, disableUsage, setUsageSettings, clearAllUsageData } = useDaemon();
   const [theme, setThemeState] = useState<Theme>(getTheme());
   const [goalMinutes, setGoalMinutesState] = useState(getDailyGoal());
   const [token, setToken] = useState('');
@@ -146,6 +197,51 @@ export default function Settings() {
     setSurveyDeleting(true);
     try { await deleteMyResponse(); setSurveyDeleted(true); } catch { /* surface nothing — best effort */ }
     finally { setSurveyDeleting(false); }
+  }
+
+  // Usage tracking (opt-in, local-only, per Phase 4 spec).
+  // PLACEHOLDER COPY — Oscar to refine in Phase 5.
+  const [usageError, setUsageError] = useState('');
+  const [usageBusy, setUsageBusy] = useState(false);
+  const [usageConfirm, setUsageConfirm] =
+    useState<null | 'disable' | 'clear'>(null);
+
+  useEffect(() => {
+    // Hydrate once on mount. Failure here just means the daemon is down or
+    // the feature is unavailable — the UI falls back to the first-run state
+    // (enabled=false, loaded=false), which is safe.
+    loadUsageSettings().catch(() => { /* silent — first-run state renders */ });
+  }, [loadUsageSettings]);
+
+  async function handleEnableUsage() {
+    setUsageError(''); setUsageBusy(true);
+    try { await enableUsage(); }
+    catch (e) { setUsageError(e instanceof Error ? e.message : 'Failed to enable'); }
+    finally { setUsageBusy(false); }
+  }
+
+  async function handleDisableUsage() {
+    setUsageError(''); setUsageBusy(true);
+    try { await disableUsage(); setUsageConfirm(null); }
+    catch (e) { setUsageError(e instanceof Error ? e.message : 'Failed to disable'); }
+    finally { setUsageBusy(false); }
+  }
+
+  async function handleClearUsage() {
+    setUsageError(''); setUsageBusy(true);
+    try { await clearAllUsageData(); setUsageConfirm(null); }
+    catch (e) { setUsageError(e instanceof Error ? e.message : 'Failed to clear'); }
+    finally { setUsageBusy(false); }
+  }
+
+  async function handleRetentionChange(v: string) {
+    setUsageError(''); setUsageBusy(true);
+    try {
+      const retention_days = v === 'forever' ? 'forever' : (Number(v) as 30|90|180|365);
+      await setUsageSettings({ retention_days });
+    } catch (e) {
+      setUsageError(e instanceof Error ? e.message : 'Failed to update retention');
+    } finally { setUsageBusy(false); }
   }
 
   const parentEnabled = !!status?.parentControls?.enabled;
@@ -313,6 +409,59 @@ export default function Settings() {
                   {surveyDeleting ? 'Removing…' : surveyDeleted ? 'Removed' : 'Delete my response'}
                 </button>
               </Row>
+            )}
+          </Section>
+
+          {/* Usage tracking — Phase 4. PLACEHOLDER COPY. */}
+          <Section title="Usage tracking" hint="See where your time actually goes. Local-only, opt-in, wiped when you disable it.">
+            {!usageTracking.enabled ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted leading-relaxed">
+                  Track which apps are in the foreground and how long, then see the breakdown on the <span className="text-text">Usage</span> page. Nothing leaves your device.
+                </p>
+                <button
+                  onClick={handleEnableUsage}
+                  disabled={usageBusy}
+                  className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Icon.Chart size={15} /> Set up usage tracking
+                </button>
+                {usageError && <p className="text-xs text-danger">{usageError}</p>}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Row label="Tracking" sub={usageTracking.enabled_at_utc ? `On since ${new Date(usageTracking.enabled_at_utc).toLocaleDateString()}` : 'On'}>
+                  <Toggle
+                    on={usageTracking.enabled}
+                    onChange={() => setUsageConfirm('disable')}
+                    disabled={usageBusy}
+                  />
+                </Row>
+                <Row label="Keep history for" sub={`Older samples are pruned automatically. Sampling every ${usageTracking.sample_rate_seconds}s.`}>
+                  <select
+                    value={String(usageTracking.retention_days)}
+                    onChange={e => handleRetentionChange(e.target.value)}
+                    disabled={usageBusy}
+                    className="input-base px-3 py-1.5 text-xs disabled:opacity-50"
+                  >
+                    <option value="30">30 days</option>
+                    <option value="90">90 days</option>
+                    <option value="180">180 days</option>
+                    <option value="365">365 days</option>
+                    <option value="forever">Forever</option>
+                  </select>
+                </Row>
+                <Row label="Clear all history" sub="Delete every stored sample. Tracking stays on.">
+                  <button
+                    onClick={() => setUsageConfirm('clear')}
+                    disabled={usageBusy}
+                    className="btn-ghost px-4 py-2 text-sm text-danger disabled:opacity-50"
+                  >
+                    Clear all data
+                  </button>
+                </Row>
+                {usageError && <p className="text-xs text-danger">{usageError}</p>}
+              </div>
             )}
           </Section>
 
@@ -611,6 +760,26 @@ export default function Settings() {
           </Section>
         </div>
       </div>
+
+      <ConfirmModal
+        open={usageConfirm === 'disable'}
+        title="Turn off usage tracking?"
+        body="Your history stays until you clear it. You can turn tracking back on anytime."
+        confirmLabel="Turn off tracking"
+        busy={usageBusy}
+        onCancel={() => setUsageConfirm(null)}
+        onConfirm={handleDisableUsage}
+      />
+      <ConfirmModal
+        open={usageConfirm === 'clear'}
+        title="Delete all usage history?"
+        body="This deletes every stored sample and cannot be undone. Tracking stays on and starts recording fresh."
+        confirmLabel="Delete all data"
+        danger
+        busy={usageBusy}
+        onCancel={() => setUsageConfirm(null)}
+        onConfirm={handleClearUsage}
+      />
     </Page>
   );
 }
