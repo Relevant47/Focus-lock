@@ -120,7 +120,7 @@ export default function Usage() {
           <EmptyState
             art="analytics"
             title="You haven't turned on usage tracking yet."
-            body="Enable it in Settings to see a per-app breakdown of your foreground time — in focus sessions versus everything else. Everything stays on your device."
+            body="Enable it in Settings to see a per-app breakdown of your foreground time — in focus sessions versus everything else. Nothing leaves your device."
             action={
               <Link to="/settings" className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-2">
                 Open Settings <Icon.Arrow size={14} />
@@ -263,7 +263,7 @@ function UsageChart({
   if (rows.length === 0) {
     return (
       <div className="h-56 flex items-center justify-center text-sm text-muted">
-        No samples yet in this range — check back in a few minutes.
+        No activity in this range yet — new data appears within a minute of enabling tracking.
       </div>
     );
   }

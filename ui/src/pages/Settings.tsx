@@ -413,7 +413,7 @@ export default function Settings() {
           </Section>
 
           {/* Usage tracking — Phase 4. PLACEHOLDER COPY. */}
-          <Section title="Usage tracking" hint="See where your time actually goes. Local-only, opt-in, wiped when you disable it.">
+          <Section title="Usage tracking" hint="See where your time actually goes. Opt-in, and nothing leaves your device.">
             {!usageTracking.enabled ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted leading-relaxed">
