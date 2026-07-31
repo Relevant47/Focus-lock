@@ -1821,7 +1821,7 @@
   <div class="container hero-inner">
     <div class="hero-badge">
       <span class="live-dot"></span>
-      Free Forever · Open Source · No Account · No Usage Tracking
+      Free Forever · Open Source · No Account · Your Data Stays On-Device
     </div>
     <h1>Block distractions.<br/>Unblock your life.<br/><span class="accent">Free. Forever.</span></h1>
     <p class="hero-sub">A real OS-level distraction blocker — not a browser extension. Stops every browser, every app. Survives reboots, force quits, and every clever attempt to bypass it.</p>
@@ -1839,7 +1839,7 @@
       <span class="trust-item"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Free Forever</span>
       <span class="trust-item"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Open Source</span>
       <span class="trust-item"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> No Account</span>
-      <span class="trust-item"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> No Usage Tracking</span>
+      <span class="trust-item" title="Usage analytics are opt-in and stored only on your device. FocusLock never sends your app or browsing data anywhere."><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Your Data Stays On-Device</span>
     </div>
 
   </div>
@@ -2153,7 +2153,8 @@
     </div>
     <div class="faq-list">
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Windows says "Windows protected your PC" — is it safe?<span class="faq-arrow">+</span></button><div class="faq-a">Yes, completely safe. This warning appears because FocusLock doesn't have a paid code-signing certificate yet (they cost hundreds of dollars per year). Click "More info" then "Run anyway" to install. The full source code is on GitHub — you can read every line before running it. Many legitimate open-source apps show this warning for the same reason.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it really free? What's the catch?<span class="faq-arrow">+</span></button><div class="faq-a">No catch. No ads, no premium tier, no upsell, and no tracking of your focus activity. It's a personal project released under GPL-3.0. The source code is fully public. Use it, fork it, do whatever you want with it. The only thing we ever ask is whether you'd like to take a short, optional, anonymous survey to help shape what we build next — and that's entirely up to you.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it really free? What's the catch?<span class="faq-arrow">+</span></button><div class="faq-a">No catch. No ads, no premium tier, no upsell, and nothing about your focus activity is sent anywhere. It's a personal project released under GPL-3.0. The source code is fully public. Use it, fork it, do whatever you want with it. The only thing we ever ask is whether you'd like to take a short, optional, anonymous survey to help shape what we build next — and that's entirely up to you.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Does FocusLock track my app usage?<span class="faq-arrow">+</span></button><div class="faq-a">Only if you explicitly turn it on. FocusLock has an optional Usage page that shows a per-app time breakdown, split by whether each sample was captured during an active focus session. It's off by default — no data is recorded until you enable it in Settings. Everything stays in a local SQLite database on your machine; nothing is sent to FocusLock, any cloud, or the family-controls server. Turning it off atomically stops sampling and wipes every stored sample. There is no hidden archive.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Does it work on every browser?<span class="faq-arrow">+</span></button><div class="faq-a">Yes — Chrome, Firefox, Safari, Edge, Brave, Arc, Opera, Tor, and anything else that uses DNS. FocusLock edits the OS hosts file directly, not individual browsers. No extension required. No per-browser setup.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Can I bypass it by restarting my computer?<span class="faq-arrow">+</span></button><div class="faq-a">No. The daemon registers as a Windows Service (or launchd LaunchDaemon on macOS) and starts at boot priority — before your desktop loads. Blocks are applied before you open a browser.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is it safe for something that runs as root/SYSTEM?<span class="faq-arrow">+</span></button><div class="faq-a">The full source is on GitHub and auditable by anyone. Session state is HMAC-signed with a key only the daemon holds. The daemon does exactly three things: edit the hosts file, kill blocked processes, and listen on a local IPC socket. Nothing else.</div></div>
