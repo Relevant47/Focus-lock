@@ -32,6 +32,7 @@ const GROUPS: { label?: string; links: LinkDef[] }[] = [
   {
     label: 'Insights',
     links: [
+      { to: '/usage',     label: 'Usage',     Icon: Icon.Target },
       { to: '/analytics', label: 'Analytics', Icon: Icon.Chart },
       { to: '/settings',  label: 'Settings',  Icon: Icon.Settings },
     ],

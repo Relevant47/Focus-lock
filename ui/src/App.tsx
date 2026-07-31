@@ -21,6 +21,7 @@ import BlockLists from './pages/BlockLists';
 import Profiles from './pages/Profiles';
 import Schedules from './pages/Schedules';
 import Analytics from './pages/Analytics';
+import Usage from './pages/Usage';
 import Family from './pages/Family';
 import Settings from './pages/Settings';
 import SetupRequired from './pages/SetupRequired';
@@ -40,6 +41,7 @@ function RoutedShell() {
           <Route path="/profiles"   element={<Profiles />} />
           <Route path="/schedules"  element={<Schedules />} />
           {familyEnabled && <Route path="/family" element={<Family />} />}
+          <Route path="/usage"      element={<Usage />} />
           <Route path="/analytics"  element={<Analytics />} />
           <Route path="/settings"   element={<Settings />} />
           <Route path="*"           element={<Navigate to="/" replace />} />

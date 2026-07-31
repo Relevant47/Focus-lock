@@ -2,7 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+import { seedMockFromQueryParam } from './lib/mockUsageData';
 import './index.css';
+
+// Dev-only mock seed for Usage-page screenshots and storybook flows.
+// No-ops in prod builds (Vite DCE strips the module).
+seedMockFromQueryParam();
 
 // Surface errors that React's boundaries can't catch (async handlers, IPC
 // callbacks, module-load failures) by writing directly to the DOM. Without
