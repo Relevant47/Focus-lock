@@ -6,8 +6,6 @@ import { Page, PageHeader } from '../components/ui';
 import EmptyState from '../components/EmptyState';
 import { Icon } from '../components/Icons';
 import { cn } from '../lib/cn';
-// PLACEHOLDER: Icon is used only inside the empty-state action button.
-// Kept import for that Arrow reference.
 import type { UsageQueryRow, UsageQueryResult } from '../types';
 
 // PHASE 4 — Usage page (opt-in device-local analytics).

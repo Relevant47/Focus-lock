@@ -48,6 +48,8 @@ There is **no automated test suite**. Verify changes by building each affected c
 
 **Parental controls are friction, not security.** Open source + daemon-on-child's-machine means a determined admin can always uninstall. The PIN gate targets impulse-resistance. Don't represent it as airtight.
 
+**Usage analytics are opt-in, local-only, and wiped on disable.** The `usage.*` IPC surface never sends data to any network endpoint. `usage.disable` atomically unregisters the per-user tracker helper AND deletes the DB file — no soft delete, no archived copy. See `docs/usage-analytics-schema.md`.
+
 ## Conventions
 
 - The canonical GitHub repo is `github.com/Relevant47/focus-lock`. URLs to `Relevant47` throughout `landing/`, `ui/src/pages/Settings.tsx`, and the update server are real — don't "fix" them. Forking means a project-wide find-replace of `Relevant47`.
