@@ -34,7 +34,12 @@ function computeRange(key: RangeKey): { start: string; end: string; days: string
   const days: string[] = [];
   const cursor = new Date(start);
   while (cursor <= end) {
-    days.push(cursor.toISOString().slice(0, 10));
+    // Local YYYY-MM-DD — matches the daemon's local-day bucketing
+    // (schema §1.1). toISOString would return UTC and drift.
+    const y = cursor.getFullYear();
+    const m = String(cursor.getMonth() + 1).padStart(2, '0');
+    const day = String(cursor.getDate()).padStart(2, '0');
+    days.push(`${y}-${m}-${day}`);
     cursor.setDate(cursor.getDate() + 1);
   }
   return { start: days[0], end: days[days.length - 1], days };

@@ -6,6 +6,7 @@ import { CATEGORY_DOMAINS, type StartSessionPayload } from '../types';
 import { Icon } from '../components/Icons';
 import { Page, Pill, Toggle } from '../components/ui';
 import EmptyState from '../components/EmptyState';
+import DashboardUsageCard from '../components/DashboardUsageCard';
 import IntentionModal from '../components/IntentionModal';
 import HardcoreConfirmModal from '../components/HardcoreConfirmModal';
 import Confetti from '../components/Confetti';
@@ -538,6 +539,7 @@ export default function Dashboard() {
           {/* Right column — goal + recent + stats */}
           <aside className="space-y-4">
             <GoalBar minutes={mins} goal={goal} />
+            <DashboardUsageCard />
             {(status?.currentStreak != null || status?.lastFocusScore != null) && (
               <div className="card p-4 grid grid-cols-2 gap-3">
                 <div>

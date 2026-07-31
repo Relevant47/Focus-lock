@@ -28,7 +28,13 @@ function isoDaysAgo(n: number): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  // Local YYYY-MM-DD — matches the daemon's local-day bucketing (per
+  // usage-analytics-schema.md §1.1). toISOString would return UTC and
+  // drift by a day on either side of local midnight.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function jitter(base: number, seed: number): number {
