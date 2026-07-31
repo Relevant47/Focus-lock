@@ -14,6 +14,54 @@ No schema change. No new endpoints. Worker is backwards-compatible with v1.4.0 c
 
 ## [Unreleased]
 
+### Added — Usage analytics (opt-in, local-only)
+
+FocusLock can now show you a per-app breakdown of your foreground time,
+split by whether each sample was captured during an active focus session
+or outside one. Nothing about this feature is on by default.
+
+- **New Usage page** in the sidebar (Insights → Usage) with a stacked
+  bar chart per day, top-N app filter, date-range picker (this week /
+  this month / last 30 days), and a segmented control to view Total,
+  In focus, Out of focus, or Split (both stacked per bar).
+- **New Dashboard summary card** shows today's top 3 apps + total, with
+  a link to the full breakdown.
+- **New Settings section** ("Usage tracking") opts you in. First run
+  shows an explainer and a single primary CTA; once activated, you get
+  a toggle, a retention selector (30 / 90 / 180 / 365 days / Forever;
+  default 90), and a "Clear all data" button that wipes history without
+  turning tracking off.
+- **New per-user helper** samples the foreground app every 5 seconds
+  and posts to the existing daemon IPC. On macOS the helper is a
+  LaunchAgent registered via `launchctl bootstrap gui/<uid>`; on
+  Windows it's a Scheduled Task at logon (Standard integrity) registered
+  via `schtasks.exe`.
+
+**Privacy guarantees.** Off by default on a fresh install — no helper is
+registered until you activate it from Settings. Turning tracking off
+atomically unregisters the helper AND wipes the local SQLite database
+(no soft delete, no archived copy). Zero network calls for usage data:
+nothing is sent to any FocusLock server, no cloud sync, no exposure
+through the family-server pairing IPC. Every stored sample is tagged
+in-focus vs. out-of-focus at write time so no query needs to correlate
+across data sources.
+
+### Known limitations for v1
+
+- **Single-user devices.** Usage analytics assume single-user devices.
+  On a Windows or macOS machine shared by multiple users, all users'
+  foreground activity will be aggregated into one dataset. Per-user
+  attribution is planned for a future release.
+- **Apps only.** v1 does not track website time within a browser — the
+  chart shows the browser as a single bucket. Per-site tracking would
+  require Accessibility / UI Automation APIs or a browser extension,
+  both deferred to keep the on-device surface small.
+- **Idle time is not paused.** Foreground time counts even if you step
+  away from the keyboard. An idle-threshold parameter is present in
+  the tracker code (set to `Int.max` on macOS, `int.MaxValue` on
+  Windows) so a future release can add "pause after N minutes idle"
+  without a refactor.
+
 ### Fixed — Active session is now unmistakable, and stoppable from every page
 
 - **Persistent global session banner.** A sticky top bar now appears on **every**
