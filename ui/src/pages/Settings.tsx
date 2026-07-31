@@ -763,9 +763,10 @@ export default function Settings() {
 
       <ConfirmModal
         open={usageConfirm === 'disable'}
-        title="Turn off usage tracking?"
-        body="Your history stays until you clear it. You can turn tracking back on anytime."
-        confirmLabel="Turn off tracking"
+        title="Turn off tracking and delete history?"
+        body="Sampling stops immediately and every stored sample is wiped."
+        confirmLabel="Turn off and delete"
+        danger
         busy={usageBusy}
         onCancel={() => setUsageConfirm(null)}
         onConfirm={handleDisableUsage}
