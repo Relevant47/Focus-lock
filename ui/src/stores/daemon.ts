@@ -176,7 +176,7 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   pendingRequestIds: [],
   usageTracking: {
     enabled: false,
-    retention_days: 90,
+    retention_days: '90',
     sample_rate_seconds: 5,
     enabled_at_utc: null,
     loaded: false,
@@ -499,7 +499,7 @@ export const useDaemon = create<State & Actions>((set, get) => ({
     set({
       usageTracking: {
         enabled: false,
-        retention_days: 90,
+        retention_days: '90',
         sample_rate_seconds: 5,
         enabled_at_utc: null,
         loaded: true,

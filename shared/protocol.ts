@@ -107,7 +107,17 @@ export type IpcRequest =
   | { type: "family_get_status" }
   | { type: "family_check_environment" }
   | { type: "family_authorize_uninstall"; payload?: ParentTokenEnvelope }
-  | { type: "family_set_firewall_lockdown"; payload: { enabled: boolean } & ParentTokenEnvelope };
+  | { type: "family_set_firewall_lockdown"; payload: { enabled: boolean } & ParentTokenEnvelope }
+  // ── Usage analytics (Phase 1) — device-local, opt-in ─────────────────────
+  // Off by default; user-controlled (NOT parent-gated). No `family` / `parent`
+  // token surface: usage data never leaves the device.
+  | { type: "usage.enable" }
+  | { type: "usage.disable" }
+  | { type: "usage.report_sample"; payload: UsageReportSamplePayload }
+  | { type: "usage.query"; payload: UsageQueryPayload }
+  | { type: "usage.get_settings" }
+  | { type: "usage.set_settings"; payload: UsageSetSettingsPayload }
+  | { type: "usage.clear_all_data" };
 
 /// Sensitive commands accept an optional grace token from a recent verify_parent_pin.
 /// When a parent PIN is configured, the daemon rejects gated commands without a valid token.
@@ -155,6 +165,13 @@ export type IpcResponse =
   | { type: "family_status"; payload: FamilyStatus }
   | { type: "family_paired"; payload: FamilyRedeemResult }
   | { type: "family_environment"; payload: FamilyEnvironment }
+  // ── Usage analytics (Phase 1) responses ──────────────────────────────────
+  // usage.enable / usage.disable / usage.report_sample / usage.set_settings /
+  // usage.clear_all_data all resolve to the plain `ok` variant. Queries return
+  // dedicated typed variants following the existing `parent_token` / `family_status`
+  // / `request_unblock_result` pattern.
+  | { type: "usage_settings"; payload: UsageGetSettingsResult }
+  | { type: "usage_query_result"; payload: UsageQueryResult }
   | { type: "error"; message: string; code?: ErrorCode };
 
 export interface ParentAuditEntry {
@@ -399,4 +416,81 @@ export interface RequestStatusPayload {
 export interface RequestStatusResult {
   status: "pending" | "approved" | "denied" | "expired";
   resolutionRuleExpiresAt: string | null;
+}
+
+// ── Usage analytics (Phase 1) — device-local, opt-in ─────────────────────────
+//
+// The tracker process samples the frontmost app on a fixed interval and posts
+// UsageReportSamplePayload records to the daemon. The daemon aggregates them
+// by (day, user_sid, bundle_id) into `usage_samples`. No network egress.
+//
+// Retention: options are 30 / 90 / 180 / 365 days or 'forever'. Non-'forever'
+// values are enforced by a daily prune (see docs/usage-analytics-schema.md).
+//
+// The 'usage.*' surface never carries a parent token or family envelope —
+// usage data is user-controlled and never syncs to the family server.
+
+/// Retention policy for on-device usage samples. 'forever' disables the prune.
+/// Wire format is a string (not an int) so the 'forever' sentinel round-trips
+/// cleanly through JSON without a union type per platform. Both daemons
+/// deserialize into a String/string — see docs/usage-analytics-schema.md §2.4.
+export type UsageRetentionDays = '30' | '90' | '180' | '365' | 'forever';
+
+/// One sample submitted by the tracker process. `timestamp` is ISO-8601 UTC.
+/// The daemon derives `day` (YYYY-MM-DD, UTC) at write time — clients do not
+/// send it. `in_focus` is captured from `DaemonStatus.sessionActive` at the
+/// tracker's sample moment (Q2: reuse get_status; do not add a new IPC).
+export interface UsageReportSamplePayload {
+  bundle_id: string;
+  app_name: string;
+  seconds: number;
+  in_focus: boolean;
+  timestamp: string;
+}
+
+/// Query for a date range (inclusive). `top_n` caps the row count and folds
+/// the remainder into `other_apps_total_seconds`. `include_apps` filters to
+/// specific bundle_ids when set. `split_by_focus` toggles the in/out focus
+/// second columns in the response rows.
+export interface UsageQueryPayload {
+  start_date: string; // ISO date (YYYY-MM-DD), UTC
+  end_date: string;   // ISO date (YYYY-MM-DD), UTC, inclusive
+  top_n?: number;
+  include_apps?: string[];
+  split_by_focus: boolean;
+}
+
+/// One aggregated row. Days are in UTC. When `split_by_focus` is false the
+/// in/out focus columns still populate — callers may ignore them.
+export interface UsageQueryRow {
+  day: string;
+  bundle_id: string;
+  app_name: string;
+  seconds: number;
+  in_focus_seconds: number;
+  out_focus_seconds: number;
+}
+
+export interface UsageQueryResult {
+  rows: UsageQueryRow[];
+  /// Present only when `top_n` was set and rows were truncated. Sum of the
+  /// rolled-up "everything else" seconds across the same range.
+  other_apps_total_seconds?: number;
+}
+
+/// Patch. Fields omitted are left unchanged on the daemon side.
+export interface UsageSetSettingsPayload {
+  retention_days?: UsageRetentionDays;
+  sample_rate_seconds?: number;
+}
+
+/// Full settings snapshot returned by usage.get_settings.
+/// `enabled_at_utc` is null when tracking has never been enabled on this
+/// device. Retention/sample-rate defaults live in the daemon (90 days / 5s)
+/// and are seeded into `usage_meta` on first enable.
+export interface UsageGetSettingsResult {
+  enabled: boolean;
+  retention_days: UsageRetentionDays;
+  sample_rate_seconds: number;
+  enabled_at_utc: string | null;
 }

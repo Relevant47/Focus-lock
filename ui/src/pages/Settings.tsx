@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useDaemon } from '../stores/daemon';
+import type { UsageRetentionDays } from '../types';
 import { getTheme, setTheme, type Theme } from '../stores/theme';
 import { getDailyGoal, setDailyGoal } from '../lib/goal';
 import { Page, PageHeader, Toggle, Pill } from '../components/ui';
@@ -237,7 +238,8 @@ export default function Settings() {
   async function handleRetentionChange(v: string) {
     setUsageError(''); setUsageBusy(true);
     try {
-      const retention_days = v === 'forever' ? 'forever' : (Number(v) as 30|90|180|365);
+      // Wire format is a string on both daemons (see shared/protocol.ts).
+      const retention_days = v as UsageRetentionDays;
       await setUsageSettings({ retention_days });
     } catch (e) {
       setUsageError(e instanceof Error ? e.message : 'Failed to update retention');
