@@ -437,7 +437,7 @@ export default function Settings() {
                     disabled={usageBusy}
                   />
                 </Row>
-                <Row label="Keep history for" sub={`Older samples are pruned automatically. Sampling every ${usageTracking.sample_rate_seconds}s.`}>
+                <Row label="Keep history for" sub="Older samples are pruned automatically.">
                   <select
                     value={String(usageTracking.retention_days)}
                     onChange={e => handleRetentionChange(e.target.value)}
