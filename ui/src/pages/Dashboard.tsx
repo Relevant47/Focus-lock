@@ -274,6 +274,7 @@ export default function Dashboard() {
       allowlistedDomains: p.allowlistedDomains,
       hardcoreMode: p.hardcoreMode,
       pomodoroConfig: p.pomodoroConfig,
+      unlockToken: friendLockToken.trim() || undefined,
     };
     // Same no-op session guard as askIntention — Quick Start chips bypass the
     // form, so an empty profile would otherwise sail through to the daemon
