@@ -25,6 +25,7 @@ import Family from './pages/Family';
 import Settings from './pages/Settings';
 import SetupRequired from './pages/SetupRequired';
 import { familyEnabled } from './lib/familyApi';
+import { IS_MACOS } from './lib/platform';
 
 function RoutedShell() {
   const location = useLocation();
@@ -111,9 +112,12 @@ export default function App() {
   }
 
   // macOS-only: if we've completed at least one poll cycle and we're not
-  // connected, route to SetupRequired. Windows handles this via its own
-  // in-line "daemon not running" handling in the Rust install_daemon flow.
-  if (bootChecked && !connected) {
+  // connected, route to SetupRequired (drives the SMAppService registration
+  // flow). Windows handles this via its own in-line "daemon not running"
+  // handling in the Rust install_daemon flow, so it must fall through to the
+  // main app — SetupRequired's daemon_status_macos probe would just render
+  // an unactionable "macOS-only" error on Windows.
+  if (IS_MACOS && bootChecked && !connected) {
     return <SetupRequired />;
   }
 
