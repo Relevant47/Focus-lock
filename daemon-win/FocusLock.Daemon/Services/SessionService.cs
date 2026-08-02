@@ -477,11 +477,15 @@ public sealed class SessionService
 
     private string Sign(SessionState s)
     {
+        var pc = s.PomodoroConfig != null
+            ? $"{s.PomodoroConfig.WorkMinutes}:{s.PomodoroConfig.BreakMinutes}:{s.PomodoroConfig.LongBreakMinutes}:{s.PomodoroConfig.CyclesBeforeLongBreak}:{s.PomodoroConfig.StrictMode}"
+            : "";
         var payload = $"{s.SessionId}|{s.StartTime:O}|{s.EndTime:O}|{s.HardcoreMode}|" +
                       string.Join(",", s.BlockedDomains) + "|" +
                       string.Join(",", s.BlockedProcesses) + "|" +
                       string.Join(",", s.AllowlistedDomains) + "|" +
-                      (s.UnlockTokenHash ?? "");
+                      (s.UnlockTokenHash ?? "") + "|" +
+                      pc;
         using var hmac = new HMACSHA256(_signingKey);
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hash).ToLowerInvariant();

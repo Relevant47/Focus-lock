@@ -32,7 +32,9 @@ public sealed class SessionState
     // as MotivationalMessage + Intention) — a running counter, not a block-defining field.
     public int BlockAttempts { get; set; }
 
-    // HMAC-SHA256 of all fields above (excluding Signature, MotivationalMessage, Intention, BlockAttempts)
+    // HMAC-SHA256 of SessionId, StartTime, EndTime, HardcoreMode, BlockedDomains,
+    // BlockedProcesses, AllowlistedDomains, UnlockTokenHash, and PomodoroConfig.
+    // Excludes MotivationalMessage, Intention, BlockAttempts, and Signature itself.
     public string Signature { get; set; } = string.Empty;
 
     // Derived — not stored
