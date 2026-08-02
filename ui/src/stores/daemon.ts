@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
   DaemonStatus,
   FamilyEnvironment,
@@ -125,6 +125,12 @@ interface Actions {
 
 interface ParentTokenPayload { token: string; expiresAt: string }
 
+// Module-level guard so init()'s Tauri `daemon-status` subscription is created
+// exactly once per module lifetime. Without this, HMR reloads (dev) or any
+// future re-invocation of init() (e.g. SetupRequired retry) stack duplicate
+// handlers, causing duplicate `set()` and duplicate desktop notifications.
+let daemonStatusUnlisten: UnlistenFn | null = null;
+
 function activeParentToken(state: State): string | undefined {
   if (!state.parentToken || !state.parentTokenExpiresAt) return undefined;
   if (Date.now() >= state.parentTokenExpiresAt) return undefined;
@@ -146,7 +152,17 @@ export const useDaemon = create<State & Actions>((set, get) => ({
   async init() {
     await requestNotificationPermission();
 
-    listen<DaemonStatus | null>('daemon-status', (event) => {
+    if (daemonStatusUnlisten) {
+      // Already subscribed — avoid stacking a second handler on re-invocation.
+      await Promise.allSettled([
+        get().loadProfiles(),
+        get().loadSchedules(),
+        get().loadLogs(),
+      ]);
+      return;
+    }
+
+    daemonStatusUnlisten = await listen<DaemonStatus | null>('daemon-status', (event) => {
       const prev = get().status;
       const next = event.payload;
 
@@ -432,3 +448,14 @@ export const useDaemon = create<State & Actions>((set, get) => ({
 // the same boolean from `status`.
 export const useSessionActive = () =>
   useDaemon(s => s.status?.sessionActive ?? false);
+
+// Vite HMR: tear down the Tauri listener before the module is replaced so the
+// new module doesn't stack a second handler on top of the old one. `vite/client`
+// types aren't included in this tsconfig, so use a local type assertion.
+const hot = (import.meta as { hot?: { dispose(cb: () => void): void } }).hot;
+if (hot) {
+  hot.dispose(() => {
+    daemonStatusUnlisten?.();
+    daemonStatusUnlisten = null;
+  });
+}
