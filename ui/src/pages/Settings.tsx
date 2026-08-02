@@ -104,9 +104,15 @@ function UninstallAuthorizationButton({ authorize }: { authorize: () => Promise<
 }
 
 function useCooldownTimer(isoString: string | null | undefined) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isoString) return;
+    const t = window.setInterval(() => setNow(Date.now()), 10_000);
+    return () => window.clearInterval(t);
+  }, [isoString]);
   if (!isoString) return null;
   const until = new Date(isoString).getTime();
-  const diff = Math.max(0, until - Date.now());
+  const diff = Math.max(0, until - now);
   return { h: Math.floor(diff / 3600000), m: Math.floor((diff % 3600000) / 60000), elapsed: diff === 0, diff };
 }
 
