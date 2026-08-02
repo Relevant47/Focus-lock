@@ -60,12 +60,30 @@ function isValidCron(expr: string): boolean {
 }
 
 // POSIX cron treats weekday 7 as Sunday (alias of 0). Daemons only match 0-6,
-// so rewrite any 7 in the weekday field to 0 before save and before preview.
-// The weekday field's valid range is single-digit 0-7, so plain char replacement is safe.
+// so rewrite any 7 in the weekday field before save and before preview.
+// Bare `7` becomes `0`; a range with hi=7 (e.g. `5-7`) expands to `lo-6,0` so
+// Sunday is still covered without producing an invalid `lo-0` range that never
+// fires.
+function normalizeCronWeekdayTerm(term: string): string {
+  const slash = term.indexOf('/');
+  if (slash >= 0) {
+    return normalizeCronWeekdayTerm(term.slice(0, slash)) + term.slice(slash);
+  }
+  if (term === '7') return '0';
+  const m = term.match(/^(\d+)-(\d+)$/);
+  if (m) {
+    const lo = Number(m[1]);
+    const hi = Number(m[2]);
+    if (lo === 7 && hi === 7) return '0';
+    if (lo === 7) return `0-${hi}`;
+    if (hi === 7) return lo === 0 ? '0-6' : `${lo}-6,0`;
+  }
+  return term;
+}
 function normalizeCronWeekday(expr: string): string {
   const parts = expr.trim().split(/\s+/);
   if (parts.length !== 5) return expr;
-  parts[4] = parts[4].replace(/7/g, '0');
+  parts[4] = parts[4].split(',').map(normalizeCronWeekdayTerm).join(',');
   return parts.join(' ');
 }
 
