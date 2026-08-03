@@ -11,8 +11,12 @@ namespace FocusLock.Tracker;
 /// <para>
 /// Per docs/usage-analytics-schema.md §1: on Windows the <c>bundle_id</c> is
 /// the exe path (there is no bundle id concept). <c>app_name</c> is the
-/// window title when available, else the process name — same convention as
-/// the mac tracker (localized name).
+/// exe's FileDescription (product-facing name like "Google Chrome" or
+/// "Microsoft Word"), falling back to ProcessName. We deliberately never
+/// touch <c>MainWindowTitle</c> — window titles contain document names,
+/// chat participants, and browser tab titles (which is URL PII by another
+/// name). Storing them would violate the "your data stays on-device" trust
+/// story every bit as much as sending them off-device.
 /// </para>
 ///
 /// <para>
@@ -57,10 +61,20 @@ internal static class ForegroundApp
             // For processes we can't inspect (kernel/protected), fall through
             // and use ProcessName below to at least record *something*.
             string? exePath = null;
-            try { exePath = proc.MainModule?.FileName; } catch { /* access denied */ }
+            string? fileDescription = null;
+            try
+            {
+                var mainModule = proc.MainModule;
+                exePath = mainModule?.FileName;
+                fileDescription = mainModule?.FileVersionInfo?.FileDescription;
+            }
+            catch { /* access denied */ }
 
-            var appName = !string.IsNullOrEmpty(proc.MainWindowTitle)
-                ? proc.MainWindowTitle
+            // NEVER read MainWindowTitle — it contains document names, chat
+            // participants, browser tab titles. Product-facing FileDescription
+            // (e.g. "Google Chrome") only, falling back to the exe base name.
+            var appName = !string.IsNullOrWhiteSpace(fileDescription)
+                ? fileDescription!
                 : proc.ProcessName;
 
             if (string.IsNullOrEmpty(exePath)) return null;   // spec: skip if either null

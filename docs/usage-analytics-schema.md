@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS usage_samples (
     day TEXT NOT NULL,                        -- YYYY-MM-DD, local tz (see §1.1)
     user_sid TEXT NOT NULL DEFAULT '',        -- Windows SID; '' on macOS
     bundle_id TEXT NOT NULL,                  -- macOS bundle id or Win exe path
-    app_name TEXT NOT NULL,                   -- human label (denormalized)
+    app_name TEXT NOT NULL,                   -- product-facing name only (mac: localizedName; win: FileDescription) — NEVER window title
     seconds INTEGER NOT NULL,                 -- total = in_focus + out_focus
     in_focus_seconds INTEGER NOT NULL,        -- captured while sessionActive
     out_focus_seconds INTEGER NOT NULL,       -- captured while !sessionActive
