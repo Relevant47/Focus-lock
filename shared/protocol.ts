@@ -437,9 +437,11 @@ export interface RequestStatusResult {
 export type UsageRetentionDays = '30' | '90' | '180' | '365' | 'forever';
 
 /// One sample submitted by the tracker process. `timestamp` is ISO-8601 UTC.
-/// The daemon derives `day` (YYYY-MM-DD, UTC) at write time — clients do not
-/// send it. `in_focus` is captured from `DaemonStatus.sessionActive` at the
-/// tracker's sample moment (Q2: reuse get_status; do not add a new IPC).
+/// The daemon derives `day` (YYYY-MM-DD in the machine's LOCAL timezone) at
+/// write time — clients do not send it. Local-tz bucketing matches the user's
+/// mental model of "yesterday" and mirrors what Cold Turkey does; see
+/// docs/usage-analytics-schema.md §1.1. `in_focus` is captured from
+/// `DaemonStatus.sessionActive` at the tracker's sample moment.
 export interface UsageReportSamplePayload {
   bundle_id: string;
   app_name: string;
@@ -453,15 +455,16 @@ export interface UsageReportSamplePayload {
 /// specific bundle_ids when set. `split_by_focus` toggles the in/out focus
 /// second columns in the response rows.
 export interface UsageQueryPayload {
-  start_date: string; // ISO date (YYYY-MM-DD), UTC
-  end_date: string;   // ISO date (YYYY-MM-DD), UTC, inclusive
+  start_date: string; // ISO date (YYYY-MM-DD), local timezone
+  end_date: string;   // ISO date (YYYY-MM-DD), local timezone, inclusive
   top_n?: number;
   include_apps?: string[];
   split_by_focus: boolean;
 }
 
-/// One aggregated row. Days are in UTC. When `split_by_focus` is false the
-/// in/out focus columns still populate — callers may ignore them.
+/// One aggregated row. `day` is YYYY-MM-DD in the machine's LOCAL timezone
+/// (see docs/usage-analytics-schema.md §1.1). When `split_by_focus` is false
+/// the in/out focus columns still populate — callers may ignore them.
 export interface UsageQueryRow {
   day: string;
   bundle_id: string;
