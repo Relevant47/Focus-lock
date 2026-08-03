@@ -14,6 +14,7 @@ final class IpcSocketService {
     private let cloudSync: CloudSyncService
     private let envProbe: EnvironmentProbe
     private let firewallLockdown: FirewallLockdownService
+    private let usageSvc: UsageService
     private var serverFd: Int32 = -1
     private var isRunning = false
 
@@ -30,10 +31,27 @@ final class IpcSocketService {
         return d
     }()
 
+    // usage.* payloads intentionally use snake_case FIELD NAMES on the Swift
+    // side (per docs/usage-analytics-schema.md §2.3) to avoid a mapping layer.
+    // The default decoder's .convertFromSnakeCase would rewrite `bundle_id` →
+    // `bundleId` before lookup and miss the property, so we roundtrip usage
+    // payloads through this pair with default (unchanged) key strategies.
+    private let usageJsonEnc: JSONEncoder = {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        return e
+    }()
+    private let usageJsonDec: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
     init(session: SessionService, profiles: ProfileService, parent: ParentService,
          audit: ParentAuditService, family: FamilyService,
          familyEnforce: FamilyEnforcementService, cloudSync: CloudSyncService,
-         envProbe: EnvironmentProbe, firewallLockdown: FirewallLockdownService) {
+         envProbe: EnvironmentProbe, firewallLockdown: FirewallLockdownService,
+         usage: UsageService) {
         self.sessionSvc = session
         self.profileSvc = profiles
         self.parentSvc = parent
@@ -43,6 +61,7 @@ final class IpcSocketService {
         self.cloudSync = cloudSync
         self.envProbe = envProbe
         self.firewallLockdown = firewallLockdown
+        self.usageSvc = usage
     }
 
     func start() {
@@ -174,9 +193,59 @@ final class IpcSocketService {
         case "family_set_firewall_lockdown": return handleFamilySetFirewallLockdown(req)
         case "request_unblock":            return handleRequestUnblock(req)
         case "request_status":             return handleRequestStatus(req)
+        // ── Usage analytics (Phase 2) ────────────────────────────────────────
+        // Not parent-gated (per docs §2.1 — user-controlled surface). Never
+        // touches the family socket.
+        case "usage.enable":         return handleUsageEnable(req)
+        case "usage.disable":        return handleUsageDisable(req)
+        case "usage.report_sample":  return handleUsageReportSample(req)
+        case "usage.query":          return handleUsageQuery(req)
+        case "usage.get_settings":   return .usageSettings(usageSvc.handleGetSettings())
+        case "usage.set_settings":   return handleUsageSetSettings(req)
+        case "usage.clear_all_data": return handleUsageClearAllData(req)
         default:
             return .error("Unknown request type: \(req.type)")
         }
+    }
+
+    // ── Usage analytics handlers ──────────────────────────────────────────────
+
+    private func handleUsageEnable(_ req: IpcRequest) -> IpcResponse {
+        let (err, ok) = usageSvc.handleEnable()
+        return ok ? .ok() : .error(err ?? "Failed to enable usage tracking")
+    }
+
+    private func handleUsageDisable(_ req: IpcRequest) -> IpcResponse {
+        let (err, ok) = usageSvc.handleDisable()
+        return ok ? .ok() : .error(err ?? "Failed to disable usage tracking")
+    }
+
+    private func handleUsageReportSample(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: UsageReportSamplePayload = decodeUsage(req.payload) else {
+            return .error("Invalid usage.report_sample payload")
+        }
+        usageSvc.handleReportSample(payload)
+        return .ok()
+    }
+
+    private func handleUsageQuery(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: UsageQueryPayload = decodeUsage(req.payload) else {
+            return .error("Invalid usage.query payload")
+        }
+        return .usageQueryResult(usageSvc.handleQuery(payload))
+    }
+
+    private func handleUsageSetSettings(_ req: IpcRequest) -> IpcResponse {
+        guard let payload: UsageSetSettingsPayload = decodeUsage(req.payload) else {
+            return .error("Invalid usage.set_settings payload")
+        }
+        let (err, ok) = usageSvc.handleSetSettings(payload)
+        return ok ? .ok() : .error(err ?? "Failed to update usage settings")
+    }
+
+    private func handleUsageClearAllData(_ req: IpcRequest) -> IpcResponse {
+        let (err, ok) = usageSvc.handleClearAllData()
+        return ok ? .ok() : .error(err ?? "Failed to clear usage data")
     }
 
     // ── Family controls (Phase 2.3) ──────────────────────────────────────────
@@ -460,6 +529,15 @@ final class IpcSocketService {
         guard let v = value,
               let data = try? jsonEnc.encode(v) else { return nil }
         return try? jsonDec.decode(T.self, from: data)
+    }
+
+    /// Decode a usage.* payload. Uses `usageJsonEnc`/`usageJsonDec` which do
+    /// NOT apply snake↔camel key conversion, so JSON keys like `bundle_id`
+    /// match the identically-named snake_case Swift properties.
+    private func decodeUsage<T: Decodable>(_ value: AnyCodable?) -> T? {
+        guard let v = value,
+              let data = try? usageJsonEnc.encode(v) else { return nil }
+        return try? usageJsonDec.decode(T.self, from: data)
     }
 
     private func extractId(_ value: AnyCodable?) -> String? {

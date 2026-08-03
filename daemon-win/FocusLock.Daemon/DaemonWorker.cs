@@ -10,12 +10,18 @@ public sealed class DaemonWorker : BackgroundService
     private readonly ProcessKillService _procs;
     private readonly ScheduleService _schedules;
     private readonly FamilyEnforcementService _family;
+    private readonly UsageService _usage;
     private readonly ILogger<DaemonWorker> _log;
 
     private int _tickCount;
     private bool _hostsApplied;          // hosts file currently carries a FocusLock block
     private bool _dohApplied;            // DoH policy currently forced off
     private string _lastFingerprint = "";
+
+    // Usage-analytics retention gate. First run fires ≥5 ticks after startup
+    // (so the daemon is fully up); subsequent runs at 24h intervals. When
+    // tracking is disabled or set to 'forever', UsageService itself no-ops.
+    private DateTime _lastRetentionRun = DateTime.MinValue;
 
     public DaemonWorker(
         SessionService session,
@@ -24,6 +30,7 @@ public sealed class DaemonWorker : BackgroundService
         ProcessKillService procs,
         ScheduleService schedules,
         FamilyEnforcementService family,
+        UsageService usage,
         ILogger<DaemonWorker> log)
     {
         _session = session;
@@ -32,6 +39,7 @@ public sealed class DaemonWorker : BackgroundService
         _procs = procs;
         _schedules = schedules;
         _family = family;
+        _usage = usage;
         _log = log;
     }
 
@@ -60,6 +68,17 @@ public sealed class DaemonWorker : BackgroundService
 
             if (_tickCount % 60 == 0)
                 _schedules.Tick();
+
+            // Piggyback the daily usage-retention prune on this tick. Guarded
+            // by _tickCount >= 5 to skip the first few seconds of startup, and
+            // by a 24h cadence thereafter. UsageService no-ops when tracking
+            // is disabled or retention is 'forever'.
+            if (_tickCount >= 5 &&
+                (DateTime.UtcNow - _lastRetentionRun) >= TimeSpan.FromHours(24))
+            {
+                _usage.RunRetentionIfDue(DateTime.UtcNow);
+                _lastRetentionRun = DateTime.UtcNow;
+            }
         }
 
         _hosts.Remove();

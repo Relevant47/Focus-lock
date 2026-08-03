@@ -30,16 +30,18 @@ let firewallLockdown = FirewallLockdownService(family: familySvc, enforce: famil
 let hostsSvc         = HostsService()
 let processKill      = ProcessKillService(session: sessionSvc, family: familyEnforce)
 let scheduleSvc      = ScheduleService(profiles: profileSvc, session: sessionSvc)
+let usageSvc         = UsageService(stateDir: "/Library/Application Support/FocusLock")
 let ipcSvc           = IpcSocketService(
     session: sessionSvc, profiles: profileSvc, parent: parentSvc, audit: auditSvc,
     family: familySvc, familyEnforce: familyEnforce, cloudSync: cloudSync,
-    envProbe: envProbe, firewallLockdown: firewallLockdown)
+    envProbe: envProbe, firewallLockdown: firewallLockdown, usage: usageSvc)
 let interceptSvc     = InterceptHttpService(session: sessionSvc, profiles: profileSvc)
 
 ipcSvc.start()
 interceptSvc.start()
 cloudSync.start()
 firewallLockdown.start()
+usageSvc.startRetentionTimer()
 
 // Best-effort cleanup on common signals so a Ctrl-C dev run doesn't leave
 // pfctl anchor entries loaded. launchd-managed production runs go through

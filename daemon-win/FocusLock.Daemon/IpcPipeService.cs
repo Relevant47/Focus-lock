@@ -27,6 +27,7 @@ public sealed class IpcPipeService : BackgroundService
     private readonly CloudSyncService _cloudSync;
     private readonly EnvironmentProbe _envProbe;
     private readonly FirewallLockdownService _firewallLockdown;
+    private readonly UsageService _usage;
     private readonly ILogger<IpcPipeService> _log;
 
     public IpcPipeService(
@@ -39,6 +40,7 @@ public sealed class IpcPipeService : BackgroundService
         CloudSyncService cloudSync,
         EnvironmentProbe envProbe,
         FirewallLockdownService firewallLockdown,
+        UsageService usage,
         ILogger<IpcPipeService> log)
     {
         _session = session;
@@ -50,6 +52,7 @@ public sealed class IpcPipeService : BackgroundService
         _cloudSync = cloudSync;
         _envProbe = envProbe;
         _firewallLockdown = firewallLockdown;
+        _usage = usage;
         _log = log;
     }
 
@@ -183,6 +186,16 @@ public sealed class IpcPipeService : BackgroundService
                 "family_set_firewall_lockdown" => HandleSetFirewallLockdown(req),
                 "request_unblock"          => HandleRequestUnblock(req).GetAwaiter().GetResult(),
                 "request_status"           => HandleRequestStatus(req).GetAwaiter().GetResult(),
+                // ── Usage analytics (Phase 2) ────────────────────────────
+                // Intentionally ungated: usage tracking is user-controlled;
+                // no parent token, no family envelope.
+                "usage.enable"             => HandleUsageEnable(),
+                "usage.disable"            => HandleUsageDisable(),
+                "usage.report_sample"      => HandleUsageReportSample(req),
+                "usage.query"              => HandleUsageQuery(req),
+                "usage.get_settings"       => IpcResponse.UsageSettings(_usage.HandleGetSettings()),
+                "usage.set_settings"       => HandleUsageSetSettings(req),
+                "usage.clear_all_data"     => HandleUsageClearAllData(),
                 _ => IpcResponse.Error($"Unknown request type: {req.Type}"),
             };
         }
@@ -579,6 +592,51 @@ public sealed class IpcPipeService : BackgroundService
             new FileInfo(path).SetAccessControl(info);
         }
         catch { /* daemon may not be elevated in dev runs; the token is still written */ }
+    }
+
+    // ── Usage analytics handlers (Phase 2) ─────────────────────────────────
+
+    private IpcResponse HandleUsageEnable()
+    {
+        var (err, ok) = _usage.HandleEnable();
+        return ok ? IpcResponse.Ok() : IpcResponse.Error(err ?? "usage.enable failed");
+    }
+
+    private IpcResponse HandleUsageDisable()
+    {
+        var (err, ok) = _usage.HandleDisable();
+        return ok ? IpcResponse.Ok() : IpcResponse.Error(err ?? "usage.disable failed");
+    }
+
+    private IpcResponse HandleUsageReportSample(IpcRequest req)
+    {
+        var payload = Deserialize<UsageReportSamplePayload>(req.Payload);
+        if (payload == null) return IpcResponse.Error("Invalid payload");
+        _usage.HandleReportSample(payload);
+        return IpcResponse.Ok();
+    }
+
+    private IpcResponse HandleUsageQuery(IpcRequest req)
+    {
+        var payload = Deserialize<UsageQueryPayload>(req.Payload);
+        if (payload == null) return IpcResponse.Error("Invalid payload");
+        if (string.IsNullOrWhiteSpace(payload.StartDate) || string.IsNullOrWhiteSpace(payload.EndDate))
+            return IpcResponse.Error("start_date and end_date required");
+        return IpcResponse.UsageQueryResult(_usage.HandleQuery(payload));
+    }
+
+    private IpcResponse HandleUsageSetSettings(IpcRequest req)
+    {
+        var payload = Deserialize<UsageSetSettingsPayload>(req.Payload);
+        if (payload == null) return IpcResponse.Error("Invalid payload");
+        var (err, ok) = _usage.HandleSetSettings(payload);
+        return ok ? IpcResponse.Ok() : IpcResponse.Error(err ?? "usage.set_settings failed");
+    }
+
+    private IpcResponse HandleUsageClearAllData()
+    {
+        var (err, ok) = _usage.HandleClearAllData();
+        return ok ? IpcResponse.Ok() : IpcResponse.Error(err ?? "usage.clear_all_data failed");
     }
 
     private static T? Deserialize<T>(JsonElement? element)

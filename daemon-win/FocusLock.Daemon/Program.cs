@@ -23,6 +23,18 @@ builder.Services.AddSingleton<FamilyEnforcementService>();
 builder.Services.AddSingleton<CloudSyncService>();
 builder.Services.AddSingleton<FirewallLockdownService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<FirewallLockdownService>());
+// Usage analytics service (Phase 2). Off by default — enabled via usage.enable
+// IPC. State lives at %ProgramData%\FocusLock\usage.db.
+builder.Services.AddSingleton<UsageService>(sp =>
+{
+    var stateDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "FocusLock");
+    return new UsageService(
+        stateDir,
+        sp.GetRequiredService<ILogger<UsageService>>(),
+        sp.GetRequiredService<ILoggerFactory>());
+});
 builder.Services.AddHostedService<SafeModeRegistration>();
 builder.Services.AddHostedService<DaemonWorker>();
 builder.Services.AddHostedService<IpcPipeService>();

@@ -128,6 +128,8 @@ public sealed class IpcResponse
     public static IpcResponse FamilyEnvironment(FamilyEnvironment e) => new() { Type = "family_environment", Payload = e };
     public static IpcResponse RequestUnblock(RequestUnblockResult r) => new() { Type = "request_unblock_result", Payload = r };
     public static IpcResponse RequestStatus(RequestStatusResult r)   => new() { Type = "request_status_result", Payload = r };
+    public static IpcResponse UsageSettings(UsageGetSettingsResult s) => new() { Type = "usage_settings", Payload = s };
+    public static IpcResponse UsageQueryResult(UsageQueryResult r)    => new() { Type = "usage_query_result", Payload = r };
 }
 
 public sealed class DaemonStatus

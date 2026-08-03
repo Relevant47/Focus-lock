@@ -17,6 +17,8 @@ daemon-win/FocusLock.Daemon/obj/
 daemon-win/FocusLock.Daemon/publish/
 daemon-win/FocusLock.Daemon.Tests/bin/
 daemon-win/FocusLock.Daemon.Tests/obj/
+daemon-win/FocusLock.Tracker/bin/
+daemon-win/FocusLock.Tracker/obj/
 daemon-mac/.build/
 ui/src-tauri/swift-bridge/.build/
 

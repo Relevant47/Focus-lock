@@ -218,6 +218,60 @@ struct IpcResponse: Codable {
     static func requestStatus(_ r: RequestStatusResult) -> IpcResponse {
         IpcResponse(type: "request_status_result", payload: AnyCodable(r))
     }
+    static func usageSettings(_ s: UsageGetSettingsResult) -> IpcResponse {
+        IpcResponse(type: "usage_settings", payload: AnyCodable(s))
+    }
+    static func usageQueryResult(_ r: UsageQueryResult) -> IpcResponse {
+        IpcResponse(type: "usage_query_result", payload: AnyCodable(r))
+    }
+}
+
+// ── Usage analytics (Phase 1) ─────────────────────────────────────────────────
+// Mirrors shared/protocol.ts. Device-local, opt-in. NOT parent-gated. NOT
+// synced to the family server.
+
+struct UsageReportSamplePayload: Codable {
+    var bundle_id: String
+    var app_name: String
+    var seconds: Int
+    var in_focus: Bool
+    var timestamp: String
+}
+
+struct UsageQueryPayload: Codable {
+    var start_date: String
+    var end_date: String
+    var top_n: Int?
+    var include_apps: [String]?
+    var split_by_focus: Bool
+}
+
+struct UsageQueryRow: Codable {
+    var day: String
+    var bundle_id: String
+    var app_name: String
+    var seconds: Int
+    var in_focus_seconds: Int
+    var out_focus_seconds: Int
+}
+
+struct UsageQueryResult: Codable {
+    var rows: [UsageQueryRow]
+    var other_apps_total_seconds: Int?
+}
+
+struct UsageSetSettingsPayload: Codable {
+    /// One of "30", "90", "180", "365", or "forever". Encoded as String so
+    /// the 'forever' sentinel round-trips cleanly through JSON.
+    var retention_days: String?
+    var sample_rate_seconds: Int?
+}
+
+struct UsageGetSettingsResult: Codable {
+    var enabled: Bool
+    var retention_days: String
+    var sample_rate_seconds: Int
+    var enabled_at_utc: String?
 }
 
 // Wire-level error codes matching the C# daemon and shared/protocol.ts.

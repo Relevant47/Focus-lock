@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Canonical LaunchAgent template for the FocusLock usage tracker.
+
+  Placeholders substituted at register-time by UsageService.registerLaunchAgent():
+    __TRACKER_PATH__ — absolute path to the FocusLockUsageTracker binary
+    __LOG_DIR__       — absolute path to the tracker's log directory
+
+  IMPORTANT: this file is the human-readable source of truth. The daemon does
+  NOT read it at runtime (SPM resource bundling for a raw executable adds
+  bundle-discovery complexity when installed under FocusLock.app). Instead
+  the identical XML is embedded as a Swift string constant in
+  UsageService.swift → `Self.launchAgentPlistTemplate`. If you edit this
+  file, mirror the edit in that constant. Both fingerprints must match.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.focuslock.usage-tracker</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__TRACKER_PATH__</string>
+    </array>
+
+    <!-- Start immediately at bootstrap and every user login thereafter. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Relaunch on crash. The tracker's socket-reconnect loop handles the
+         daemon-restart case; KeepAlive covers actual process death. -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Damp launchd relaunch storms — if the tracker crashes on startup we
+         still get one try every 10s rather than a tight loop. -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- launchd redirects the tracker's stdout/stderr here. The daemon
+         creates the parent directory (chown'd to the console user) before
+         calling `launchctl bootstrap`. -->
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/usage-tracker.log</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/usage-tracker.log</string>
+</dict>
+</plist>
