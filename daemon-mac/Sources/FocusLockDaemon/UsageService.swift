@@ -248,8 +248,15 @@ final class UsageService {
         return queue.sync {
             // Spec: delete file, recreate, re-seed. Tracking stays on.
             // If tracking is off there's nothing to clear — treat as no-op.
-            if db == nil { return (nil, true) }
-            db?.close()
+            guard let openDb = db else { return (nil, true) }
+
+            // Preserve user settings across the wipe. Mirrors Windows behavior.
+            let retention = ((try? openDb.getMeta(key: "retention_days")) ?? nil) ?? "90"
+            let rateStr = ((try? openDb.getMeta(key: "sample_rate_seconds")) ?? nil) ?? "5"
+            let rate = Int(rateStr) ?? 5
+            let enabledAt = ((try? openDb.getMeta(key: "enabled_at_utc")) ?? nil) ?? Self.nowIso()
+
+            openDb.close()
             db = nil
             try? FileManager.default.removeItem(atPath: dbPath)
             try? FileManager.default.removeItem(atPath: walPath)
@@ -259,9 +266,9 @@ final class UsageService {
                 let opened = try UsageDB(path: dbPath)
                 try opened.runMigrations()
                 try opened.seedMeta(
-                    retentionDays: "90",
-                    sampleRateSeconds: 5,
-                    enabledAtUTC: Self.nowIso()
+                    retentionDays: retention,
+                    sampleRateSeconds: rate,
+                    enabledAtUTC: enabledAt
                 )
                 self.db = opened
                 fputs("[usage] Cleared all usage data (tracking remains on)\n", stderr)
