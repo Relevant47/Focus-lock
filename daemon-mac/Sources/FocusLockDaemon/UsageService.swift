@@ -175,18 +175,23 @@ final class UsageService {
                     includeApps: payload.include_apps
                 )
                 // Per §2.5: `other_apps_total_seconds` only appears when top_n
-                // (not include_apps) truncated the result. Skip the second query
-                // unless we've hit the LIMIT boundary.
+                // (not include_apps) truncated the result. `rows` now contains
+                // ALL day rows for the top-N unique apps (issue #323), so compare
+                // bundle-id sets rather than row counts.
                 var otherTotal: Int? = nil
-                if let n = topN, n > 0, !hasIncludeFilter, rows.count == n {
+                if let n = topN, n > 0, !hasIncludeFilter, !rows.isEmpty {
                     let full = try db.queryRange(
                         startDate: payload.start_date,
                         endDate: payload.end_date,
                         topN: nil,
                         includeApps: nil
                     )
-                    if full.count > n {
-                        otherTotal = full.dropFirst(n).reduce(0) { $0 + $1.seconds }
+                    let shown = Set(rows.map { $0.bundle_id })
+                    let excludedSum = full.reduce(0) { acc, r in
+                        shown.contains(r.bundle_id) ? acc : acc + r.seconds
+                    }
+                    if excludedSum > 0 {
+                        otherTotal = excludedSum
                     }
                 }
                 return UsageQueryResult(rows: rows, other_apps_total_seconds: otherTotal)

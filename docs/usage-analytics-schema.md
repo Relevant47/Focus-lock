@@ -157,10 +157,16 @@ protocol uses `camelCase` — this is a deliberate scoped exception.
 | 'forever'`. Wire format is a string (not an int) so `'forever'` round-trips.
 On the daemon side, `'forever'` disables the prune entirely.
 
-### 2.5 `include_apps` semantics
+### 2.5 `top_n` and `include_apps` semantics
+
+`top_n` selects the **N unique apps with the highest total seconds across the
+range**, then returns **all** of their `(day, bundle_id)` rows. Applying
+`LIMIT N` directly to the grouped rows would truncate to the N busiest single
+app-days across the whole range — over a week that is typically ~all one
+day's data, leaving 6/7 columns of the Usage chart empty.
 
 When `include_apps` is set (non-empty), the query is restricted to those
-bundle ids. `top_n` still applies within the filtered set; the
+bundle ids. `top_n` still applies within the filtered set. The
 `other_apps_total_seconds` roll-up only appears when `top_n` truncated the
 result (never when `include_apps` did).
 
