@@ -99,23 +99,23 @@ public sealed class UsageStore : IDisposable
     /// <summary>
     /// Range query. Aggregates across all <c>user_sid</c> values so a
     /// multi-user machine returns a single row per (day, bundle_id) — Phase 2
-    /// UI does not segment by SID. <paramref name="topN"/> caps rows;
+    /// UI does not segment by SID. <paramref name="topN"/> selects the N
+    /// unique apps with the highest total seconds across the range, then
+    /// returns ALL of their <c>(day, bundle_id)</c> rows.
     /// <paramref name="includeApps"/> restricts to those bundle_ids.
     /// </summary>
+    /// <remarks>
+    /// Limiting the grouped result to N rows directly would truncate to the
+    /// N busiest single app-days across the whole range and leave most days
+    /// empty in the Usage chart (issue #323).
+    /// </remarks>
     public List<UsageQueryRow> QueryRange(string startDate, string endDate, int? topN, string[]? includeApps)
     {
-        var sql = new StringBuilder(@"
-            SELECT day, bundle_id, MAX(app_name) AS app_name,
-                   SUM(seconds)           AS seconds,
-                   SUM(in_focus_seconds)  AS in_focus_seconds,
-                   SUM(out_focus_seconds) AS out_focus_seconds
-            FROM usage_samples
-            WHERE day >= @start AND day <= @end");
-
         using var cmd = Conn.CreateCommand();
         cmd.Parameters.AddWithValue("@start", startDate);
         cmd.Parameters.AddWithValue("@end",   endDate);
 
+        var filter = new StringBuilder("WHERE day >= @start AND day <= @end");
         if (includeApps != null && includeApps.Length > 0)
         {
             var names = new List<string>(includeApps.Length);
@@ -125,12 +125,42 @@ public sealed class UsageStore : IDisposable
                 names.Add(p);
                 cmd.Parameters.AddWithValue(p, includeApps[i]);
             }
-            sql.Append(" AND bundle_id IN (").Append(string.Join(",", names)).Append(')');
+            filter.Append(" AND bundle_id IN (").Append(string.Join(",", names)).Append(')');
         }
 
-        sql.Append(" GROUP BY day, bundle_id ORDER BY seconds DESC, day ASC, bundle_id ASC");
+        var sql = new StringBuilder();
         if (topN.HasValue && topN.Value > 0)
-            sql.Append(" LIMIT ").Append(topN.Value); // int, not user string — safe
+        {
+            sql.Append(@"
+                WITH top_apps AS (
+                    SELECT bundle_id
+                    FROM usage_samples
+                    ").Append(filter).Append(@"
+                    GROUP BY bundle_id
+                    ORDER BY SUM(seconds) DESC
+                    LIMIT ").Append(topN.Value).Append(@"
+                )
+                SELECT day, bundle_id, MAX(app_name) AS app_name,
+                       SUM(seconds)           AS seconds,
+                       SUM(in_focus_seconds)  AS in_focus_seconds,
+                       SUM(out_focus_seconds) AS out_focus_seconds
+                FROM usage_samples
+                ").Append(filter).Append(@" AND bundle_id IN (SELECT bundle_id FROM top_apps)
+                GROUP BY day, bundle_id
+                ORDER BY day ASC, seconds DESC, bundle_id ASC");
+        }
+        else
+        {
+            sql.Append(@"
+                SELECT day, bundle_id, MAX(app_name) AS app_name,
+                       SUM(seconds)           AS seconds,
+                       SUM(in_focus_seconds)  AS in_focus_seconds,
+                       SUM(out_focus_seconds) AS out_focus_seconds
+                FROM usage_samples
+                ").Append(filter).Append(@"
+                GROUP BY day, bundle_id
+                ORDER BY day ASC, seconds DESC, bundle_id ASC");
+        }
 
         cmd.CommandText = sql.ToString();
 

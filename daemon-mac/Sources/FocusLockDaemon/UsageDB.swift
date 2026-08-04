@@ -130,22 +130,53 @@ final class UsageDB {
     /// Aggregates over user_sid inside the range. On macOS user_sid is always '',
     /// so this is a no-op collapse; on Windows one machine can serve multiple SIDs
     /// so the SUM keeps the query portable.
+    ///
+    /// `topN` means "the top-N unique apps by total seconds across the range" —
+    /// once those apps are selected, ALL of their `(day, bundle_id)` rows are
+    /// returned. Limiting the grouped rows directly would truncate to N single
+    /// app-days across the whole range and leave most days empty in the chart
+    /// (see issue #323).
     func queryRange(startDate: String, endDate: String,
                     topN: Int?, includeApps: [String]?) throws -> [UsageQueryRow] {
-        var sql = """
-        SELECT day, bundle_id, MAX(app_name) AS app_name,
-               SUM(seconds) AS s, SUM(in_focus_seconds) AS ifs, SUM(out_focus_seconds) AS ofs
-        FROM usage_samples
-        WHERE day BETWEEN ? AND ?
-        """
-        var binds: [String] = [startDate, endDate]
+        var filterSql = "WHERE day BETWEEN ? AND ?"
+        var filterBinds: [String] = [startDate, endDate]
         if let apps = includeApps, !apps.isEmpty {
             let placeholders = Array(repeating: "?", count: apps.count).joined(separator: ",")
-            sql += " AND bundle_id IN (\(placeholders))"
-            binds.append(contentsOf: apps)
+            filterSql += " AND bundle_id IN (\(placeholders))"
+            filterBinds.append(contentsOf: apps)
         }
-        sql += " GROUP BY day, bundle_id ORDER BY s DESC"
-        if let n = topN, n > 0 { sql += " LIMIT \(n)" }
+
+        let sql: String
+        let binds: [String]
+        if let n = topN, n > 0 {
+            sql = """
+            WITH top_apps AS (
+                SELECT bundle_id
+                FROM usage_samples
+                \(filterSql)
+                GROUP BY bundle_id
+                ORDER BY SUM(seconds) DESC
+                LIMIT \(n)
+            )
+            SELECT day, bundle_id, MAX(app_name) AS app_name,
+                   SUM(seconds) AS s, SUM(in_focus_seconds) AS ifs, SUM(out_focus_seconds) AS ofs
+            FROM usage_samples
+            \(filterSql) AND bundle_id IN (SELECT bundle_id FROM top_apps)
+            GROUP BY day, bundle_id
+            ORDER BY day ASC, s DESC
+            """
+            binds = filterBinds + filterBinds
+        } else {
+            sql = """
+            SELECT day, bundle_id, MAX(app_name) AS app_name,
+                   SUM(seconds) AS s, SUM(in_focus_seconds) AS ifs, SUM(out_focus_seconds) AS ofs
+            FROM usage_samples
+            \(filterSql)
+            GROUP BY day, bundle_id
+            ORDER BY day ASC, s DESC
+            """
+            binds = filterBinds
+        }
 
         var rows: [UsageQueryRow] = []
         try withPrepared(sql, label: "queryRange") { stmt in

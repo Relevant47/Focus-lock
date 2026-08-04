@@ -237,20 +237,19 @@ public sealed class UsageService : IDisposable
 
             int? otherTotal = null;
             // Roll-up only when top_n truncated AND include_apps did not filter
-            // (per docs/usage-analytics-schema.md §2.5).
-            if (!hasFilter && payload.TopN.HasValue && payload.TopN.Value > 0)
+            // (per docs/usage-analytics-schema.md §2.5). `rows` now contains ALL
+            // day rows for the top-N unique apps (issue #323), so compare
+            // bundle-id sets rather than (day, bundle_id) pairs.
+            if (!hasFilter && payload.TopN.HasValue && payload.TopN.Value > 0 && rows.Count > 0)
             {
                 var all = _store.QueryRange(payload.StartDate, payload.EndDate, topN: null, includeApps: null);
-                if (all.Count > rows.Count)
-                {
-                    var taken = new HashSet<string>(rows.Count);
-                    foreach (var r in rows) taken.Add(r.Day + "|" + r.BundleId);
-                    int sum = 0;
-                    foreach (var r in all)
-                        if (!taken.Contains(r.Day + "|" + r.BundleId))
-                            sum += r.Seconds;
-                    otherTotal = sum;
-                }
+                var shownBundles = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var r in rows) shownBundles.Add(r.BundleId);
+                int sum = 0;
+                foreach (var r in all)
+                    if (!shownBundles.Contains(r.BundleId))
+                        sum += r.Seconds;
+                if (sum > 0) otherTotal = sum;
             }
 
             return new UsageQueryResult { Rows = rows, OtherAppsTotalSeconds = otherTotal };

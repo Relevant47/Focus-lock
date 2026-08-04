@@ -95,6 +95,41 @@ public sealed class UsageStoreTests : IDisposable
     }
 
     [Fact]
+    public void QueryRange_TopN_SelectsTopUniqueApps_ReturnsAllTheirDays()
+    {
+        // Regression test for #323: `top_n` limits (day, bundle_id) pairs
+        // instead of unique apps, so the Usage chart is nearly empty for
+        // multi-day ranges. Set-up: 5 days, 3 apps; the two busiest apps by
+        // total seconds should each contribute their full set of day rows.
+        using var store = NewStore();
+        store.RunMigrations();
+
+        // code.exe: 4 days, total 400s → most-used
+        store.UpsertSample("2026-07-16", "", "code.exe",   "VS Code",  50,  50, 0);
+        store.UpsertSample("2026-07-17", "", "code.exe",   "VS Code", 150, 150, 0);
+        store.UpsertSample("2026-07-18", "", "code.exe",   "VS Code", 100, 100, 0);
+        store.UpsertSample("2026-07-19", "", "code.exe",   "VS Code", 100, 100, 0);
+        // chrome.exe: 3 days, total 300s → second most-used
+        store.UpsertSample("2026-07-16", "", "chrome.exe", "Chrome",  100, 100, 0);
+        store.UpsertSample("2026-07-18", "", "chrome.exe", "Chrome",  100, 100, 0);
+        store.UpsertSample("2026-07-20", "", "chrome.exe", "Chrome",  100, 100, 0);
+        // slack.exe: 1 day, total 30s → excluded from top-2
+        store.UpsertSample("2026-07-17", "", "slack.exe",  "Slack",    30,   0, 30);
+
+        var rows = store.QueryRange("2026-07-16", "2026-07-20", topN: 2, includeApps: null);
+
+        // Every code.exe day AND every chrome.exe day must be present — 7 rows,
+        // NOT the 2 rows a naive `LIMIT 2` on the grouped result would return.
+        Assert.Equal(7, rows.Count);
+        var codeDays   = rows.Where(r => r.BundleId == "code.exe").Select(r => r.Day).OrderBy(d => d).ToArray();
+        var chromeDays = rows.Where(r => r.BundleId == "chrome.exe").Select(r => r.Day).OrderBy(d => d).ToArray();
+        Assert.Equal(new[] { "2026-07-16", "2026-07-17", "2026-07-18", "2026-07-19" }, codeDays);
+        Assert.Equal(new[] { "2026-07-16", "2026-07-18", "2026-07-20" }, chromeDays);
+        // slack.exe is outside the top-2 unique apps.
+        Assert.DoesNotContain(rows, r => r.BundleId == "slack.exe");
+    }
+
+    [Fact]
     public void PruneOlderThan_DeletesMatchingRowsAndReturnsCount()
     {
         using var store = NewStore();
