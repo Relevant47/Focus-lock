@@ -110,7 +110,9 @@ export default function Usage() {
   }, [usageTracking.enabled, start, end, topN, queryUsage, refreshTick]);
 
   // Empty state — tracking disabled OR loaded but no rows yet.
-  if (!usageTracking.enabled) {
+  // Gate on `loaded` so we don't flash the "not enabled" prompt at startup
+  // before init()'s loadUsageSettings() has hydrated the slice.
+  if (usageTracking.loaded && !usageTracking.enabled) {
     return (
       <Page className="p-8">
         <div className="max-w-3xl mx-auto">

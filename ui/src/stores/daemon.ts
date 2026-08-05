@@ -231,6 +231,12 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       get().loadProfiles(),
       get().loadSchedules(),
       get().loadLogs(),
+      // If the daemon rejects usage.get_settings (older build, transport
+      // error), still flip `loaded` true so Usage / DashboardUsageCard fall
+      // through to their empty state instead of showing controls forever.
+      get().loadUsageSettings().catch(() =>
+        set((s) => ({ usageTracking: { ...s.usageTracking, loaded: true } }))
+      ),
     ]);
   },
 
