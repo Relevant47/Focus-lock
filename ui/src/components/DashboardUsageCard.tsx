@@ -50,7 +50,9 @@ export default function DashboardUsageCard() {
       .catch(e => setErr(e instanceof Error ? e.message : 'Query failed'));
   }, [usageTracking.enabled, queryUsage]);
 
-  if (!usageTracking.enabled) {
+  // Gate on `loaded` so we don't flash the "enable tracking" prompt at
+  // startup before init()'s loadUsageSettings() has hydrated the slice.
+  if (usageTracking.loaded && !usageTracking.enabled) {
     return (
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-1">
