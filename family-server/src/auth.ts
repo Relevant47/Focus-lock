@@ -126,7 +126,15 @@ export async function resetRequest(req: Request, env: Env): Promise<Response> {
   // attacker can't probe-then-pause.
   const after = await recordFailure(env, rlKey, RESET_POLICY);
 
+  // The DB lookup runs first (so 429 vs 200 timing doesn't leak existence),
+  // but the reset email must NOT be sent on the request that crosses the
+  // threshold — otherwise the user gets a working reset link AND a 429. See #248.
   const account = await findAccountByEmail(env.DB, email);
+  if (after.blocked) {
+    await logAudit(env.DB, account?.id ?? null, null, 'reset_rate_limited', null, clientIp(req));
+    return tooManyRequests(after.retryAfterSeconds,
+      `Too many reset requests. Try again in ${humanMinutes(after.retryAfterSeconds)}.`);
+  }
   if (account) {
     // jti makes the token single-use: resetConfirm records the jti after a
     // successful redeem and refuses any subsequent reuse within the 1-hour TTL.
@@ -138,11 +146,6 @@ export async function resetRequest(req: Request, env: Env): Promise<Response> {
     );
     await logAudit(env.DB, account.id, null, 'password_reset_requested', null, clientIp(req));
     await sendResetEmail(env, email, resetToken);
-  }
-  if (after.blocked) {
-    await logAudit(env.DB, account?.id ?? null, null, 'reset_rate_limited', null, clientIp(req));
-    return tooManyRequests(after.retryAfterSeconds,
-      `Too many reset requests. Try again in ${humanMinutes(after.retryAfterSeconds)}.`);
   }
   // Same response regardless of whether the email exists, to prevent enumeration.
   return json({ message: 'If that email is registered, a reset link has been sent.' });
