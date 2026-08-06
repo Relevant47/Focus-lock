@@ -45,11 +45,18 @@ function isValidCronField(field: string, min: number, max: number): boolean {
     if (range === '*') return true;
     const bounds = range.split('-');
     if (bounds.length > 2) return false;
-    return bounds.every(b => {
+    const parsed: number[] = [];
+    for (const b of bounds) {
       if (!/^\d+$/.test(b)) return false;
       const n = Number(b);
-      return n >= min && n <= max;
-    });
+      if (n < min || n > max) return false;
+      parsed.push(n);
+    }
+    // Both daemons match a range with `lo <= value <= hi`, so lo > hi is
+    // unreachable — the schedule would silently never fire. Overnight
+    // windows must be expressed as two rules (e.g. `22-23` and `0-6`).
+    if (parsed.length === 2 && parsed[0] > parsed[1]) return false;
+    return true;
   });
 }
 
@@ -85,7 +92,7 @@ function ScheduleForm({ initial, onSave, onCancel }: {
   async function handleSave() {
     if (!form.label.trim()) { setError('Label is required'); return; }
     if (!form.profileId)   { setError('Select a profile'); return; }
-    if (!isValidCron(form.cronExpression)) { setError('Invalid cron expression — use format: minute hour day month weekday'); return; }
+    if (!isValidCron(form.cronExpression)) { setError('Invalid cron expression — use format: minute hour day month weekday. Ranges must go low → high (for overnight windows, use two rules, e.g. 22-23 and 0-6).'); return; }
     setSaving(true); setError('');
     try { await onSave({ ...form, cronExpression: normalizeCronWeekday(form.cronExpression) }); }
     catch (e) { setError(e instanceof Error ? e.message : 'Save failed'); }
