@@ -2,17 +2,9 @@
 
 All notable changes to FocusLock will be documented here.
 
-## v1.4.1 — 2026-06-12
-
-Policy tightening on Family Approval Requests:
-
-- **Drop the 5-minute preset.** Duration options are now 15 / 30 / 60 minutes.
-- **Extend the pending window to 24 hours** (was 1 hour). The cron sweep is unchanged.
-- **Anti-spam:** one pending request per device at a time; after a deny on a target, the kid can't re-ask for that same target for 10 minutes. Server returns typed 409 codes (`pending_exists`, `deny_cooldown`); the child UI surfaces a friendly message and countdown.
-
-No schema change. No new endpoints. Worker is backwards-compatible with v1.4.0 clients — older clients hitting the new rules see a generic error rather than the targeted UI; the auto-updater rolls them forward within a day.
-
 ## [Unreleased]
+
+## [1.5.0] — 2026-08-06
 
 ### Added — Usage analytics (opt-in, local-only)
 
@@ -62,6 +54,25 @@ across data sources.
   Windows) so a future release can add "pause after N minutes idle"
   without a refactor.
 
+## [1.4.1] — 2026-06-12
+
+Policy tightening on Family Approval Requests:
+
+- **Drop the 5-minute preset.** Duration options are now 15 / 30 / 60 minutes.
+- **Extend the pending window to 24 hours** (was 1 hour). The cron sweep is unchanged.
+- **Anti-spam:** one pending request per device at a time; after a deny on a target, the kid can't re-ask for that same target for 10 minutes. Server returns typed 409 codes (`pending_exists`, `deny_cooldown`); the child UI surfaces a friendly message and countdown.
+
+No schema change. No new endpoints. Worker is backwards-compatible with v1.4.0 clients — older clients hitting the new rules see a generic error rather than the targeted UI; the auto-updater rolls them forward within a day.
+
+## [1.4.0] — 2026-06-10
+
+### Added — Family Approval Requests (Phase 3.2)
+
+- **"Ask for N min" on any active block.** The kid taps Ask on a currently-blocked target and picks 5 / 15 / 30 / 60 minutes; the parent gets a card in the Family Inbox with one-tap Approve or Deny plus a desktop notification.
+- **Approvals scope to one target, for one window.** Approving "reddit.com for 15 min" lifts reddit.com for 15 minutes — everything else stays blocked. The block re-engages automatically when the timer hits zero.
+- **Requests expire.** If no one answers within an hour the request quietly expires and the kid sees "No reply — try again later." (Extended to 24 hours in 1.4.1.)
+- **New IPC:** `request_unblock` / `request_status` on both daemons; new worker endpoints `POST /api/v1/device/requests` and `GET /api/v1/device/requests/:id`.
+
 ### Fixed — Active session is now unmistakable, and stoppable from every page
 
 - **Persistent global session banner.** A sticky top bar now appears on **every**
@@ -81,7 +92,20 @@ across data sources.
   on the configure pages was a small ghost-styled "End early" link, which users
   reported missing entirely.
 
+## [1.3.0] — 2026-06-09
 
+### Added — Family Inbox (Phase 3.1)
+
+- **New Inbox card at the top of the Family tab.** Chronological feed of things the parent would otherwise miss: weekly recap of which apps and sites got blocked the most, and a notice every time a new device pairs to the account.
+- **Mark-read per card or in bulk.** Unread items have an accent border and a dot; click the check to dismiss, or hit "Mark all read" in the header.
+- **Unread badge on the Family nav link.** A small accent pill next to "Family" surfaces the pending count without opening the tab.
+- **Foundation for child approval requests** shipped separately in 1.4.0 — the same feed surfaces "Sam wants 15 min on reddit.com" without a second UI surface.
+
+### Fixed — Family "Walkthrough" button opens the walkthrough for signed-in users too
+
+- Clicking Walkthrough on the Family page now re-opens the modal regardless of sign-in / pairing state. The button previously cleared the "already seen it" flag but a second condition further down still suppressed the modal for signed-in or paired-child cases, so the click looked like a no-op.
+
+## [1.2.1] — 2026-06-05
 
 ### Fixed — Family page no longer crashes the whole app
 
