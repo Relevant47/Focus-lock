@@ -72,11 +72,11 @@ export default function DashboardUsageCard() {
 
   // Aggregate by bundle_id in case the query returned multiple rows (shouldn't
   // for a single-day query, but the shape allows it).
-  const agg = new Map<string, { name: string; total: number }>();
+  const agg = new Map<string, { bundle_id: string; name: string; total: number }>();
   for (const r of rows ?? []) {
     const cur = agg.get(r.bundle_id);
     if (cur) cur.total += r.seconds;
-    else agg.set(r.bundle_id, { name: r.app_name, total: r.seconds });
+    else agg.set(r.bundle_id, { bundle_id: r.bundle_id, name: r.app_name, total: r.seconds });
   }
   const top3 = [...agg.values()].sort((a, b) => b.total - a.total).slice(0, 3);
   const totalToday = top3.reduce((a, r) => a + r.total, 0);
@@ -100,7 +100,7 @@ export default function DashboardUsageCard() {
       ) : (
         <div className="space-y-2">
           {top3.map((app, i) => (
-            <div key={app.name} className="flex items-center gap-2">
+            <div key={app.bundle_id} className="flex items-center gap-2">
               <span
                 className="w-2.5 h-2.5 rounded-sm shrink-0"
                 style={{ background: TOP3_COLORS[i] }}
