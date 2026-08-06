@@ -233,12 +233,13 @@ function UsageChart({
 
   // Distinct apps in the current result — for legend.
   const legendApps = useMemo(() => {
-    const seen = new Map<string, { name: string; color: string; total: number }>();
+    const seen = new Map<string, { bundle_id: string; name: string; color: string; total: number }>();
     for (const r of rows) {
       const cur = seen.get(r.bundle_id);
       const secs = fieldForMode(r, mode === 'split' ? 'total' : mode);
       if (cur) cur.total += secs;
       else seen.set(r.bundle_id, {
+        bundle_id: r.bundle_id,
         name: r.app_name,
         color: appColor.get(r.bundle_id) ?? APP_COLORS[0],
         total: secs,
@@ -332,7 +333,7 @@ function UsageChart({
       {/* Legend */}
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         {legendApps.map(app => (
-          <div key={app.name} className="flex items-center gap-2 text-xs">
+          <div key={app.bundle_id} className="flex items-center gap-2 text-xs">
             <span className="w-3 h-3 rounded-sm" style={{ background: app.color }} />
             <span className="text-text">{app.name}</span>
             <span className="text-faint tnum">{fmtHm(app.total)}</span>
