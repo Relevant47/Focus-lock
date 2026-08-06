@@ -28,6 +28,10 @@ function fmtHm(seconds: number): string {
   return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
 }
 
+// Refetch cadence for the Dashboard card. The full Usage page has an explicit
+// Refresh button; the card is glanceable so a background poll keeps it live.
+const REFRESH_INTERVAL_MS = 60_000;
+
 export default function DashboardUsageCard() {
   const usageTracking = useDaemon(s => s.usageTracking);
   const queryUsage = useDaemon(s => s.queryUsage);
@@ -37,17 +41,25 @@ export default function DashboardUsageCard() {
 
   useEffect(() => {
     if (!usageTracking.enabled) return;
-    // Local YYYY-MM-DD — the daemon buckets samples into the local day.
-    const d = new Date();
-    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    queryUsage({
-      start_date: today,
-      end_date: today,
-      top_n: 3,
-      split_by_focus: false,
-    })
-      .then(res => setRows(res.rows))
-      .catch(e => setErr(e instanceof Error ? e.message : 'Query failed'));
+    let cancelled = false;
+
+    const fetchToday = () => {
+      // Local YYYY-MM-DD — the daemon buckets samples into the local day.
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      queryUsage({
+        start_date: today,
+        end_date: today,
+        top_n: 3,
+        split_by_focus: false,
+      })
+        .then(res => { if (!cancelled) { setRows(res.rows); setErr(null); } })
+        .catch(e => { if (!cancelled) setErr(e instanceof Error ? e.message : 'Query failed'); });
+    };
+
+    fetchToday();
+    const t = setInterval(fetchToday, REFRESH_INTERVAL_MS);
+    return () => { cancelled = true; clearInterval(t); };
   }, [usageTracking.enabled, queryUsage]);
 
   if (!usageTracking.enabled) {
