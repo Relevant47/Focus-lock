@@ -81,8 +81,21 @@ public sealed class DaemonWorker : BackgroundService
             }
         }
 
-        _hosts.Remove();
-        _log.LogInformation("FocusLock daemon stopped");
+        // Only clear the hosts block when there's nothing left to enforce.
+        // If a session is still active or family rules are in force, stripping
+        // the block on graceful stop (Windows Update, `sc stop focuslock`,
+        // NSIS-silent self-update) opens a bypass window until the service
+        // restarts and re-applies. macOS's signal handler already omits the
+        // remove for the same reason.
+        if (_session.IsActive || _family.HasActiveBlocks)
+        {
+            _log.LogInformation("FocusLock daemon stopped — hosts block retained (session or family rules still active)");
+        }
+        else
+        {
+            _hosts.Remove();
+            _log.LogInformation("FocusLock daemon stopped");
+        }
     }
 
     /// <summary>
