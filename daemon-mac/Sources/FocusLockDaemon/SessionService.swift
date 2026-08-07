@@ -53,6 +53,10 @@ final class SessionService {
     private static let statePath = stateDir.appendingPathComponent("session.json")
     private static let keyPath   = stateDir.appendingPathComponent("daemon.key")
     private static let logPath   = stateDir.appendingPathComponent("sessions.jsonl")
+    // Cooldown lives outside session.json so it survives past the session that
+    // requested it — parent may request the disable window while no session is
+    // active, then apply it to the next hardcore session that starts.
+    private static let hardcoreCooldownPath = stateDir.appendingPathComponent("hardcore_cooldown")
 
     private let lock = NSLock()
     private var _active: SessionState?
@@ -71,6 +75,7 @@ final class SessionService {
     init(doh: BrowserDohPolicyService? = nil) {
         _doh = doh
         _signingKey = Self.loadOrCreateKey()
+        _hardcoreCooldownUntil = Self.loadHardcoreCooldown()
         if let state = Self.loadPersistedSession(key: _signingKey) {
             // Restore the persisted distraction-attempt count so a session that
             // expired (or resumes) across a restart keeps an accurate focus score.
@@ -148,8 +153,10 @@ final class SessionService {
     func requestDisableHardcore() -> (String, Bool) {
         lock.withLock {
             if let until = _hardcoreCooldownUntil, Date() < until { return ("Cooldown already in progress", false) }
-            _hardcoreCooldownUntil = Date().addingTimeInterval(86400)
-            fputs("[hardcore] Disable requested — cooldown until \(ISO8601DateFormatter().string(from: _hardcoreCooldownUntil!))\n", stderr)
+            let until = Date().addingTimeInterval(86400)
+            _hardcoreCooldownUntil = until
+            Self.saveHardcoreCooldown(until)
+            fputs("[hardcore] Disable requested — cooldown until \(ISO8601DateFormatter().string(from: until))\n", stderr)
             return ("", true)
         }
     }
@@ -211,7 +218,13 @@ final class SessionService {
     func stopSession(unlockToken: String? = nil) -> (String, Bool) {
         lock.withLock {
             guard let active = _active else { return ("No active session", false) }
-            guard !active.hardcoreMode else { return ("Cannot stop a Hardcore Mode session", false) }
+            // Hardcore sessions can only be stopped while a requestDisableHardcore
+            // window is open. Without it, the session must run to its endTime.
+            if active.hardcoreMode {
+                guard let cooldownUntil = _hardcoreCooldownUntil, Date() < cooldownUntil else {
+                    return ("Cannot stop a Hardcore Mode session", false)
+                }
+            }
 
             if let tokenHash = active.unlockTokenHash {
                 guard let provided = unlockToken, !provided.trimmingCharacters(in: .whitespaces).isEmpty else {
@@ -313,6 +326,22 @@ final class SessionService {
             .compactMap { try? dec.decode(SessionLog.self, from: Data($0.utf8)) }
             .suffix(limit)
             .reversed()
+    }
+
+    // ── Hardcore cooldown persistence ─────────────────────────────────────────
+
+    private static func loadHardcoreCooldown() -> Date? {
+        guard let raw = try? String(contentsOf: hardcoreCooldownPath, encoding: .utf8) else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let f = ISO8601DateFormatter()
+        return f.date(from: trimmed)
+    }
+
+    private static func saveHardcoreCooldown(_ until: Date) {
+        let iso = ISO8601DateFormatter().string(from: until)
+        // .atomic: a truncated write would parse as nil next start and silently
+        // drop the parent-issued cooldown.
+        try? Data(iso.utf8).write(to: hardcoreCooldownPath, options: .atomic)
     }
 
     // ── HMAC signing ──────────────────────────────────────────────────────────

@@ -24,6 +24,10 @@ public sealed class SessionService
     private readonly string KeyPath;
     private readonly string HashPath;
     private readonly string LogPath;
+    // Cooldown lives outside session.json so it survives past the session that
+    // requested it — parent may request the disable window while no session is
+    // active, then apply it to the next hardcore session that starts.
+    private readonly string HardcoreCooldownPath;
 
     private readonly ILogger<SessionService> _log;
     private readonly BrowserDohPolicyService? _doh;
@@ -57,9 +61,11 @@ public sealed class SessionService
         KeyPath = Path.Combine(_stateDir, "daemon.key");
         HashPath = Path.Combine(_stateDir, "daemon.hash");
         LogPath = Path.Combine(_stateDir, "sessions.jsonl");
+        HardcoreCooldownPath = Path.Combine(_stateDir, "hardcore_cooldown");
         Directory.CreateDirectory(_stateDir);
         LoadOrCreateKey();
         VerifyBinaryHash();
+        LoadHardcoreCooldown();
         LoadPersistedSession();
     }
 
@@ -175,8 +181,10 @@ public sealed class SessionService
         {
             if (_hardcoreCooldownUntil.HasValue && DateTime.UtcNow < _hardcoreCooldownUntil.Value)
                 return ("Cooldown already in progress", false);
-            _hardcoreCooldownUntil = DateTime.UtcNow.AddHours(24);
-            _log.LogInformation("Hardcore Mode disable requested — cooldown until {Until}", _hardcoreCooldownUntil);
+            var until = DateTime.UtcNow.AddHours(24);
+            _hardcoreCooldownUntil = until;
+            SaveHardcoreCooldown(until);
+            _log.LogInformation("Hardcore Mode disable requested — cooldown until {Until}", until);
             return (string.Empty, true);
         }
     }
@@ -272,8 +280,13 @@ public sealed class SessionService
             if (_active == null)
                 return ("No active session", false);
 
+            // Hardcore sessions can only be stopped while a RequestDisableHardcore
+            // window is open. Without it, the session must run to its endTime.
             if (_active.HardcoreMode)
-                return ("Cannot stop a Hardcore Mode session", false);
+            {
+                if (!_hardcoreCooldownUntil.HasValue || DateTime.UtcNow >= _hardcoreCooldownUntil.Value)
+                    return ("Cannot stop a Hardcore Mode session", false);
+            }
 
             // Friend lock check
             if (_active.UnlockTokenHash != null)
@@ -392,6 +405,38 @@ public sealed class SessionService
         if (_active == null) return;
         var json = JsonSerializer.Serialize(_active, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(StatePath, json);
+    }
+
+    private void LoadHardcoreCooldown()
+    {
+        try
+        {
+            if (!File.Exists(HardcoreCooldownPath)) return;
+            var raw = File.ReadAllText(HardcoreCooldownPath).Trim();
+            if (DateTime.TryParse(raw, null, System.Globalization.DateTimeStyles.RoundtripKind, out var parsed))
+                _hardcoreCooldownUntil = parsed.ToUniversalTime();
+        }
+        catch (Exception ex)
+        {
+            _log.LogDebug(ex, "Hardcore cooldown load skipped");
+        }
+    }
+
+    private void SaveHardcoreCooldown(DateTime until)
+    {
+        try
+        {
+            var tmp = HardcoreCooldownPath + ".tmp";
+            File.WriteAllText(tmp, until.ToUniversalTime().ToString("O"));
+            if (File.Exists(HardcoreCooldownPath))
+                File.Replace(tmp, HardcoreCooldownPath, destinationBackupFileName: null);
+            else
+                File.Move(tmp, HardcoreCooldownPath);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Failed to persist hardcore cooldown — window will be lost on restart");
+        }
     }
 
     private void LoadPersistedSession()
