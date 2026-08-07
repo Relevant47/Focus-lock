@@ -284,7 +284,11 @@ final class SessionService {
         let enc = JSONEncoder()
         enc.dateEncodingStrategy = .iso8601
         if let data = try? enc.encode(state) {
-            try? data.write(to: Self.statePath)
+            // .atomic writes to a sibling temp file, fsyncs, and renames into
+            // place — a power loss or SIGKILL mid-write leaves either the
+            // pre-write file or the fully-written one, never a truncated
+            // JSON that would fail signature verification on next start.
+            try? data.write(to: Self.statePath, options: .atomic)
         }
     }
 
