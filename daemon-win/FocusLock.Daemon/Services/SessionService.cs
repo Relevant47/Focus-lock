@@ -391,7 +391,21 @@ public sealed class SessionService
     {
         if (_active == null) return;
         var json = JsonSerializer.Serialize(_active, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(StatePath, json);
+        // Atomic write: stage to a sibling .tmp then swap into place. A power
+        // loss or SIGKILL mid-write leaves either the pre-write file or the
+        // fully-written one, never a truncated JSON that would fail signature
+        // verification on next start (and drop all blocks). File.Replace
+        // requires the destination to exist; fall back to Move on first write.
+        var tmp = StatePath + ".tmp";
+        File.WriteAllText(tmp, json);
+        if (File.Exists(StatePath))
+        {
+            File.Replace(tmp, StatePath, destinationBackupFileName: null);
+        }
+        else
+        {
+            File.Move(tmp, StatePath);
+        }
     }
 
     private void LoadPersistedSession()
