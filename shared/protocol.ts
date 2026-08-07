@@ -23,10 +23,11 @@ export interface SessionState {
   blockedProcesses: string[];  // exe name or full path
   allowlistedDomains: string[];
   pomodoroConfig: PomodoroConfig | null;
+  unlockTokenHash?: string | null; // friend-lock hash of the unlock phrase — included in HMAC signature (see ARCHITECTURE.md)
   motivationalMessage?: string | null;
   intention?: string | null;   // user's "what will you focus on?" — not signed
   blockAttempts?: number;      // running distraction-attempt counter, persisted so it survives a daemon restart — not signed (like motivationalMessage + intention); absent in older session files (treated as 0)
-  signature: string; // HMAC-SHA256 of everything above (excluding motivationalMessage + intention + blockAttempts)
+  signature: string; // HMAC-SHA256 of the signed fields (see ARCHITECTURE.md for the exact payload)
 }
 
 // ── Focus Profile ─────────────────────────────────────────────────────────────
