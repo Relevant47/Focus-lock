@@ -223,7 +223,13 @@ export default function Settings() {
 
   async function handleDisableUsage() {
     setUsageError(''); setUsageBusy(true);
-    try { await disableUsage(); setUsageConfirm(null); }
+    try {
+      // Modal promises both: disableUsage() only stops the tracker, so wipe
+      // samples after. Disable first so no new rows race the clear.
+      await disableUsage();
+      await clearAllUsageData();
+      setUsageConfirm(null);
+    }
     catch (e) { setUsageError(e instanceof Error ? e.message : 'Failed to disable'); }
     finally { setUsageBusy(false); }
   }
