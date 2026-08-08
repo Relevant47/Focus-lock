@@ -274,7 +274,11 @@ function UsageChart({
         {days.map((day, i) => {
           const dayRows = (byDay.get(day) ?? [])
             .filter(r => !hideOthers || appColor.has(r.bundle_id))
-            .sort(a => (appColor.get(a.bundle_id) ? -1 : 1)); // top-N first
+            .sort((a, b) => {
+              const aColored = appColor.has(a.bundle_id) ? 0 : 1;
+              const bColored = appColor.has(b.bundle_id) ? 0 : 1;
+              return aColored - bColored; // top-N first, others after
+            });
           const dayTotal = dailyTotals[i];
           const heightPct = maxSecs > 0 ? (dayTotal / maxSecs) * 100 : 0;
           const label = new Date(day + 'T00:00:00').toLocaleDateString('en', {
