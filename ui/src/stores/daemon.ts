@@ -326,7 +326,15 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       throw new Error('Unexpected response from daemon');
     }
     const p = res.payload as ParentTokenPayload;
-    set({ parentToken: p.token, parentTokenExpiresAt: new Date(p.expiresAt).getTime() });
+    // A malformed expiresAt string yields NaN, and `Date.now() >= NaN` is
+    // always false — the token would never expire, defeating the point of
+    // the short-lived grant. Collapse NaN to 0 so the token is treated as
+    // immediately expired and the UI re-prompts.
+    const expiresAt = new Date(p.expiresAt).getTime();
+    set({
+      parentToken: p.token,
+      parentTokenExpiresAt: Number.isFinite(expiresAt) ? expiresAt : 0,
+    });
   },
 
   async changeParentPin(oldPin, newPin) {
