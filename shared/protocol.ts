@@ -149,6 +149,7 @@ export type IpcSkipBreak = { type: "skip_break" };
 
 export interface StopSessionPayload {
   unlockToken?: string; // required in friend-lock mode
+  parentToken?: string; // set by the store when the settings-lock PIN is unlocked
 }
 
 export type IpcResponse =
