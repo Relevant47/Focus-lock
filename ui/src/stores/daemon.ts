@@ -232,6 +232,13 @@ export const useDaemon = create<State & Actions>((set, get) => ({
       get().loadSchedules(),
       get().loadLogs(),
     ]);
+
+    // Guarantee bootChecked flips true even when the daemon is offline and
+    // never emits a `daemon-status` event. Without this, SetupRequired would
+    // stay hidden behind the "haven't tried yet" state forever.
+    if (!get().bootChecked) {
+      set({ bootChecked: true });
+    }
   },
 
   async startSession(payload) {
