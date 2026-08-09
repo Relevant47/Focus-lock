@@ -338,7 +338,7 @@ function UsageChart({
             <span className="text-faint tnum">{fmtHm(app.total)}</span>
           </div>
         ))}
-        {!hideOthers && otherAppsTotalSeconds > 0 && (
+        {!hideOthers && otherAppsTotalSeconds > 0 && (mode === 'total' || mode === 'split') && (
           <div className="flex items-center gap-2 text-xs">
             <span className="w-3 h-3 rounded-sm" style={{ background: OTHER_COLOR }} />
             <span className="text-muted">All other apps</span>
