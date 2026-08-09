@@ -493,18 +493,11 @@ export const useDaemon = create<State & Actions>((set, get) => ({
 
   async disableUsage() {
     await request('usage.disable');
-    // Reset slice to defaults locally; loadUsageSettings would repopulate,
-    // but the daemon may already have zeroed enabled_at_utc so we mirror
-    // the spec exactly and let the next explicit load reconcile.
-    set({
-      usageTracking: {
-        enabled: false,
-        retention_days: '90',
-        sample_rate_seconds: 5,
-        enabled_at_utc: null,
-        loaded: true,
-      },
-    });
+    // Re-hydrate from the daemon so user-configured retention_days /
+    // sample_rate_seconds survive a disable→enable round-trip. The previous
+    // hardcoded-defaults reset silently reverted those values everywhere
+    // except Settings (the only page that re-called loadUsageSettings()).
+    await get().loadUsageSettings();
   },
 
   async setUsageSettings(patch) {
