@@ -31,7 +31,7 @@
   <p class="date">Last updated: May 2026</p>
 
   <div class="highlight">
-    <p><strong>Short version:</strong> Your focus data stays on your device — no account, no background tracking of your activity. The one exception is entirely optional and entirely up to you: if you choose to take our in-app survey, your <strong>anonymous</strong> answers are sent to us, and an email address is sent only if you separately opt into our newsletter. You can skip the survey, and you can delete your response at any time.</p>
+    <p><strong>Short version:</strong> Your focus data stays on your device — no account, and no data is sent off your device by default. Two features are opt-in and stay on your device: <strong>Usage Analytics</strong> (records which app is in the foreground so you can see where your time goes — off by default, stored only in a local database), and the <strong>in-app survey</strong> (your <strong>anonymous</strong> answers are sent to us, and an email address is sent only if you separately opt into our newsletter). You can skip either, and delete your data at any time.</p>
   </div>
 
   <h2>1. What stays on your device</h2>
@@ -49,24 +49,33 @@
   <p>From time to time FocusLock may invite you to take a short, <strong>voluntary survey</strong> about how you use it (for example: age range, profession, country, how you found FocusLock, what you block, and feedback). You can decline, and declining never affects how the app works.</p>
   <ul>
     <li><strong>It's anonymous.</strong> We do not ask for your name and we do not link answers to your identity. Submissions are associated only with a random identifier generated on your device, which exists solely to avoid asking you twice and to measure how many people respond.</li>
-    <li><strong>Product analytics.</strong> So we can understand response rates and where people drop off, the app records when the survey prompt is shown, dismissed, started, abandoned, or completed, tied to that same random identifier. This is the only usage analytics FocusLock collects, and it only concerns the survey itself.</li>
+    <li><strong>Product analytics.</strong> So we can understand response rates and where people drop off, the app records when the survey prompt is shown, dismissed, started, abandoned, or completed, tied to that same random identifier. These records concern the survey itself and, together with any survey answers you submit, are the only data FocusLock ever sends off your device.</li>
     <li><strong>Where it goes.</strong> Survey responses are stored in our database (Supabase) and used only to improve FocusLock and decide what to build next.</li>
     <li><strong>You can erase it.</strong> A "Delete my response" option is available in Settings after you submit, and removes your submission from our database.</li>
   </ul>
 
-  <h2>4. Optional newsletter</h2>
+  <h2>4. Optional Usage Analytics (device-local)</h2>
+  <p>FocusLock includes an <strong>opt-in</strong> Usage Analytics feature so you can see how you spend your time across apps. It is <strong>off by default</strong> and must be turned on from <em>Settings → Usage Tracking</em>.</p>
+  <ul>
+    <li><strong>What it records.</strong> When enabled, FocusLock samples the name and bundle/executable identifier of the foreground application about every 5 seconds. It does not capture window titles, keystrokes, screen contents, URLs, or the sites you visit.</li>
+    <li><strong>Where it goes.</strong> Samples are stored in a local SQLite database on your device (<code>usage.db</code>, in the same FocusLock data directory listed in Section 1). They are <strong>never transmitted</strong> to us or any third party.</li>
+    <li><strong>How it runs.</strong> Sampling runs in a small per-user background helper that FocusLock registers when you enable the feature (a LaunchAgent on macOS, a Scheduled Task on Windows). The helper is unregistered when you disable the feature.</li>
+    <li><strong>Retention and deletion.</strong> You can adjust retention (default 90 days) or delete all history at any time from Settings. Disabling the feature via <em>Turn off tracking and delete history</em> also removes the local database.</li>
+  </ul>
+
+  <h2>5. Optional newsletter</h2>
   <p>At the end of the survey you may choose to receive occasional email updates. <strong>Only if you opt in and confirm consent</strong> do we collect your email address. It is sent to our newsletter provider, <a href="https://www.beehiiv.com" target="_blank">Beehiiv</a> (a third-party processor), and is kept separate from your anonymous survey answers. Every email includes an unsubscribe link, and you can unsubscribe at any time.</p>
 
-  <h2>5. No account, no payments</h2>
+  <h2>6. No account, no payments</h2>
   <p>FocusLock does not require an account to download or use, and it is completely free — we do not process payments or collect financial information.</p>
 
-  <h2>6. Children's privacy</h2>
+  <h2>7. Children's privacy</h2>
   <p>The survey is anonymous for everyone. If a respondent indicates they are under 18, the newsletter email opt-in is not offered, so no identifiable contact information is ever collected from a minor.</p>
 
-  <h2>7. Changes to this policy</h2>
+  <h2>8. Changes to this policy</h2>
   <p>If we make material changes to this policy, we will update the "Last updated" date above. Changes will also be reflected in the GitHub repository.</p>
 
-  <h2>8. Contact</h2>
+  <h2>9. Contact</h2>
   <p>Privacy questions, or to request deletion of survey or newsletter data: <a href="mailto:hello@tryfocuslock.com">hello@tryfocuslock.com</a> or open an issue on <a href="https://github.com/Relevant47/focus-lock/issues" target="_blank">GitHub</a>.</p>
 
   <footer>© 2026 FocusLock · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></footer>
