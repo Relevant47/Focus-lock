@@ -452,6 +452,20 @@ public sealed class UsageService : IDisposable
             }
 
             _log.LogInformation("usage tracker scheduled task registered at {Path}", exePath);
+
+            // Kick the task in the current login session too. /SC ONLOGON only
+            // fires on the *next* sign-in, so without this the tracker collects
+            // zero data until the user logs out and back in — the UI meanwhile
+            // reports tracking as "enabled" (issue #366). Non-fatal: the task
+            // is correctly registered for future logons even if /Run fails.
+            var (runExit, runOut, runErr) = RunSchtasks("/Run", "/TN", ScheduledTaskName);
+            if (runExit != 0)
+            {
+                _log.LogWarning(
+                    "schtasks /Run failed (exit={Exit}): stdout='{Stdout}' stderr='{Stderr}' — tracking will start at next logon",
+                    runExit, runOut.Trim(), runErr.Trim());
+            }
+
             return (null, true);
         }
         catch (Exception ex)
