@@ -49,8 +49,8 @@ final class ScheduleService {
                now.timeIntervalSince(last) < 60 { continue }
             guard cronMatches(schedule.cronExpression, date: now, calendar: cal) else { continue }
 
-            lastFired[schedule.id] = now
             guard let profile = profiles.getProfiles().first(where: { $0.id == schedule.profileId }) else { continue }
+            lastFired[schedule.id] = now
 
             let domains = expandDomains(profile: profile)
             let payload = StartSessionPayload(
