@@ -73,8 +73,6 @@ public sealed class ScheduleService
 
             if (!CronMatches(schedule.CronExpression, now)) continue;
 
-            _lastFired[schedule.Id] = now;
-
             var profile = _profiles.GetAll().FirstOrDefault(p => p.Id == schedule.ProfileId);
             if (profile == null)
             {
@@ -82,6 +80,8 @@ public sealed class ScheduleService
                     schedule.Id, schedule.ProfileId);
                 continue;
             }
+
+            _lastFired[schedule.Id] = now;
 
             _log.LogInformation("Auto-starting session for schedule \"{Label}\"", schedule.Label);
 
