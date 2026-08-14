@@ -583,13 +583,27 @@ function ActiveSession({
   const hardcore = session.hardcoreMode;
   const intention = session.intention ?? null;
 
-  // Cycle dots: estimate from pomodoro config + elapsed
+  // Cycle dots: estimate from pomodoro config + elapsed. The last cycle in the
+  // block ends with a LONG break, not a short break, so the naive
+  // `floor(elapsed / (work+break))` division raced ahead of the daemon by
+  // (longBreakMinutes - breakMinutes) seconds per super-cycle. Simulate the
+  // phase sequence instead so the display and daemon stay in step. Issue #264.
   const cycles = session.pomodoroConfig?.cyclesBeforeLongBreak ?? 4;
   const elapsedSec = totalSec - remaining;
   const workSec = (session.pomodoroConfig?.workMinutes ?? 25) * 60;
   const breakSec = (session.pomodoroConfig?.breakMinutes ?? 5) * 60;
-  const cycleSec = workSec + breakSec;
-  const done = Math.min(cycles, Math.floor(elapsedSec / cycleSec));
+  const longBreakSec = (session.pomodoroConfig?.longBreakMinutes ?? 15) * 60;
+  const done = (() => {
+    let cumulative = 0;
+    let complete = 0;
+    for (let i = 1; i <= cycles; i++) {
+      const trailingBreak = i === cycles ? longBreakSec : breakSec;
+      cumulative += workSec + trailingBreak;
+      if (elapsedSec >= cumulative) complete = i;
+      else break;
+    }
+    return complete;
+  })();
 
   return (
     <Page className="p-8">
