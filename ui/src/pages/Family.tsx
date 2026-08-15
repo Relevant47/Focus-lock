@@ -509,7 +509,7 @@ function ForgotPasswordButton({ currentEmail }: { currentEmail: string }) {
   }
 
   return (
-    <div className="absolute inset-0 modal-backdrop">
+    <div className="modal-backdrop">
       <div className="w-full max-w-md mx-4 bg-surface border border-borderhi rounded-2xl shadow-hero p-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-text">Reset your password</h3>
@@ -822,7 +822,7 @@ function DeleteAccountModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="absolute inset-0 modal-backdrop">
+    <div className="modal-backdrop">
       <div className="w-full max-w-md mx-4 bg-surface border border-danger/40 rounded-2xl shadow-hero p-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-danger">Delete account</h3>
