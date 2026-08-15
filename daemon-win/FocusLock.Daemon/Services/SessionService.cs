@@ -533,6 +533,7 @@ public sealed class SessionService
             _sessionStart = sessionStart;
             _phaseEnd = sessionStart.AddMinutes(cfg.WorkMinutes);
             Phase = "work";
+            SecondsRemaining = (_phaseEnd - DateTime.UtcNow).TotalSeconds;
         }
 
         public void Tick(DateTime now)
