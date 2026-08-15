@@ -138,7 +138,7 @@ public sealed class IpcPipeService : BackgroundService
                     var request = JsonSerializer.Deserialize<IpcRequest>(line, JsonOpts);
                     if (request == null) continue;
 
-                    var response = Handle(request);
+                    var response = await Handle(request).ConfigureAwait(false);
                     await writer.WriteLineAsync(
                         JsonSerializer.Serialize(response, JsonOpts).AsMemory(), ct)
                         .ConfigureAwait(false);
@@ -151,7 +151,7 @@ public sealed class IpcPipeService : BackgroundService
         }
     }
 
-    private IpcResponse Handle(IpcRequest req)
+    private async Task<IpcResponse> Handle(IpcRequest req)
     {
         try
         {
@@ -178,14 +178,14 @@ public sealed class IpcPipeService : BackgroundService
                 "verify_recovery_key"      => HandleVerifyRecoveryKey(req),
                 "regenerate_recovery_key"  => HandleRegenerateRecoveryKey(req),
                 "get_parent_audit"         => HandleGetParentAudit(req),
-                "family_redeem_code"       => HandleFamilyRedeem(req).GetAwaiter().GetResult(),
+                "family_redeem_code"       => await HandleFamilyRedeem(req).ConfigureAwait(false),
                 "family_unpair"            => HandleFamilyUnpair(req),
                 "family_get_status"        => IpcResponse.FamilyStatus(BuildFamilyStatus()),
                 "family_check_environment" => IpcResponse.FamilyEnvironment(_envProbe.Probe()),
                 "family_authorize_uninstall" => HandleAuthorizeUninstall(req),
                 "family_set_firewall_lockdown" => HandleSetFirewallLockdown(req),
-                "request_unblock"          => HandleRequestUnblock(req).GetAwaiter().GetResult(),
-                "request_status"           => HandleRequestStatus(req).GetAwaiter().GetResult(),
+                "request_unblock"          => await HandleRequestUnblock(req).ConfigureAwait(false),
+                "request_status"           => await HandleRequestStatus(req).ConfigureAwait(false),
                 // ── Usage analytics (Phase 2) ────────────────────────────
                 // Intentionally ungated: usage tracking is user-controlled;
                 // no parent token, no family envelope.
