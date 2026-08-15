@@ -72,11 +72,24 @@ final class IpcSocketService {
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
-        withUnsafeMutableBytes(of: &addr.sun_path) { ptr in
-            let bytes = Self.socketPath.utf8
-            bytes.withContiguousStorageIfAvailable { src in
-                ptr.copyMemory(from: UnsafeRawBufferPointer(src))
+        // Array(String.utf8) is always contiguous, unlike String.UTF8View —
+        // withContiguousStorageIfAvailable on the latter can skip its closure,
+        // leaving sun_path zero and bind() failing on an empty path.
+        let pathBytes = Array(Self.socketPath.utf8)
+        let sunPathCap = MemoryLayout.size(ofValue: addr.sun_path)
+        guard pathBytes.count < sunPathCap else {
+            fputs("[ipc] Socket path too long (\(pathBytes.count) >= \(sunPathCap)): \(Self.socketPath)\n", stderr)
+            return
+        }
+        withUnsafeMutableBytes(of: &addr.sun_path) { dst in
+            guard let dstBase = dst.baseAddress else { return }
+            pathBytes.withUnsafeBytes { src in
+                if let srcBase = src.baseAddress {
+                    dstBase.copyMemory(from: srcBase, byteCount: pathBytes.count)
+                }
             }
+            // sun_path is zero-initialized by sockaddr_un(); the byte after the
+            // copy is already NUL so the C string is well-formed.
         }
 
         let bindResult = withUnsafePointer(to: &addr) { ptr in
