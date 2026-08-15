@@ -18,6 +18,10 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     private static let reconnectMax: TimeInterval = 30
     private static let offlineAuditThreshold: TimeInterval = 300  // 5 minutes
     private static let userAgent = "FocusLock-Daemon/1.2.1"
+    /// Written on every connect / disconnect / successful heartbeat so
+    /// `offlineSeconds` can measure outages that span a daemon restart or a
+    /// cold boot during a network outage. Root-owned; only the daemon reads.
+    private static let heartbeatPath = "/Library/Application Support/FocusLock/cloudsync-lastseen.json"
 
     private let family: FamilyService
     private let enforce: FamilyEnforcementService
@@ -55,6 +59,37 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
         super.init()
         // mach_continuous_time isn't bridged; fall back to clock_gettime_nsec_np.
         self.bootMonotonic = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+        // Seed lastConnectedAt from the on-disk heartbeat so a cold-boot outage
+        // arms the firewall lockdown as soon as offlineSeconds crosses the
+        // threshold, rather than waiting for a first-in-this-process WS connect.
+        if let persisted = Self.loadHeartbeatFromDisk() {
+            self.lastConnectedAt = persisted
+        }
+    }
+
+    // MARK: - Persisted heartbeat
+
+    private static func loadHeartbeatFromDisk() -> Date? {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: heartbeatPath)),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let t = obj["lastSeenUnix"] as? Double else {
+            return nil
+        }
+        // Reject implausible values (clock skew, tampering, corruption). A
+        // negative or future timestamp would poison offlineSeconds.
+        let d = Date(timeIntervalSince1970: t)
+        if d > Date().addingTimeInterval(60) { return nil }
+        if d.timeIntervalSince1970 <= 0 { return nil }
+        return d
+    }
+
+    private func persistHeartbeat(_ date: Date) {
+        let body: [String: Any] = ["lastSeenUnix": date.timeIntervalSince1970]
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+        // Best-effort — a write failure here shouldn't take down the sync loop.
+        // /Library/Application Support/FocusLock is created by other services
+        // during boot, so we don't try to mkdir it here.
+        try? data.write(to: URL(fileURLWithPath: Self.heartbeatPath), options: .atomic)
     }
 
     func start() {
@@ -279,6 +314,9 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
                     onEnd(sendErr)
                     return
                 }
+                // Refresh the persisted heartbeat so a hard crash between
+                // connect and disconnect doesn't rewind the offline anchor.
+                self.persistHeartbeat(Date())
                 Thread.sleep(forTimeInterval: Self.heartbeatInterval)
             }
             onEnd(nil)
@@ -300,14 +338,16 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                     didOpenWithProtocol `protocol`: String?) {
+        let now = Date()
         lock.lock()
         let wasOffline = outageAudited
         connected = true
-        lastConnectedAt = Date()
+        lastConnectedAt = now
         lastDisconnectedAt = nil
         lastError = nil
         outageAudited = false
         lock.unlock()
+        persistHeartbeat(now)
         if wasOffline {
             audit.record(ParentAuditEvents.familyReconnected)
             fputs("[cloudsync] reconnected after extended outage\n", stderr)
@@ -318,10 +358,12 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                     didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
                     reason: Data?) {
+        let now = Date()
         lock.lock()
         connected = false
-        lastDisconnectedAt = Date()
+        lastDisconnectedAt = now
         lock.unlock()
+        persistHeartbeat(now)
         fputs("[cloudsync] closed code=\(closeCode.rawValue)\n", stderr)
     }
 }
