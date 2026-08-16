@@ -1180,13 +1180,14 @@ function RuleRow({ rule, onRemove }: { rule: LockRule; onRemove: () => void }) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function useCountdownToTimestamp(iso: string): number {
-  const target = useMemo(() => Date.parse(iso), [iso]);
+function useCountdownToTimestamp(iso: string | null): number {
+  const target = useMemo(() => (iso ? Date.parse(iso) : 0), [iso]);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, []);
+  if (!iso) return 0;
   return Math.max(0, Math.floor((target - now) / 1000));
 }
 
@@ -1239,6 +1240,12 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
    *  instead, since the visual treatment matches. */
   const [rejection, setRejection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Drive the denied-branch "Ask again in N min." text with the same 1-second
+  // ticker the pair-code countdown uses. Previously the branch computed
+  // `Date.now()` once at render time and never re-rendered until an unrelated
+  // status change came in, so the countdown appeared frozen.
+  const cooldownSecsLeft = useCountdownToTimestamp(cooldownUntil);
 
   async function ask(): Promise<void> {
     if (busy) return;
@@ -1306,9 +1313,7 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
     return <p className="text-success">✓ Approved — unblock active</p>;
   }
   if (status === 'denied') {
-    const mins = cooldownUntil
-      ? Math.max(1, Math.ceil((Date.parse(cooldownUntil) - Date.now()) / 60_000))
-      : null;
+    const mins = cooldownUntil ? Math.max(1, Math.ceil(cooldownSecsLeft / 60)) : null;
     return (
       <p className="text-faint">
         Denied by parent. {mins ? `Ask again in ${mins} min.` : 'Ask again in a moment.'}
