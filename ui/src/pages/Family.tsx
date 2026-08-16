@@ -10,7 +10,6 @@ import { AUDIT_EVENT_LABEL, FAMILY_AUDIT_EVENTS, TAMPER_ALERT_EVENTS, formatAudi
 import FamilyOnboarding, { useFamilyOnboarding } from '../components/FamilyOnboarding';
 import FamilyInbox from '../components/FamilyInbox';
 import { useNewRequestAlerts } from '../components/useNewRequestAlerts';
-import { IS_MACOS } from '../lib/platform';
 
 const DEVICE_POLL_INTERVAL_MS = 30_000;
 
@@ -1112,9 +1111,9 @@ function DeviceCard({ device }: { device: DeviceSummary }) {
           <div className="space-y-2">
             <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold">Block now</p>
             <div>
-              <label className="text-[11px] text-muted block mb-1">{`Apps (comma-separated, e.g. ${IS_MACOS ? 'Discord, Steam' : 'discord.exe, steam.exe'})`}</label>
+              <label className="text-[11px] text-muted block mb-1">{`Apps (comma-separated, e.g. ${device.os === 'windows' ? 'discord.exe, steam.exe' : 'Discord, Steam'})`}</label>
               <input value={apps} onChange={e => setApps(e.target.value)}
-                className="input-base w-full px-3 py-2 text-sm font-mono" placeholder={IS_MACOS ? "Discord, Steam" : "discord.exe, steam.exe"} />
+                className="input-base w-full px-3 py-2 text-sm font-mono" placeholder={device.os === 'windows' ? "discord.exe, steam.exe" : "Discord, Steam"} />
             </div>
             <div>
               <label className="text-[11px] text-muted block mb-1">Domains (comma-separated)</label>
