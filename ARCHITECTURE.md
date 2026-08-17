@@ -136,8 +136,10 @@ The signing key is a 32-byte random value stored at:
 - Windows: `%ProgramData%\FocusLock\daemon.key` (SYSTEM-only ACL)
 - macOS: `/Library/Application Support/FocusLock/daemon.key` (chmod 600)
 
-Tampering with `session.json` produces a signature mismatch. The daemon logs a warning
-and continues enforcing the session — the tampered file does NOT bypass the lock.
+Tampering with `session.json` produces a signature mismatch. The daemon logs the event
+to stderr and discards the tampered state (does not load it). A tampered or deleted
+`session.json` therefore ends the block on the next daemon start — it does not preserve
+or bypass the lock. If a session should still be running, restart it from the UI.
 
 ---
 
