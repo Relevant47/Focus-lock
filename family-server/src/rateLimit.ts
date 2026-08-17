@@ -44,6 +44,16 @@ export const RESET_POLICY: RateLimitPolicy = {
   blockSeconds: 60 * 60,    // 1 hour
 };
 
+/// Per-IP throttle on `POST /auth/signup`. Signup runs a PBKDF2-100k hash and
+/// two D1 writes per call, so it's the most expensive unauthenticated path we
+/// serve — an untrimmed stream can burn D1 write quota. 10/10min/1h is loose
+/// enough that a household onboarding a couple of devices never hits it.
+export const SIGNUP_POLICY: RateLimitPolicy = {
+  maxAttempts: 10,
+  windowSeconds: 10 * 60,   // 10 minutes
+  blockSeconds: 60 * 60,    // 1 hour
+};
+
 export interface RateLimitState {
   blocked: boolean;
   /// Seconds the caller should wait before the key unblocks. 0 when not blocked.
@@ -125,3 +135,4 @@ export async function recordSuccess(env: Env, key: string): Promise<void> {
 
 export function loginKey(email: string): string { return `login:${email.toLowerCase()}`; }
 export function resetKey(email: string): string { return `reset:${email.toLowerCase()}`; }
+export function signupKey(ip: string | null): string { return `signup:${ip ?? 'unknown'}`; }

@@ -4,8 +4,8 @@ import {
 } from './db';
 import { sendResetEmail } from './email';
 import {
-  LOGIN_POLICY, RESET_POLICY,
-  checkRateLimit, loginKey, recordFailure, recordSuccess, resetKey,
+  LOGIN_POLICY, RESET_POLICY, SIGNUP_POLICY,
+  checkRateLimit, loginKey, recordFailure, recordSuccess, resetKey, signupKey,
 } from './rateLimit';
 import type { Env } from './types';
 import {
@@ -43,12 +43,35 @@ export async function signup(req: Request, env: Env): Promise<Response> {
   if (!isValidEmail(email))                return badRequest('invalid email');
   if (password.length < MIN_PASSWORD_LENGTH) return badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`);
 
-  if (await findAccountByEmail(env.DB, email)) {
+  // Per-IP throttle so an attacker can't burn D1 write quota (or the PBKDF2
+  // budget below) by flooding signup. Malformed requests were rejected above
+  // without touching the counter.
+  const ip = clientIp(req);
+  const rlKey = signupKey(ip);
+  const rlState = await checkRateLimit(env, rlKey, SIGNUP_POLICY);
+  if (rlState.blocked) {
+    return tooManyRequests(rlState.retryAfterSeconds,
+      `Too many signup attempts. Try again in ${humanMinutes(rlState.retryAfterSeconds)}.`);
+  }
+
+  const existing = await findAccountByEmail(env.DB, email);
+  // Hash even on the duplicate-email branch so an attacker can't distinguish
+  // "email exists" from "email doesn't exist" by response time (the PBKDF2
+  // path takes ~100 ms; skipping it made the duplicate branch a timing oracle
+  // for account existence — reported as part of #207).
+  const hash = await hashPassword(password);
+  if (existing) {
+    const after = await recordFailure(env, rlKey, SIGNUP_POLICY);
+    if (after.blocked) {
+      await logAudit(env.DB, null, null, 'signup_rate_limited', null, ip);
+      return tooManyRequests(after.retryAfterSeconds,
+        `Too many signup attempts. Try again in ${humanMinutes(after.retryAfterSeconds)}.`);
+    }
     return conflict('email already registered');
   }
-  const hash = await hashPassword(password);
   const account = await createAccount(env.DB, email, hash);
-  await logAudit(env.DB, account.id, null, 'signup', { email }, clientIp(req));
+  await recordSuccess(env, rlKey);
+  await logAudit(env.DB, account.id, null, 'signup', { email }, ip);
   return issueSession(env, account.id);
 }
 
