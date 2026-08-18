@@ -82,6 +82,7 @@ function fmtHm(seconds: number): string {
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function Usage() {
   const usageTracking = useDaemon(s => s.usageTracking);
+  const loadUsageSettings = useDaemon(s => s.loadUsageSettings);
   const queryUsage = useDaemon(s => s.queryUsage);
 
   const [range, setRange] = useState<RangeKey>('this-week');
@@ -94,6 +95,13 @@ export default function Usage() {
   const [refreshTick, setRefreshTick] = useState(0);
 
   const { start, end, days } = useMemo(() => computeRange(range), [range]);
+
+  // Hydrate the usageTracking slice from the daemon on direct navigation to
+  // /usage — otherwise a user who never visits Settings first sees the
+  // "not enabled" empty state for the whole session.
+  useEffect(() => {
+    loadUsageSettings().catch(() => { /* silent — empty state renders */ });
+  }, [loadUsageSettings]);
 
   useEffect(() => {
     if (!usageTracking.enabled) return;
