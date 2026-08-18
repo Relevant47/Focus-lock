@@ -104,6 +104,7 @@ function stripRule(r: LockRuleRow) {
     schedule_cron: r.schedule_cron,
     active: r.active === 1,
     created_at: r.created_at,
+    expires_at: r.expires_at,
   };
 }
 
