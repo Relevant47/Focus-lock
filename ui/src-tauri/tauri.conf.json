@@ -44,6 +44,9 @@
     "longDescription": "FocusLock blocks distracting websites and apps at the operating system level — no browser extensions, no workarounds. Blocks survive app restarts, force quits, and even reboots.",
     "externalBin": [],
     "resources": [],
+    "macos": {
+      "minimumSystemVersion": "13"
+    },
     "windows": {
       "digestAlgorithm": "sha256",
       "timestampUrl": "http://timestamp.digicert.com"
