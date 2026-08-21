@@ -68,6 +68,10 @@ final class UsageService {
                     sampleRateSeconds: 5,
                     enabledAtUTC: Self.nowIso()
                 )
+                // seedMeta uses INSERT OR IGNORE and doesn't touch `enabled`.
+                // Force-write it here so handleGetSettings reports enabled:true
+                // instead of falling back to "0". Mirrors the Windows path.
+                try opened.setMeta(key: "enabled", value: "1")
             } catch {
                 // Partial-create: scrub the file so a retry starts clean.
                 try? FileManager.default.removeItem(atPath: dbPath)
@@ -270,6 +274,9 @@ final class UsageService {
                     sampleRateSeconds: rate,
                     enabledAtUTC: enabledAt
                 )
+                // Tracking stays on across a wipe — see handleEnable for why
+                // seedMeta doesn't set this itself. Mirrors the Windows path.
+                try opened.setMeta(key: "enabled", value: "1")
                 self.db = opened
                 fputs("[usage] Cleared all usage data (tracking remains on)\n", stderr)
                 return (nil, true)
