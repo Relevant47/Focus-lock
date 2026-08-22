@@ -390,23 +390,27 @@ pub fn run() {
                     tokio::time::sleep(Duration::from_secs(1)).await;
                     tick += 1;
 
-                    let payload = match tokio::task::spawn_blocking(|| {
+                    // `ipc_call` returns the full daemon envelope
+                    // `{ "type": "status", "payload": { ... DaemonStatus ... } }`.
+                    // The UI listener expects the inner DaemonStatus, so unwrap
+                    // the envelope here (falling back to null on any error).
+                    let status = match tokio::task::spawn_blocking(|| {
                         ipc_call(&json!({"type": "get_status"}))
                     }).await {
-                        Ok(Ok(v)) => v,
-                        _ => json!(null),
+                        Ok(Ok(mut v)) => v.get_mut("payload").map(|p| p.take()).unwrap_or(Value::Null),
+                        _ => Value::Null,
                     };
 
                     // Rebuild tray menu every 5s to refresh status label + profiles
                     if tick % 5 == 0 {
                         if let Some(tray) = poll_handle.tray_by_id("main-tray") {
-                            if let Ok(new_menu) = build_tray_menu(&poll_handle, &session_label(&payload)) {
+                            if let Ok(new_menu) = build_tray_menu(&poll_handle, &session_label(&status)) {
                                 let _ = tray.set_menu(Some(new_menu));
                             }
                         }
                     }
 
-                    let _ = poll_handle.emit("daemon-status", payload);
+                    let _ = poll_handle.emit("daemon-status", status);
                 }
             });
 
