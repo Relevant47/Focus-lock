@@ -160,10 +160,19 @@ final class SessionService {
         let today = cal.startOfDay(for: Date())
         var streak = 0
         var day = today
-        while completedDays.contains(day) { streak += 1; day = cal.date(byAdding: .day, value: -1, to: day)! }
+        while completedDays.contains(day) {
+            streak += 1
+            guard let prev = cal.date(byAdding: .day, value: -1, to: day) else { return streak }
+            day = prev
+        }
         if streak == 0 {
-            day = cal.date(byAdding: .day, value: -1, to: today)!
-            while completedDays.contains(day) { streak += 1; day = cal.date(byAdding: .day, value: -1, to: day)! }
+            guard let yesterday = cal.date(byAdding: .day, value: -1, to: today) else { return 0 }
+            day = yesterday
+            while completedDays.contains(day) {
+                streak += 1
+                guard let prev = cal.date(byAdding: .day, value: -1, to: day) else { return streak }
+                day = prev
+            }
         }
         return streak
     }
