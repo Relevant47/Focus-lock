@@ -68,6 +68,13 @@ final class SessionService {
     // Hardcore cooldown
     private var _hardcoreCooldownUntil: Date?
 
+    // getStatus() runs once per second on the IPC hot path. Reading and
+    // deserializing sessions.jsonl every tick to compute streak / last-score
+    // scales linearly with lifetime session count — cache the two derived
+    // values and refresh them only when a new log is appended.
+    private var _cachedCurrentStreak: Int = 0
+    private var _cachedLastFocusScore: Int?
+
     init(doh: BrowserDohPolicyService? = nil) {
         _doh = doh
         _signingKey = Self.loadOrCreateKey()
@@ -87,6 +94,7 @@ final class SessionService {
                 finalizeSession(completed: true)
             }
         }
+        refreshLogCache()
     }
 
     var active: SessionState? { lock.withLock { _active } }
@@ -117,7 +125,6 @@ final class SessionService {
     func getStatus() -> DaemonStatus {
         lock.withLock {
             let rateRemaining = _nextUnlockAllowed > Date() ? _nextUnlockAllowed.timeIntervalSinceNow : nil
-            let logs = getLogs(limit: 90)
             return DaemonStatus(
                 sessionActive: _active?.isActive ?? false,
                 session: _active,
@@ -129,8 +136,8 @@ final class SessionService {
                 friendLockRateLimited: rateRemaining != nil,
                 friendLockRetryAfterSeconds: rateRemaining,
                 hardcoreCooldownUntil: _hardcoreCooldownUntil.map { ISO8601DateFormatter().string(from: $0) },
-                currentStreak: computeCurrentStreak(logs: logs),
-                lastFocusScore: logs.first?.focusScore
+                currentStreak: _cachedCurrentStreak,
+                lastFocusScore: _cachedLastFocusScore
             )
         }
     }
@@ -301,6 +308,15 @@ final class SessionService {
         } else {
             try? line.data(using: .utf8)?.write(to: Self.logPath)
         }
+        refreshLogCache()
+    }
+
+    // Recompute the cached streak / last-focus-score. Called at init and after
+    // each appendLog so getStatus() never has to touch disk on its hot path.
+    private func refreshLogCache() {
+        let logs = getLogs(limit: 90)
+        _cachedCurrentStreak = computeCurrentStreak(logs: logs)
+        _cachedLastFocusScore = logs.first?.focusScore
     }
 
     func getLogs(limit: Int) -> [SessionLog] {
