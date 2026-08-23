@@ -273,32 +273,33 @@ export default function Settings() {
   async function handleParentSubmit() {
     setParentError(''); setParentSuccess(''); setParentSubmitting(true);
     try {
+      // Note: resetParentForm() wipes setParentSuccess(''), and React 18 batches
+      // both calls in the same microtask — so setParentSuccess(...) MUST come
+      // AFTER resetParentForm() or the success message never renders.
       if (parentMode === 'setup') {
         if (parentPin.length < 4) throw new Error('PIN must be at least 4 characters');
         if (parentPin !== parentPinConfirm) throw new Error('PINs do not match');
         const key = await setParentPin(parentPin);
-        if (key) {
-          setRevealedKey(key);
-          setParentSuccess('PIN set. Save your recovery key below — it will not be shown again.');
-        } else {
-          setParentSuccess('PIN set. Sensitive actions now require it.');
-        }
+        if (key) setRevealedKey(key);
         resetParentForm(); setParentMode('idle');
+        setParentSuccess(key
+          ? 'PIN set. Save your recovery key below — it will not be shown again.'
+          : 'PIN set. Sensitive actions now require it.');
       } else if (parentMode === 'change') {
         if (parentPin.length < 4) throw new Error('New PIN must be at least 4 characters');
         if (parentPin !== parentPinConfirm) throw new Error('New PINs do not match');
         await changeParentPin(parentOldPin, parentPin);
-        setParentSuccess('PIN updated. (Your recovery key still works.)');
         resetParentForm(); setParentMode('idle');
+        setParentSuccess('PIN updated. (Your recovery key still works.)');
       } else if (parentMode === 'clear') {
         await clearParentPin(parentOldPin);
-        setParentSuccess('PIN removed.');
         resetParentForm(); setParentMode('idle');
+        setParentSuccess('PIN removed.');
       } else if (parentMode === 'regenerate') {
         const key = await regenerateRecoveryKey(parentOldPin);
         setRevealedKey(key);
-        setParentSuccess('New recovery key generated. The old one no longer works.');
         resetParentForm(); setParentMode('idle');
+        setParentSuccess('New recovery key generated. The old one no longer works.');
       }
     } catch (e) {
       setParentError(e instanceof Error ? e.message : 'Failed');
