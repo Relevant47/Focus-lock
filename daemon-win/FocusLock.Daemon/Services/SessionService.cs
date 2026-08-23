@@ -40,6 +40,13 @@ public sealed class SessionService
     // Hardcore mode 24-hour cooldown
     private DateTime? _hardcoreCooldownUntil;
 
+    // GetStatus runs once per second on the IPC hot path. Reading and
+    // deserializing sessions.jsonl every tick to compute streak / last-score
+    // scales linearly with lifetime session count — cache the two derived
+    // values and refresh them only when a new log is appended.
+    private int _cachedCurrentStreak;
+    private int? _cachedLastFocusScore;
+
     public SessionService(ILogger<SessionService> log)
         : this(log, doh: null, stateDir: null) { }
 
@@ -61,6 +68,7 @@ public sealed class SessionService
         LoadOrCreateKey();
         VerifyBinaryHash();
         LoadPersistedSession();
+        RefreshLogCache();
     }
 
     private void VerifyBinaryHash()
@@ -138,7 +146,6 @@ public sealed class SessionService
             var rateLimitRemaining = _nextUnlockAllowed > DateTime.UtcNow
                 ? (_nextUnlockAllowed - DateTime.UtcNow).TotalSeconds
                 : (double?)null;
-            var logs = GetLogs(90);
             return new DaemonStatus
             {
                 SessionActive = _active?.IsActive ?? false,
@@ -151,8 +158,8 @@ public sealed class SessionService
                 FriendLockRateLimited = rateLimitRemaining.HasValue,
                 FriendLockRetryAfterSeconds = rateLimitRemaining,
                 HardcoreCooldownUntil = _hardcoreCooldownUntil?.ToString("O"),
-                CurrentStreak = ComputeCurrentStreak(logs),
-                LastFocusScore = logs.FirstOrDefault()?.FocusScore,
+                CurrentStreak = _cachedCurrentStreak,
+                LastFocusScore = _cachedLastFocusScore,
             };
         }
     }
@@ -495,6 +502,16 @@ public sealed class SessionService
             File.AppendAllText(LogPath, line + Environment.NewLine);
         }
         catch { /* best-effort */ }
+        RefreshLogCache();
+    }
+
+    // Recompute the cached streak / last-focus-score. Called at init and after
+    // each AppendLog so GetStatus() never has to touch disk on its hot path.
+    private void RefreshLogCache()
+    {
+        var logs = GetLogs(90);
+        _cachedCurrentStreak = ComputeCurrentStreak(logs);
+        _cachedLastFocusScore = logs.FirstOrDefault()?.FocusScore;
     }
 
     public IReadOnlyList<SessionLog> GetLogs(int limit)
