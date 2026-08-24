@@ -99,6 +99,12 @@ export default function ActiveSessionBanner() {
         )}
       </div>
 
+      {status?.friendLockRateLimited && !hardcore && (
+        <p className="text-xs text-warn mt-2">
+          Wait {Math.ceil(status.friendLockRetryAfterSeconds ?? 0)}s before retrying
+        </p>
+      )}
+
       {friendLock && showUnlock && !hardcore && (
         <div className="mt-3 flex gap-2 items-start">
           <input
