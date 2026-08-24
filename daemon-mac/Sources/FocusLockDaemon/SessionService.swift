@@ -238,6 +238,9 @@ final class SessionService {
 
     func tick() {
         lock.withLock {
+            if let until = _hardcoreCooldownUntil, Date() >= until {
+                _hardcoreCooldownUntil = nil
+            }
             guard let active = _active else { return }
             if !active.isActive {
                 finalizeSession(completed: true)

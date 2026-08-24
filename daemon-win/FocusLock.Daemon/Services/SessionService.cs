@@ -328,6 +328,8 @@ public sealed class SessionService
     {
         lock (_lock)
         {
+            if (_hardcoreCooldownUntil.HasValue && DateTime.UtcNow >= _hardcoreCooldownUntil.Value)
+                _hardcoreCooldownUntil = null;
             if (_active == null) return;
             if (!_active.IsActive)
             {
