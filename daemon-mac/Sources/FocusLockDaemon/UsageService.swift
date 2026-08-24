@@ -381,8 +381,18 @@ final class UsageService {
     /// Spawn `launchctl` with the given args, wait for exit, and return
     /// (exitCode, mergedOutput). We capture stdout+stderr so the caller can
     /// log meaningful launchd diagnostics on failure.
+    ///
+    /// A bounded wait is required here: `runLaunchctl` is called under
+    /// `queue.sync` from handleEnable / handleDisable, so a hung launchctl
+    /// (launchd busy, boot-volume quirk, sandboxing delay during macOS
+    /// upgrade or fast-user-switch) would deadlock the `focuslock.usage`
+    /// serial queue permanently — freezing every future `usage.*` IPC
+    /// call for the lifetime of the daemon. After `timeout` seconds we
+    /// SIGTERM the child so waitUntilExit returns; the non-zero exit
+    /// propagates as a launchctl failure and the caller's rollback path
+    /// runs normally.
     @discardableResult
-    private func runLaunchctl(_ args: [String]) -> (Int32, String) {
+    private func runLaunchctl(_ args: [String], timeout: TimeInterval = 10) -> (Int32, String) {
         let proc = Process()
         proc.launchPath = "/bin/launchctl"
         proc.arguments = args
@@ -394,7 +404,12 @@ final class UsageService {
         } catch {
             return (-1, "spawn failed: \(error)")
         }
+        let killer = DispatchWorkItem {
+            if proc.isRunning { proc.terminate() }
+        }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout, execute: killer)
         proc.waitUntilExit()
+        killer.cancel()
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let out  = String(data: data, encoding: .utf8) ?? ""
         return (proc.terminationStatus, out.trimmingCharacters(in: .whitespacesAndNewlines))
