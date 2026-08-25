@@ -84,7 +84,17 @@ final class SessionService {
                 // Session expired while the daemon was offline — log it as completed
                 // and delete the stale state file instead of silently discarding it.
                 _active = state
-                finalizeSession(completed: true)
+                if Self.sessionAlreadyLogged(sessionId: state.sessionId) {
+                    // A prior finalizeSession appended the log entry but crashed
+                    // before removing session.json. Re-finalizing here would
+                    // double-count the session in analytics and achievements.
+                    _active = nil
+                    _pomodoro = nil
+                    try? FileManager.default.removeItem(at: Self.statePath)
+                    _doh?.restore()
+                } else {
+                    finalizeSession(completed: true)
+                }
             }
         }
     }
@@ -301,6 +311,19 @@ final class SessionService {
         } else {
             try? line.data(using: .utf8)?.write(to: Self.logPath)
         }
+    }
+
+    private static func sessionAlreadyLogged(sessionId: String) -> Bool {
+        guard let content = try? String(contentsOf: logPath, encoding: .utf8) else { return false }
+        let dec = JSONDecoder()
+        dec.dateDecodingStrategy = .iso8601
+        for line in content.components(separatedBy: "\n") where !line.isEmpty {
+            if let log = try? dec.decode(SessionLog.self, from: Data(line.utf8)),
+               log.sessionId == sessionId {
+                return true
+            }
+        }
+        return false
     }
 
     func getLogs(limit: Int) -> [SessionLog] {

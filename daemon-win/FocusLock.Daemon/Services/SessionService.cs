@@ -429,7 +429,22 @@ public sealed class SessionService
                 _log.LogInformation("Persisted session {Id} has expired — cleaning up", state.SessionId);
                 _active = state;
                 _blockAttempts = state.BlockAttempts;
-                FinalizeSession(completed: true);
+                if (SessionAlreadyLogged(state.SessionId))
+                {
+                    // A prior FinalizeSession appended the log entry but crashed
+                    // before removing session.json. Re-finalizing here would
+                    // double-count the session in analytics and achievements.
+                    _log.LogInformation("Session {Id} already logged — skipping duplicate finalize", state.SessionId);
+                    _active = null;
+                    _pomodoro = null;
+                    if (File.Exists(StatePath)) File.Delete(StatePath);
+                    try { _doh?.Restore(); }
+                    catch (Exception dohEx) { _log.LogWarning(dohEx, "DoH restore failed during crash-recovery cleanup"); }
+                }
+                else
+                {
+                    FinalizeSession(completed: true);
+                }
             }
         }
         catch (Exception ex)
@@ -495,6 +510,29 @@ public sealed class SessionService
             File.AppendAllText(LogPath, line + Environment.NewLine);
         }
         catch { /* best-effort */ }
+    }
+
+    private bool SessionAlreadyLogged(string sessionId)
+    {
+        if (!File.Exists(LogPath)) return false;
+        try
+        {
+            foreach (var line in File.ReadLines(LogPath))
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                try
+                {
+                    var log = JsonSerializer.Deserialize<SessionLog>(line);
+                    if (log != null && log.SessionId == sessionId) return true;
+                }
+                catch { /* skip malformed lines */ }
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogDebug(ex, "SessionAlreadyLogged read failed — assuming not logged");
+        }
+        return false;
     }
 
     public IReadOnlyList<SessionLog> GetLogs(int limit)
