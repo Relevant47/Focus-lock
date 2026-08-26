@@ -477,11 +477,24 @@ public sealed class SessionService
 
     private string Sign(SessionState s)
     {
+        // pomodoroConfig fields are covered — without them an attacker with
+        // write access to session.json could flip strictMode from true to
+        // false (or lengthen breakMinutes) without invalidating the
+        // signature, defeating the exact mechanism strictMode is supposed to
+        // provide. Non-pomodoro sessions (pomodoroConfig == null) serialize
+        // each field as the empty string; the payload shape is stable across
+        // null vs. non-null, so the format is unambiguous.
+        var pc = s.PomodoroConfig;
         var payload = $"{s.SessionId}|{s.StartTime:O}|{s.EndTime:O}|{s.HardcoreMode}|" +
                       string.Join(",", s.BlockedDomains) + "|" +
                       string.Join(",", s.BlockedProcesses) + "|" +
                       string.Join(",", s.AllowlistedDomains) + "|" +
-                      (s.UnlockTokenHash ?? "");
+                      (s.UnlockTokenHash ?? "") + "|" +
+                      (pc?.StrictMode.ToString() ?? "") + "|" +
+                      (pc?.WorkMinutes.ToString() ?? "") + "|" +
+                      (pc?.BreakMinutes.ToString() ?? "") + "|" +
+                      (pc?.LongBreakMinutes.ToString() ?? "") + "|" +
+                      (pc?.CyclesBeforeLongBreak.ToString() ?? "");
         using var hmac = new HMACSHA256(_signingKey);
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hash).ToLowerInvariant();
