@@ -505,6 +505,18 @@ public sealed class UsageService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Upper bound on schtasks.exe wall time. HandleEnable / HandleDisable
+    /// hold <c>_lock</c> across this call, so a hung <c>schtasks.exe</c>
+    /// (a slow logon-time Task Scheduler, a wedged Windows profile) would
+    /// otherwise block every future <c>usage.*</c> IPC call for the
+    /// lifetime of the daemon. After the timeout we kill the child; the
+    /// non-zero exit routes through the caller's existing failure /
+    /// rollback path exactly like a real schtasks failure. Mirrors the
+    /// bounded-launchctl fix on macOS (#406 / PR #408).
+    /// </summary>
+    private const int SchtasksTimeoutMs = 10_000;
+
     private static (int Exit, string Stdout, string Stderr) RunSchtasks(params string[] args)
     {
         var psi = new ProcessStartInfo("schtasks.exe")
@@ -518,9 +530,23 @@ public sealed class UsageService : IDisposable
 
         using var proc = Process.Start(psi)
             ?? throw new InvalidOperationException("Failed to start schtasks.exe");
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit();
+
+        // Drain both pipes off-thread up front so a chatty child can't fill
+        // its stdout buffer and wedge us before WaitForExit's timer trips.
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+
+        if (!proc.WaitForExit(SchtasksTimeoutMs))
+        {
+            try { proc.Kill(entireProcessTree: true); }
+            catch { /* best-effort — the process may have just exited */ }
+            // Give the pipe reads a moment to observe the streams closing
+            // and let ExitCode settle post-kill.
+            proc.WaitForExit(2_000);
+        }
+
+        var stdout = stdoutTask.GetAwaiter().GetResult();
+        var stderr = stderrTask.GetAwaiter().GetResult();
         return (proc.ExitCode, stdout, stderr);
     }
 
