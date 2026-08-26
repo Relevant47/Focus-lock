@@ -429,6 +429,19 @@ public sealed class UsageService : IDisposable
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                 "FocusLock", ScheduledTaskExeName);
 
+            // schtasks.exe accepts a nonexistent /TR path and exits 0 — a
+            // partial install (main installer succeeded but tracker binary
+            // missing) would then flip usage to "enabled" while collecting
+            // no data forever. Mirror the macOS guard in UsageService.swift
+            // (`isExecutableFile`) and fail loudly so HandleEnable rolls the
+            // DB back and surfaces the error in the UI.
+            if (!File.Exists(exePath))
+            {
+                var msg = $"Tracker binary missing or not executable at {exePath}";
+                _log.LogWarning("usage.enable: {Msg}", msg);
+                return (msg, false);
+            }
+
             // /SC ONLOGON  — triggers when the interactive user signs in.
             // /RL LIMITED  — runs at Standard-User integrity (LUA-safe; the
             //                tracker only needs GetForegroundWindow +
