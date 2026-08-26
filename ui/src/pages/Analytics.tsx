@@ -19,7 +19,15 @@ function computeStreaks(logs: SessionLog[]) {
   const sorted = Array.from(days).map(s => new Date(s)).sort((a, b) => a.getTime() - b.getTime());
   let longest = 1, run = 1;
   for (let i = 1; i < sorted.length; i++) {
-    const diff = (sorted[i].getTime() - sorted[i - 1].getTime()) / 86_400_000;
+    // Compare calendar days, not millisecond spans. On a DST spring-forward
+    // day the raw diff is ≈0.958 and on fall-back ≈1.042, so `=== 1` reset
+    // every DST-observing user's streak twice a year. Normalise each date
+    // to local midnight then round, which is DST-safe.
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    const prevMidnight = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate()).getTime();
+    const currMidnight = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate()).getTime();
+    const diff = Math.round((currMidnight - prevMidnight) / 86_400_000);
     run = diff === 1 ? run + 1 : 1;
     if (run > longest) longest = run;
   }
