@@ -135,7 +135,7 @@ export interface WeeklyDigestPayload {
   ruleCreates:    number;          // count of rule_create events in window
   topApps:        string[];        // up to 5 most-frequent target apps
   topDomains:     string[];        // up to 5 most-frequent target domains
-  activeDeviceCount: number;       // devices seen online at least once in window
+  pairedDeviceCount: number;       // all paired devices for the account (queued rules sync on next connect)
 }
 
 export interface DevicePairedPayload {
