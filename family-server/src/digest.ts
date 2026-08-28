@@ -48,16 +48,18 @@ export async function runWeeklyDigests(env: Env, now: Date = new Date()): Promis
     rulesByAccount.set(r.created_by_account_id, list);
   }
 
-  // Devices "active" in the window: any device whose last_seen_at falls in range.
-  // Single query, then group client-side.
+  // All paired devices per account. We deliberately don't gate on `last_seen_at`
+  // here — an offline child device still receives queued rules on next sync,
+  // so counting only recently-active devices produces "across 0 devices" phrasing
+  // that misleads the parent into thinking nothing was delivered (issue #416).
   const devicesRes = await env.DB.prepare(
-    `SELECT account_id, id FROM devices WHERE last_seen_at >= ?`,
-  ).bind(startIso).all();
-  const activeByAccount = new Map<string, Set<string>>();
+    `SELECT account_id, id FROM devices`,
+  ).all();
+  const devicesByAccount = new Map<string, Set<string>>();
   for (const row of (devicesRes.results ?? []) as Array<{ account_id: string; id: string }>) {
-    const set = activeByAccount.get(row.account_id) ?? new Set();
+    const set = devicesByAccount.get(row.account_id) ?? new Set();
     set.add(row.id);
-    activeByAccount.set(row.account_id, set);
+    devicesByAccount.set(row.account_id, set);
   }
 
   let written = 0;
@@ -86,7 +88,7 @@ export async function runWeeklyDigests(env: Env, now: Date = new Date()): Promis
 
     const topApps = topN(appCounts, TOP_N);
     const topDomains = topN(domainCounts, TOP_N);
-    const activeDeviceCount = activeByAccount.get(accountId)?.size ?? 0;
+    const pairedDeviceCount = devicesByAccount.get(accountId)?.size ?? 0;
 
     const payload: WeeklyDigestPayload = {
       periodStartIso: startIso,
@@ -94,12 +96,12 @@ export async function runWeeklyDigests(env: Env, now: Date = new Date()): Promis
       ruleCreates: accountRules.length,
       topApps,
       topDomains,
-      activeDeviceCount,
+      pairedDeviceCount,
     };
 
     const title = `This week: ${accountRules.length} block${accountRules.length === 1 ? '' : 's'}`;
     const bodyParts: string[] = [];
-    bodyParts.push(`You created ${accountRules.length} block rule${accountRules.length === 1 ? '' : 's'} across ${activeDeviceCount} active device${activeDeviceCount === 1 ? '' : 's'}.`);
+    bodyParts.push(`You created ${accountRules.length} block rule${accountRules.length === 1 ? '' : 's'} across ${pairedDeviceCount} device${pairedDeviceCount === 1 ? '' : 's'}.`);
     if (topApps.length > 0) bodyParts.push(`Top apps: ${topApps.join(', ')}.`);
     if (topDomains.length > 0) bodyParts.push(`Top domains: ${topDomains.join(', ')}.`);
 
