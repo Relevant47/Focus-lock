@@ -440,7 +440,12 @@ public sealed class SessionService
 
     private void LoadOrCreateKey()
     {
-        if (File.Exists(KeyPath))
+        // Length guard mirrors IntegritySigner.cs and the macOS SessionService.
+        // A short/zero-byte key file (e.g. from a crash mid-write during initial
+        // key creation) would be silently zero-padded by HMACSHA256, producing
+        // signatures that never match the ones written into session.json and
+        // discarding any active session on the next restart.
+        if (File.Exists(KeyPath) && new FileInfo(KeyPath).Length == 32)
         {
             _signingKey = File.ReadAllBytes(KeyPath);
             return;
