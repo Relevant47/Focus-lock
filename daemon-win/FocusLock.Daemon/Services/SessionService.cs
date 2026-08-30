@@ -407,6 +407,15 @@ public sealed class SessionService
             // discard the state instead of re-signing it. Re-signing would make the daemon
             // enforce the attacker's edited block list (or a flipped hardcoreMode), defeating
             // the HMAC entirely. Refusing to load a tampered file is the safe response.
+            // A null Signature (upgrade from a pre-signing daemon, or an explicit tamper
+            // that nulled the field) would throw ArgumentNullException inside
+            // Encoding.UTF8.GetBytes and get swallowed by the generic catch below, hiding
+            // the tamper signal. Bail early with the targeted warning instead.
+            if (state.Signature == null)
+            {
+                _log.LogWarning("Session state signature missing — discarding (likely upgrade from pre-signing version)");
+                return;
+            }
             var expected = Sign(state);
             if (!CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(state.Signature),
