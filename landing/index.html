@@ -522,22 +522,6 @@
       letter-spacing: -.015em; line-height: 1.2;
       margin-bottom: 6px;
     }
-    .who-cycling-wrap {
-      font-family: var(--display);
-      font-size: clamp(1.2rem, 2.2vw, 1.7rem);
-      font-weight: 800; letter-spacing: -.015em;
-      height: 1.35em; overflow: hidden;
-      font-style: italic;
-    }
-    .who-cycling {
-      display: flex; flex-direction: column;
-      transition: transform .55s cubic-bezier(.4,0,.2,1);
-    }
-    .who-cycling span {
-      display: block; height: 1.35em; line-height: 1.35em;
-      color: var(--accent);
-    }
-
     /* ── HOW IT WORKS ── */
     .how {
       padding: var(--section-pad) 0;
@@ -2482,18 +2466,6 @@
     if (navDl) navDl.dataset.dl = 'mac';
     const mobileDl = document.getElementById('mobile-dl');
     if (mobileDl) mobileDl.dataset.dl = 'mac';
-  }
-
-  // ── Cycling "who it's for" ──
-  const cycling = document.getElementById('who-cycling');
-  if (cycling) {
-    const items = cycling.querySelectorAll('span');
-    let idx = 0;
-    setInterval(() => {
-      idx++;
-      if (idx >= items.length - 1) idx = 0;
-      cycling.style.transform = `translateY(-${idx * 1.35}em)`;
-    }, 2800);
   }
 
   // ── Intersection Observer for fade-up ──
