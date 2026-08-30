@@ -64,15 +64,32 @@ public sealed class FamilyEnforcementService
             {
                 if (HasUnblockAll()) return false;
                 var now = DateTime.Now;
+                // Mirror GetUnion(): collect block_now/schedule targets, then
+                // lift anything covered by a live unblock_specific rule. If
+                // nothing survives, no blocks are actually enforced.
+                var domains = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var procs   = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var r in _rules.Values)
                 {
                     if (!r.Active) continue;
                     if (r.TargetDomains.Count == 0 && r.TargetApps.Count == 0) continue;
-                    if (r.Kind == "block_now") return true;
-                    if (r.Kind == "schedule" && _cron.TryGetValue(r.Id, out var c) && c.Matches(now))
-                        return true;
+                    bool active = r.Kind == "block_now"
+                        || (r.Kind == "schedule"
+                            && _cron.TryGetValue(r.Id, out var c) && c.Matches(now));
+                    if (!active) continue;
+                    foreach (var d in r.TargetDomains) if (!string.IsNullOrWhiteSpace(d)) domains.Add(d);
+                    foreach (var a in r.TargetApps)    if (!string.IsNullOrWhiteSpace(a)) procs.Add(a);
                 }
-                return false;
+                if (domains.Count == 0 && procs.Count == 0) return false;
+                foreach (var r in _rules.Values)
+                {
+                    if (!r.Active || r.Kind != "unblock_specific") continue;
+                    if (r.ExpiresAt != null && !IsFuture(r.ExpiresAt)) continue;
+                    foreach (var d in r.TargetDomains) domains.Remove(d);
+                    foreach (var a in r.TargetApps)    procs.Remove(a);
+                    if (domains.Count == 0 && procs.Count == 0) return false;
+                }
+                return domains.Count > 0 || procs.Count > 0;
             }
         }
     }

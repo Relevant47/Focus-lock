@@ -51,13 +51,27 @@ final class FamilyEnforcementService {
         lock.lock(); defer { lock.unlock() }
         if hasUnblockAllLocked() { return false }
         let now = Date()
-        for r in rules.values {
-            guard r.active else { continue }
+        // Mirror union(): collect block_now/schedule targets, then lift
+        // anything covered by a live unblock_specific rule. If nothing
+        // survives, no blocks are actually enforced.
+        var domains = Set<String>()
+        var procs   = Set<String>()
+        for r in rules.values where r.active {
             if r.targetDomains.isEmpty && r.targetApps.isEmpty { continue }
-            if r.kind == "block_now" { return true }
-            if r.kind == "schedule", let c = cron[r.id], c.matches(now) { return true }
+            let active = r.kind == "block_now"
+                || (r.kind == "schedule" && (cron[r.id]?.matches(now) ?? false))
+            guard active else { continue }
+            for d in r.targetDomains where !d.isEmpty { domains.insert(d) }
+            for a in r.targetApps    where !a.isEmpty { procs.insert(a) }
         }
-        return false
+        if domains.isEmpty && procs.isEmpty { return false }
+        for r in rules.values where r.active && r.kind == "unblock_specific" {
+            if let exp = r.expiresAt, !isFuture(exp) { continue }
+            for d in r.targetDomains { domains.remove(d) }
+            for a in r.targetApps    { procs.remove(a) }
+            if domains.isEmpty && procs.isEmpty { return false }
+        }
+        return !domains.isEmpty || !procs.isEmpty
     }
 
     func union() -> (domains: [String], processes: [String]) {
