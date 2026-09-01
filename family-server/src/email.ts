@@ -11,7 +11,7 @@ import type { Env } from './types';
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const DEFAULT_FROM = 'FocusLock <onboarding@resend.dev>';
-const DEFAULT_RESET_URL_BASE = 'https://tryfocuslock.com/reset';
+const DEFAULT_RESET_URL_BASE = 'https://tryfocuslock.com/reset.html';
 
 export async function sendResetEmail(
   env: Env,
