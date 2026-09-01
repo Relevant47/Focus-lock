@@ -193,11 +193,8 @@ Tables:
 
 ---
 
-## What's intentionally not here yet
+## Planned (not yet shipped)
 
-- **Parent dashboard UI** — Phase 2.2 UI (React tab in FocusLock app); separate session
-- **Child daemon integration** — Phase 2.3 (Windows C# + macOS Swift WS clients)
-- **Anti-bypass hardening** — Phase 2.4 (monotonic clocks, Safe-Mode registration, admin-protected uninstall, non-admin-account auto-setup)
-- **Email service integration** — currently `console.log` only
-- **Rate limiting** — Cloudflare WAF covers us during beta; per-IP/per-account limits before public launch
 - **TOTP 2FA** — Phase 3+
+
+The parent dashboard UI, child-daemon WebSocket clients, anti-bypass hardening (Safe-Mode registration, firewall lockdown, HMAC-signed caches), Resend-backed email delivery, and per-email rate limiting on the auth endpoints all shipped in the 1.1.x line. See [`docs/family-controls-status.md`](../docs/family-controls-status.md) for the current phase breakdown.
