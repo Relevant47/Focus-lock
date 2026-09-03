@@ -133,7 +133,7 @@ signature = HMAC-SHA256(signingKey, payload)
 ```
 
 The signing key is a 32-byte random value stored at:
-- Windows: `%ProgramData%\FocusLock\daemon.key` (SYSTEM-only ACL)
+- Windows: `%ProgramData%\FocusLock\daemon.key` (SYSTEM + Administrators ACL — Administrators are kept on the ACL so the daemon can still read the key when run as an elevated user for diagnostics; see `SessionService.LoadOrCreateKey`)
 - macOS: `/Library/Application Support/FocusLock/daemon.key` (chmod 600)
 
 Tampering with `session.json` produces a signature mismatch. The daemon logs a warning
