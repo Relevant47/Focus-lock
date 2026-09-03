@@ -477,7 +477,9 @@ public sealed class SessionService
 
     private string Sign(SessionState s)
     {
-        var payload = $"{s.SessionId}|{s.StartTime:O}|{s.EndTime:O}|{s.HardcoreMode}|" +
+        // Bool interpolation must match Swift's `\(bool)` (lowercase) so the HMAC
+        // payload is byte-identical across daemons; C# default is "True"/"False".
+        var payload = $"{s.SessionId}|{s.StartTime:O}|{s.EndTime:O}|{(s.HardcoreMode ? "true" : "false")}|" +
                       string.Join(",", s.BlockedDomains) + "|" +
                       string.Join(",", s.BlockedProcesses) + "|" +
                       string.Join(",", s.AllowlistedDomains) + "|" +
