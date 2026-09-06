@@ -59,14 +59,28 @@ final class UsageDB {
         try exec(UsageMigrations.v1)
     }
 
-    /// Seed the five documented meta rows. `schema_version` is INSERT-OR-IGNORE so
-    /// a re-enable doesn't clobber an upgraded value; the rest are overwritten.
+    /// Seed the five documented meta rows. `schema_version`, `retention_days`,
+    /// and `sample_rate_seconds` are INSERT-OR-IGNORE so a re-enable never
+    /// clobbers a user-set value (matches Windows `UsageStore.SeedMeta`). The
+    /// `enabled` / `enabled_at_utc` flip on every enable, so those UPSERT.
     func seedMeta(retentionDays: String, sampleRateSeconds: Int, enabledAtUTC: String) throws {
         try exec("INSERT OR IGNORE INTO usage_meta(key, value) VALUES ('schema_version', '1');")
-        try setMeta(key: "retention_days", value: retentionDays)
-        try setMeta(key: "sample_rate_seconds", value: String(sampleRateSeconds))
+        try seedMetaIfMissing(key: "retention_days", value: retentionDays)
+        try seedMetaIfMissing(key: "sample_rate_seconds", value: String(sampleRateSeconds))
         try setMeta(key: "enabled", value: "1")
         try setMeta(key: "enabled_at_utc", value: enabledAtUTC)
+    }
+
+    private func seedMetaIfMissing(key: String, value: String) throws {
+        let sql = "INSERT OR IGNORE INTO usage_meta(key, value) VALUES (?, ?);"
+        try withPrepared(sql, label: "seedMetaIfMissing") { stmt in
+            sqlite3_bind_text(stmt, 1, key, -1, SQLITE_TRANSIENT_FL)
+            sqlite3_bind_text(stmt, 2, value, -1, SQLITE_TRANSIENT_FL)
+            let rc = sqlite3_step(stmt)
+            if rc != SQLITE_DONE {
+                throw UsageDBError.step("seedMetaIfMissing(\(key)): \(String(cString: sqlite3_errmsg(self.db)))")
+            }
+        }
     }
 
     func setMeta(key: String, value: String) throws {
