@@ -237,17 +237,19 @@ public sealed class UsageService : IDisposable
 
             int? otherTotal = null;
             // Roll-up only when top_n truncated AND include_apps did not filter
-            // (per docs/usage-analytics-schema.md §2.5).
+            // (per docs/usage-analytics-schema.md §2.5). Exclude by bundle_id —
+            // a top app's day-rows outside the top-N are still that app, not
+            // "other apps."
             if (!hasFilter && payload.TopN.HasValue && payload.TopN.Value > 0)
             {
                 var all = _store.QueryRange(payload.StartDate, payload.EndDate, topN: null, includeApps: null);
                 if (all.Count > rows.Count)
                 {
-                    var taken = new HashSet<string>(rows.Count);
-                    foreach (var r in rows) taken.Add(r.Day + "|" + r.BundleId);
+                    var topBundleIds = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (var r in rows) topBundleIds.Add(r.BundleId);
                     int sum = 0;
                     foreach (var r in all)
-                        if (!taken.Contains(r.Day + "|" + r.BundleId))
+                        if (!topBundleIds.Contains(r.BundleId))
                             sum += r.Seconds;
                     otherTotal = sum;
                 }

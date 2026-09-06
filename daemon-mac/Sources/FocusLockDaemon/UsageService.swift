@@ -176,7 +176,9 @@ final class UsageService {
                 )
                 // Per §2.5: `other_apps_total_seconds` only appears when top_n
                 // (not include_apps) truncated the result. Skip the second query
-                // unless we've hit the LIMIT boundary.
+                // unless we've hit the LIMIT boundary. Exclude by bundle_id — a
+                // top app's day-rows outside the top-N are still that app, not
+                // "other apps."
                 var otherTotal: Int? = nil
                 if let n = topN, n > 0, !hasIncludeFilter, rows.count == n {
                     let full = try db.queryRange(
@@ -185,8 +187,11 @@ final class UsageService {
                         topN: nil,
                         includeApps: nil
                     )
-                    if full.count > n {
-                        otherTotal = full.dropFirst(n).reduce(0) { $0 + $1.seconds }
+                    if full.count > rows.count {
+                        let topBundleIds = Set(rows.map { $0.bundle_id })
+                        otherTotal = full
+                            .filter { !topBundleIds.contains($0.bundle_id) }
+                            .reduce(0) { $0 + $1.seconds }
                     }
                 }
                 return UsageQueryResult(rows: rows, other_apps_total_seconds: otherTotal)
