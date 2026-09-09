@@ -44,6 +44,11 @@ function isParentLockRequired(err: unknown): boolean {
 /**
  * Wrap a gated mutation. If the daemon refuses with `parent_lock_required`,
  * prompt the user, then retry exactly once. Other errors propagate unchanged.
+ *
+ * If the daemon still refuses after the retry (rare — the parent token
+ * granted by verify_parent_pin should satisfy the gate) we rethrow a
+ * user-facing message rather than leaking the raw `parent_lock_required`
+ * code string to the UI.
  */
 export async function withParentGate<T>(action: () => Promise<T>): Promise<T> {
   try {
@@ -51,6 +56,13 @@ export async function withParentGate<T>(action: () => Promise<T>): Promise<T> {
   } catch (err) {
     if (!isParentLockRequired(err)) throw err;
     await promptParentUnlock();
-    return action();
+    try {
+      return await action();
+    } catch (retryErr) {
+      if (!isParentLockRequired(retryErr)) throw retryErr;
+      const friendly = new Error('Parent PIN required to continue.') as DaemonError;
+      friendly.code = 'parent_lock_required';
+      throw friendly;
+    }
   }
 }
