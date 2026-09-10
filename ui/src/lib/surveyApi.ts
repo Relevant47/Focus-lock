@@ -44,15 +44,10 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export interface SubmitResult { success: boolean; id: string | null }
-export interface NewsletterResult { success: boolean; subscribed: boolean; message: string }
 export type PromptEvent = 'shown' | 'dismissed' | 'snoozed' | 'started' | 'abandoned' | 'completed';
 
 export function submitSurvey(payload: Record<string, unknown>): Promise<SubmitResult> {
   return post<SubmitResult>('/api/survey/submit', payload);
-}
-
-export function subscribeNewsletter(email: string, consent: boolean, installId: string): Promise<NewsletterResult> {
-  return post<NewsletterResult>('/api/survey/newsletter', { email, consent, install_id: installId });
 }
 
 export function deleteResponse(id: string): Promise<{ success: boolean }> {

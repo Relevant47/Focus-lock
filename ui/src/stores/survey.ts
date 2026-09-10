@@ -4,15 +4,18 @@ import {
   SNOOZE_LATER_DAYS, SNOOZE_NO_THANKS_DAYS, type SurveyState,
 } from '../lib/surveyTrigger';
 import {
-  submitSurvey, subscribeNewsletter, deleteResponse, sendPromptEvent,
-  SurveyApiError, type NewsletterResult,
+  submitSurvey, deleteResponse, sendPromptEvent,
+  SurveyApiError,
 } from '../lib/surveyApi';
 
 const INSTALL_KEY = 'focuslock_install_id';
 const STATE_KEY = 'focuslock_survey_state';
 const ONBOARDING_KEY = 'focuslock_onboarding_done';
 const PENDING_SUBMIT_KEY = 'focuslock_survey_pending_submit';
-const PENDING_NEWSLETTER_KEY = 'focuslock_survey_pending_newsletter';
+// Legacy key from the retired /api/survey/newsletter path — the newsletter is
+// now the Beehiiv inline embed. Removed unconditionally in flushPending() to
+// unblock users who queued a signup against the (now 404) endpoint.
+const LEGACY_PENDING_NEWSLETTER_KEY = 'focuslock_survey_pending_newsletter';
 
 function loadInstallId(): string {
   let id = localStorage.getItem(INSTALL_KEY);
@@ -58,7 +61,6 @@ interface Actions {
   closeModal(atStep?: number): void;
   /** Persist a completed submission. Returns the response id (or null if queued offline). */
   submit(payload: Record<string, unknown>): Promise<{ queued: boolean; id: string | null }>;
-  subscribe(email: string): Promise<NewsletterResult>;
   /** GDPR self-delete of this install's submission, if one is on record. */
   deleteMyResponse(): Promise<boolean>;
 }
@@ -149,19 +151,6 @@ export const useSurvey = create<State & Actions>((set, get) => ({
     }
   },
 
-  async subscribe(email) {
-    const { installId } = get();
-    try {
-      return await subscribeNewsletter(email, true, installId);
-    } catch (e) {
-      if (e instanceof SurveyApiError && e.status === 0) {
-        localStorage.setItem(PENDING_NEWSLETTER_KEY, JSON.stringify({ email, installId }));
-        return { success: true, subscribed: false, message: 'Saved — we’ll subscribe you once you’re back online.' };
-      }
-      throw e;
-    }
-  },
-
   async deleteMyResponse() {
     const id = get().ss.responseId;
     if (!id) return false;
@@ -173,8 +162,14 @@ export const useSurvey = create<State & Actions>((set, get) => ({
   },
 }));
 
-/** Retry any submissions/subscriptions that were queued while offline. */
+/** Retry any submissions that were queued while offline. */
 async function flushPending(get: () => State & Actions) {
+  // One-time cleanup: the newsletter opt-in used to POST to /api/survey/newsletter
+  // and queue on network failure. That endpoint has been retired (the newsletter
+  // is now a Beehiiv inline embed), so any lingering key would 404-loop every
+  // launch. Drop it unconditionally.
+  localStorage.removeItem(LEGACY_PENDING_NEWSLETTER_KEY);
+
   const pendingSubmit = localStorage.getItem(PENDING_SUBMIT_KEY);
   if (pendingSubmit) {
     try {
@@ -186,13 +181,5 @@ async function flushPending(get: () => State & Actions) {
         useSurvey.setState({ ss: next });
       }
     } catch { /* still offline / will retry next launch */ }
-  }
-  const pendingNl = localStorage.getItem(PENDING_NEWSLETTER_KEY);
-  if (pendingNl) {
-    try {
-      const { email, installId } = JSON.parse(pendingNl);
-      await subscribeNewsletter(email, true, installId);
-      localStorage.removeItem(PENDING_NEWSLETTER_KEY);
-    } catch { /* retry next launch */ }
   }
 }
