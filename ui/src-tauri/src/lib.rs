@@ -219,8 +219,10 @@ fn make_tray_icon() -> tauri::image::Image<'static> {
 }
 
 fn session_label(status: &Value) -> String {
-    if status.get("sessionActive").and_then(|v| v.as_bool()).unwrap_or(false) {
-        let secs = status
+    // Accept either the inner DaemonStatus or the outer {type,payload} wrapper.
+    let inner = status.get("payload").unwrap_or(status);
+    if inner.get("sessionActive").and_then(|v| v.as_bool()).unwrap_or(false) {
+        let secs = inner
             .get("secondsRemaining")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0) as u64;
@@ -390,23 +392,27 @@ pub fn run() {
                     tokio::time::sleep(Duration::from_secs(1)).await;
                     tick += 1;
 
-                    let payload = match tokio::task::spawn_blocking(|| {
+                    let response = match tokio::task::spawn_blocking(|| {
                         ipc_call(&json!({"type": "get_status"}))
                     }).await {
                         Ok(Ok(v)) => v,
                         _ => json!(null),
                     };
+                    // The daemon returns {"type":"status","payload":{...DaemonStatus}}.
+                    // Emit and label from the inner payload — the JS store and
+                    // session_label both expect DaemonStatus fields at the top level.
+                    let status = response.get("payload").cloned().unwrap_or(json!(null));
 
                     // Rebuild tray menu every 5s to refresh status label + profiles
                     if tick % 5 == 0 {
                         if let Some(tray) = poll_handle.tray_by_id("main-tray") {
-                            if let Ok(new_menu) = build_tray_menu(&poll_handle, &session_label(&payload)) {
+                            if let Ok(new_menu) = build_tray_menu(&poll_handle, &session_label(&status)) {
                                 let _ = tray.set_menu(Some(new_menu));
                             }
                         }
                     }
 
-                    let _ = poll_handle.emit("daemon-status", payload);
+                    let _ = poll_handle.emit("daemon-status", status);
                 }
             });
 
