@@ -273,19 +273,21 @@ public sealed class FamilyService
         var env = await resp.Content.ReadFromJsonAsync<RequestEnvelope>(JsonOpts, ct).ConfigureAwait(false);
         if (env?.Request == null) return ("Server returned no body", null);
 
-        // We don't fetch the rule's expires_at here in v1 — the daemon's
-        // FamilyEnforcementService.Snapshot() carries that for the UI's own
-        // hydration. Returning null keeps the IPC simple; T19 doesn't depend on it.
+        // The server hydrates the resolution rule's expires_at alongside the
+        // request row so the child UI can render an "access expires in N min"
+        // countdown. Null when the ask isn't approved yet, when the rule has
+        // no expiry, or on legacy servers that predate the field.
         return (null, new RequestStatusResult
         {
             Status = env.Request.Status,
-            ResolutionRuleExpiresAt = null,
+            ResolutionRuleExpiresAt = env.ResolutionRuleExpiresAt,
         });
     }
 
     private sealed class RequestEnvelope
     {
         public RequestRow? Request { get; set; }
+        public string? ResolutionRuleExpiresAt { get; set; }
     }
     private sealed class RequestRow
     {

@@ -120,7 +120,21 @@ export async function deviceGetRequestHandler(
   if (!ctx) return unauthorized();
   const row = await findApprovalRequestById(env.DB, params.id);
   if (!row || row.device_id !== ctx.deviceId) return notFound();
-  return json({ request: toApi(row) });
+
+  // Hydrate the resolution rule's expires_at so the child UI can render a
+  // countdown ("access expires in 10m") when the ask was approved with a
+  // time-limited unblock_specific rule. Null if the request isn't approved,
+  // if the rule has no expiry (unlimited approval), or if the rule row has
+  // been deleted. The daemon forwards this straight into its
+  // RequestStatusResult (shared/protocol.ts `resolutionRuleExpiresAt`).
+  let resolutionRuleExpiresAt: string | null = null;
+  if (row.resolution_rule_id) {
+    const rule = await env.DB.prepare('SELECT expires_at FROM lock_rules WHERE id = ?')
+      .bind(row.resolution_rule_id).first<{ expires_at: string | null }>();
+    resolutionRuleExpiresAt = rule?.expires_at ?? null;
+  }
+
+  return json({ request: toApi(row), resolutionRuleExpiresAt });
 }
 
 // ── Parent hydrates one row ────────────────────────────────────────────────

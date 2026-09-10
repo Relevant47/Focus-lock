@@ -264,6 +264,7 @@ final class FamilyService {
                 var resolutionRuleId: String?
             }
             var request: R
+            var resolutionRuleExpiresAt: String?
         }
 
         let sem = DispatchSemaphore(value: 0)
@@ -289,11 +290,12 @@ final class FamilyService {
 
         if let resultErr = resultErr { return (resultErr, nil) }
         guard let env = resultPayload else { return ("Server returned no body", nil) }
-        // We don't fetch the rule's expiresAt here in v1 — the daemon's
-        // FamilyEnforcementService.snapshot() carries that for the UI's own
-        // hydration. Returning nil keeps the IPC simple; T19 doesn't depend on it.
+        // The server hydrates the resolution rule's expiresAt alongside the
+        // request row so the child UI can render an "access expires in N min"
+        // countdown. Nil when the ask isn't approved yet, when the rule has
+        // no expiry, or on legacy servers that predate the field.
         return (nil, RequestStatusResult(status: env.request.status,
-                                         resolutionRuleExpiresAt: nil))
+                                         resolutionRuleExpiresAt: env.resolutionRuleExpiresAt))
     }
 
     // ── Persistence ────────────────────────────────────────────────────────
