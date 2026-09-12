@@ -47,7 +47,14 @@ export default function DashboardUsageCard() {
       split_by_focus: false,
     })
       .then(res => setRows(res.rows))
-      .catch(e => setErr(e instanceof Error ? e.message : 'Query failed'));
+      .catch(e => {
+        setErr(e instanceof Error ? e.message : 'Query failed');
+        // Leave `rows` at null and the card renders both the error and
+        // "Loading…" forever — the effect can't re-run because its deps
+        // don't change on failure. Flip to [] so the render falls through
+        // to the "No activity yet today" branch alongside the error line.
+        setRows([]);
+      });
   }, [usageTracking.enabled, queryUsage]);
 
   if (!usageTracking.enabled) {
