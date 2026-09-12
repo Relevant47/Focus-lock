@@ -37,10 +37,14 @@ final class UsageService {
             atPath: stateDir, withIntermediateDirectories: true, attributes: nil)
         // Reopen if a DB file already exists (a previous enable survived a
         // daemon restart). We do NOT re-seed — the meta rows persist across
-        // restarts and re-seeding would zero enabled_at_utc.
+        // restarts and re-seeding would zero enabled_at_utc. Migrations are
+        // idempotent (CREATE TABLE/INDEX IF NOT EXISTS) and MUST run on every
+        // reopen so a schema upgrade in a newer daemon version lands before
+        // the first sample is written. Windows does this in UsageService.cs.
         if FileManager.default.fileExists(atPath: dbPath) {
             do {
                 let opened = try UsageDB(path: dbPath)
+                try opened.runMigrations()
                 queue.sync { self.db = opened }
                 fputs("[usage] Reopened existing usage.db at \(dbPath)\n", stderr)
             } catch {
