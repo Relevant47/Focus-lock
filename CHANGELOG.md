@@ -407,6 +407,6 @@ From v1.0.21 onward, the daemon works on a fresh install with zero manual interv
 - 24-hour Hardcore Mode cooldown mechanism
 - Wildcard domain blocking (*.example.com)
 - Subdomain expansion (www, m, mobile, app, cdn, etc.)
-- WiX MSI installer (Windows)
+- NSIS installer (Windows)
 - PKG installer (macOS) with launchd daemon registration
 - ARCHITECTURE.md developer documentation
