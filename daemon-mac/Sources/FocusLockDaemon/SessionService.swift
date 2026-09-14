@@ -180,6 +180,15 @@ final class SessionService {
                 return ("Session must block at least one site or app", false)
             }
 
+            // A session that has run past its endTime but hasn't been finalized
+            // yet (e.g. the enforcement tick hasn't fired) leaves _active non-nil
+            // while isActive is false. Finalize it now so it's logged as
+            // completed and the on-disk state is cleared, rather than silently
+            // overwriting it below. Mirrors the C# daemon.
+            if let expired = _active, !expired.isActive {
+                finalizeSession(completed: true)
+            }
+
             let trimmedIntention = payload.intention?.trimmingCharacters(in: .whitespacesAndNewlines)
             var state = SessionState(
                 profileId: payload.profileId,
