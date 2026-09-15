@@ -291,13 +291,17 @@ export default function Dashboard() {
   }
 
   async function handleStop() {
+    if (busy) return;
     setError('');
     if (status?.hasFriendLock && !showUnlockPrompt) { setShowUnlockPrompt(true); return; }
+    setBusy(true);
     try {
       await stopSession(status?.hasFriendLock ? unlockInput : undefined);
       setShowUnlockPrompt(false); setUnlockInput('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to stop session');
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -322,6 +326,7 @@ export default function Dashboard() {
       setUnlockInput={setUnlockInput}
       onCancelUnlock={() => { setShowUnlockPrompt(false); setUnlockInput(''); setError(''); }}
       error={error}
+      busy={busy}
     />;
   }
 
@@ -562,7 +567,7 @@ export default function Dashboard() {
 
 // ── Active session sub-component ─────────────────────────────────────────────
 function ActiveSession({
-  status, stopSession, skipBreak, showUnlockPrompt, unlockInput, setUnlockInput, onCancelUnlock, error,
+  status, stopSession, skipBreak, showUnlockPrompt, unlockInput, setUnlockInput, onCancelUnlock, error, busy,
 }: {
   status: NonNullable<ReturnType<typeof useDaemon.getState>['status']>;
   stopSession: () => void;
@@ -572,6 +577,7 @@ function ActiveSession({
   setUnlockInput: (v: string) => void;
   onCancelUnlock: () => void;
   error: string;
+  busy: boolean;
 }) {
   const profiles = useDaemon(s => s.profiles);
   const session = status.session!;
@@ -653,12 +659,12 @@ function ActiveSession({
               />
               <div className="flex gap-2">
                 <button onClick={onCancelUnlock} className="btn-ghost flex-1 py-2 text-sm">Cancel</button>
-                <button onClick={stopSession} disabled={!unlockInput.trim() || status.friendLockRateLimited} className="btn-danger flex-1 py-2 text-sm">Unlock &amp; End</button>
+                <button onClick={stopSession} disabled={busy || !unlockInput.trim() || status.friendLockRateLimited} className="btn-danger flex-1 py-2 text-sm">{busy ? 'Ending…' : 'Unlock & End'}</button>
               </div>
             </div>
           ) : (
-            <button onClick={stopSession} className="btn-danger w-full py-2.5 text-sm flex items-center justify-center gap-2">
-              <Icon.Stop size={13} /> End session
+            <button onClick={stopSession} disabled={busy} className="btn-danger w-full py-2.5 text-sm flex items-center justify-center gap-2">
+              <Icon.Stop size={13} /> {busy ? 'Ending…' : 'End session'}
             </button>
           )}
         </div>
