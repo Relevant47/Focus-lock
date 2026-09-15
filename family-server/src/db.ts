@@ -437,17 +437,20 @@ export async function markApprovalResolved(
 }
 
 /// Cron sweep. Flips every overdue pending row to 'expired' in one shot.
-/// Returns the rows that flipped so the caller can WS-notify their devices.
+/// Returns only the rows that were actually flipped by this UPDATE, so the
+/// caller only WS-notifies devices whose requests really expired — a row that
+/// was concurrently approved/denied between the UPDATE and any earlier SELECT
+/// would otherwise trigger a false "expired" push, potentially masking the
+/// unblock rule the parent just activated.
 export async function expireOverduePending(db: D1Database): Promise<ApprovalRequestRow[]> {
   const now = new Date().toISOString();
-  const sel = await db.prepare(
-    `SELECT * FROM approval_requests WHERE status = 'pending' AND expires_at <= ?`,
-  ).bind(now).all();
-  const rows = (sel.results ?? []) as unknown as ApprovalRequestRow[];
-  if (rows.length === 0) return [];
-  await db.prepare(
+  const upd = await db.prepare(
     `UPDATE approval_requests SET status = 'expired', resolved_at = ?
      WHERE status = 'pending' AND expires_at <= ?`,
   ).bind(now, now).run();
-  return rows;
+  if ((upd.meta?.changes ?? 0) === 0) return [];
+  const after = await db.prepare(
+    `SELECT * FROM approval_requests WHERE status = 'expired' AND resolved_at = ?`,
+  ).bind(now).all();
+  return (after.results ?? []) as unknown as ApprovalRequestRow[];
 }
