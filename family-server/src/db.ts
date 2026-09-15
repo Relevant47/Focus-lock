@@ -76,7 +76,7 @@ export async function markResetJtiUsed(
 ): Promise<void> {
   await db.prepare(
     'INSERT INTO used_reset_tokens (jti, consumed_at, expires_at) VALUES (?, ?, ?)',
-  ).bind(jti, new Date().toISOString(), expiresAtMs).run();
+  ).bind(jti, new Date().toISOString(), new Date(expiresAtMs).toISOString()).run();
 }
 
 export async function isResetJtiUsed(db: D1Database, jti: string): Promise<boolean> {
