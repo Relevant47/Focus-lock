@@ -294,7 +294,7 @@ export default function Dashboard() {
     setError('');
     if (status?.hasFriendLock && !showUnlockPrompt) { setShowUnlockPrompt(true); return; }
     try {
-      await stopSession(status?.hasFriendLock ? unlockInput : undefined);
+      await stopSession(status?.hasFriendLock ? unlockInput.trim() : undefined);
       setShowUnlockPrompt(false); setUnlockInput('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to stop session');
