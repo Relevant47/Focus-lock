@@ -518,9 +518,15 @@ public sealed class UsageService : IDisposable
 
         using var proc = Process.Start(psi)
             ?? throw new InvalidOperationException("Failed to start schtasks.exe");
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
+        // Drain stdout and stderr concurrently. Sequential ReadToEnd() deadlocks
+        // when schtasks.exe fills the stderr pipe buffer (~4-64 KB) before
+        // closing stdout — a verbose "Access Denied" or XML validation failure
+        // is enough to trigger it (issue #476).
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
         proc.WaitForExit();
+        var stdout = stdoutTask.GetAwaiter().GetResult();
+        var stderr = stderrTask.GetAwaiter().GetResult();
         return (proc.ExitCode, stdout, stderr);
     }
 
