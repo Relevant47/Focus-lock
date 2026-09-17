@@ -691,7 +691,7 @@ export default function Settings() {
 
           {/* Updates */}
           <Section title="Updates">
-            <Row label="FocusLock" sub={`v${status?.version ?? '1.1.3'} · Free and open source`}>
+            <Row label="FocusLock" sub={`${status?.version ? `v${status.version} · ` : ''}Free and open source`}>
               <a href="https://github.com/Relevant47/focus-lock/releases" target="_blank" rel="noreferrer" className="text-xs text-muted hover:text-accent transition-colors">GitHub →</a>
             </Row>
             {updateStatus === 'available' ? (
