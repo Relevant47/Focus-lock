@@ -210,7 +210,7 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
     <div className="space-y-6">
       <div className="card p-5 border-accent/30 bg-accent/5 space-y-4">
         <div className="flex items-center gap-3">
-          <Pill tone="success">
+          <Pill tone={family.connected ? 'success' : 'neutral'}>
             <span className={cn(
               'w-1.5 h-1.5 rounded-full',
               family.connected ? 'bg-success animate-soft-pulse' : 'bg-dim',
