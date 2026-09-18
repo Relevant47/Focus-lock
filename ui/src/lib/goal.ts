@@ -16,7 +16,7 @@ export function minutesToday(logs: SessionLog[], now = new Date()): number {
   const today = now.toDateString();
   return Math.round(
     logs.reduce((acc, l) => {
-      if (!l.endTime) return acc;
+      if (!l.endTime || !l.completed) return acc;
       if (new Date(l.startTime).toDateString() !== today) return acc;
       return acc + (new Date(l.endTime).getTime() - new Date(l.startTime).getTime()) / 60_000;
     }, 0),
