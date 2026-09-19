@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useDaemon } from '../stores/daemon';
+import { useBlockList, resolveBlockList, isBlockListEmpty } from '../stores/blocklist';
 import { getTheme, setTheme } from '../stores/theme';
 import { Icon } from './Icons';
 import { cn } from '../lib/cn';
@@ -47,6 +48,10 @@ export default function CommandPalette() {
   const logs     = useDaemon(s => s.logs);
   const start    = useDaemon(s => s.startSession);
   const stop     = useDaemon(s => s.stopSession);
+  // The user's saved global/default block list — Dashboard's "No profile
+  // (custom)" path already reads this. Quick Session started from the palette
+  // must use the same source or the daemon rejects the empty payload.
+  const defaultBlockList = useBlockList();
 
   // Global hotkey
   useEffect(() => {
@@ -72,14 +77,19 @@ export default function CommandPalette() {
   const sessionActive = !!status?.sessionActive;
 
   const commands = useMemo<Command[]>(() => {
+    const quickBlockList = resolveBlockList(defaultBlockList);
+    const quickBlockListEmpty = isBlockListEmpty(defaultBlockList);
     const list: Command[] = [
       {
-        id: 'start_quick', label: 'Start Quick Session', hint: '25 min',
+        id: 'start_quick', label: 'Start Quick Session',
+        hint: quickBlockListEmpty ? 'Block list empty' : '25 min',
         icon: <Icon.Play size={14} />, keywords: 'begin focus',
-        disabled: sessionActive,
+        disabled: sessionActive || quickBlockListEmpty,
         run: () => start({
           profileId: null, durationMinutes: 25,
-          blockedDomains: [], blockedProcesses: [], allowlistedDomains: [],
+          blockedDomains: quickBlockList.blockedDomains,
+          blockedProcesses: quickBlockList.blockedProcesses,
+          allowlistedDomains: quickBlockList.allowlistedDomains,
           hardcoreMode: false, pomodoroConfig: null,
         }),
       },
@@ -128,7 +138,7 @@ export default function CommandPalette() {
       },
     ];
     return list;
-  }, [profiles, sessionActive, logs, start, stop, navigate]);
+  }, [profiles, sessionActive, logs, start, stop, navigate, defaultBlockList]);
 
   const filtered = useMemo(() => {
     return commands.filter(c => fuzzy(query, c.label + ' ' + (c.keywords ?? '')));
