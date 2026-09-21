@@ -126,7 +126,7 @@ export default function BlockLists() {
 
   const domainCount = Array.from(selectedCats).reduce(
     (acc, cat) => acc + (CATEGORY_DOMAINS[cat]?.length ?? 0), 0
-  ) + customDomains.split('\n').filter(Boolean).length;
+  ) + customDomains.split('\n').map(s => s.trim()).filter(Boolean).length;
   // Quick Block needs *something* to block — but a process-only session is
   // valid (e.g. just kill Steam.exe), so count both buckets when deciding
   // whether to disable the button.
