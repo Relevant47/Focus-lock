@@ -61,7 +61,7 @@ The natural value would have been `https://tryfocuslock.com/reset` (matching the
 
 From design doc, decided 2026-05-21:
 
-1. **Pricing:** free in beta, paid (~$5/mo per family) after Phase 2.5. Single-device FocusLock stays free forever. Self-hosters always free.
+1. **Pricing:** free forever, no paid tier. All of FocusLock — including Family Controls — is GPL-3.0 open source at no cost, as reflected in the current Terms of Service ("There is no cost. There is no paid tier. There is no license key."). The 2026-05-21 note that Family Controls would move to ~$5/mo after Phase 2.5 was superseded before Phase 2.5 shipped. Self-hosters remain free too.
 2. **Server code:** open-source, same GPL-3.0 repo (lives at `family-server/`).
 3. **Non-admin child account:** mandatory, with auto-setup via `New-LocalUser` PowerShell on Windows, manual walkthrough on Mac.
 4. **Password recovery:** email reset, instant (no 24h delay). Trade-off accepted: kid with brief parent-email access can reset.
