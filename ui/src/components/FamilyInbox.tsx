@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFamily } from '../stores/family';
 import { Icon } from './Icons';
 import { Pill } from './ui';
@@ -129,6 +129,24 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
   const expiresAt = request?.expiresAt ?? null;
   const secondsLeft = useCountdown(expiresAt);
   const isPending = (request?.status ?? 'pending') === 'pending' && secondsLeft > 0;
+  const isTerminal = !!request && (
+    request.status === 'approved' ||
+    request.status === 'denied' ||
+    request.status === 'expired' ||
+    (request.status === 'pending' && secondsLeft <= 0)
+  );
+
+  // Auto-mark-read once the request settles to a terminal status without
+  // the parent clicking Approve/Deny on this exact card (24h expiry,
+  // resolution from another device/session). Without this, every such
+  // notification stays unread forever and pins itself above newer items.
+  const autoMarkedRef = useRef(false);
+  useEffect(() => {
+    if (isTerminal && notification.readAt == null && !autoMarkedRef.current) {
+      autoMarkedRef.current = true;
+      onMarkRead();
+    }
+  }, [isTerminal, notification.readAt, onMarkRead]);
 
   async function approve() {
     if (busy) return;
