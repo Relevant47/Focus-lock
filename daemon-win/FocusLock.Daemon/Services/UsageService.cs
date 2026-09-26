@@ -237,8 +237,11 @@ public sealed class UsageService : IDisposable
 
             int? otherTotal = null;
             // Roll-up only when top_n truncated AND include_apps did not filter
-            // (per docs/usage-analytics-schema.md §2.5).
-            if (!hasFilter && payload.TopN.HasValue && payload.TopN.Value > 0)
+            // (per docs/usage-analytics-schema.md §2.5). Skip the second full
+            // scan when rows.Count < TopN — no truncation is possible, so
+            // otherTotal will always be null (matches macOS in UsageService.swift:181).
+            if (!hasFilter && payload.TopN.HasValue && payload.TopN.Value > 0
+                && rows.Count == payload.TopN.Value)
             {
                 var all = _store.QueryRange(payload.StartDate, payload.EndDate, topN: null, includeApps: null);
                 if (all.Count > rows.Count)
