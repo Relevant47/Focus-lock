@@ -181,11 +181,13 @@ public sealed class SessionService
         }
     }
 
-    private static int ComputeCurrentStreak(IReadOnlyList<SessionLog> logs)
+    private static int ComputeCurrentStreak(IReadOnlyList<SessionLog> logs, DateTime? extraCompletedDay = null)
     {
         var completedDays = new HashSet<string>(
             logs.Where(l => l.Completed)
                 .Select(l => l.StartTime.ToLocalTime().Date.ToString("yyyy-MM-dd")));
+        if (extraCompletedDay.HasValue)
+            completedDays.Add(extraCompletedDay.Value.ToLocalTime().Date.ToString("yyyy-MM-dd"));
         if (completedDays.Count == 0) return 0;
 
         var today = DateTime.Now.Date;
@@ -381,8 +383,11 @@ public sealed class SessionService
         var penalty = Math.Min(_blockAttempts * 5, 50);
         var base_ = Math.Max(100 - penalty, 10);
 
-        // Streak multiplier: +2% per day, capped at +20%
-        var streak = ComputeCurrentStreak(GetLogs(90));
+        // Streak multiplier: +2% per day, capped at +20%.
+        // FinalizeSession computes the score BEFORE AppendLog, so GetLogs(90)
+        // does not yet include the session being finalized. Pass its start
+        // time explicitly so it counts toward today's streak.
+        var streak = ComputeCurrentStreak(GetLogs(90), _active?.StartTime);
         var multiplier = 1.0 + Math.Min(streak * 0.02, 0.20);
         return Math.Min((int)(base_ * multiplier), 100);
     }

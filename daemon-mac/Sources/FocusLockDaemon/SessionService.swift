@@ -154,8 +154,11 @@ final class SessionService {
         }
     }
 
-    private func computeCurrentStreak(logs: [SessionLog]) -> Int {
-        let completedDays = Set(logs.filter { $0.completed }.map { cal.startOfDay(for: $0.startTime) })
+    private func computeCurrentStreak(logs: [SessionLog], extraCompletedDay: Date? = nil) -> Int {
+        var completedDays = Set(logs.filter { $0.completed }.map { cal.startOfDay(for: $0.startTime) })
+        if let extra = extraCompletedDay {
+            completedDays.insert(cal.startOfDay(for: extra))
+        }
         guard !completedDays.isEmpty else { return 0 }
         let today = cal.startOfDay(for: Date())
         var streak = 0
@@ -275,7 +278,10 @@ final class SessionService {
         guard completed else { return 0 }
         let penalty = min(_blockAttempts * 5, 50)
         let base = max(100 - penalty, 10)
-        let streak = computeCurrentStreak(logs: getLogs(limit: 90))
+        // finalizeSession computes the score BEFORE appendLog, so
+        // getLogs(limit:) does not yet include the session being finalized.
+        // Pass its start time explicitly so it counts toward today's streak.
+        let streak = computeCurrentStreak(logs: getLogs(limit: 90), extraCompletedDay: _active?.startTime)
         let multiplier = 1.0 + min(Double(streak) * 0.02, 0.20)
         return min(Int(Double(base) * multiplier), 100)
     }
