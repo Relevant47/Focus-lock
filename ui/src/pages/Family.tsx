@@ -715,10 +715,10 @@ function FamilyAuditLog() {
             <p className="text-xs text-faint">No family events recorded.</p>
           ) : (
             <ul className="space-y-1.5 max-h-72 overflow-auto pr-1">
-              {familyEntries.map((entry, i) => {
+              {familyEntries.map(entry => {
                 const meta = AUDIT_EVENT_LABEL[entry.event] ?? { label: entry.event, tone: 'neutral' as const };
                 return (
-                  <li key={i} className="flex items-center justify-between gap-3 text-xs">
+                  <li key={`${entry.timestamp}-${entry.event}`} className="flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       <Pill tone={meta.tone === 'accent' ? 'accent' : meta.tone} className="shrink-0">{meta.label}</Pill>
                       {entry.detail && (
