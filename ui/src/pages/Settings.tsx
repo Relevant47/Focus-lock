@@ -669,10 +669,10 @@ export default function Settings() {
                   <p className="text-xs text-faint">No activity recorded yet.</p>
                 ) : (
                   <ul className="space-y-1.5 max-h-64 overflow-auto pr-1">
-                    {parentAudit.map((entry, i) => {
+                    {parentAudit.map(entry => {
                       const meta = AUDIT_EVENT_LABEL[entry.event] ?? { label: entry.event, tone: 'neutral' as const };
                       return (
-                        <li key={i} className="flex items-center justify-between gap-3 text-xs">
+                        <li key={`${entry.timestamp}-${entry.event}`} className="flex items-center justify-between gap-3 text-xs">
                           <div className="flex items-center gap-2 min-w-0">
                             <Pill tone={meta.tone} className="shrink-0">{meta.label}</Pill>
                             {entry.command && (
