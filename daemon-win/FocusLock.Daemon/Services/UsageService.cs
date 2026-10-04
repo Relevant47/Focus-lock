@@ -319,7 +319,7 @@ public sealed class UsageService : IDisposable
     {
         lock (_lock)
         {
-            if (_store == null) return ("Usage tracking is not enabled", false);
+            if (_store == null) return (null, true);
 
             // Preserve user settings across the wipe. Tracking stays on.
             var retention = _store.GetMeta("retention_days") ?? DefaultRetentionDays;
