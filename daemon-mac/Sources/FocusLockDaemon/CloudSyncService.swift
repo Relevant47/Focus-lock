@@ -27,9 +27,24 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     private var session: URLSession?
     private var task: URLSessionWebSocketTask?
     private var runThread: Thread?
-    private var shouldStop = false
+    private var activeStopToken: StopToken?
     private var currentDelay: TimeInterval = reconnectMin
     private var bootMonotonic: UInt64 = 0
+
+    /// Per-run thread cancellation flag. A new instance is created every time
+    /// `startRunThread` fires, so marking the previous one stopped cannot be
+    /// clobbered by the next startRunThread's reset.
+    private final class StopToken {
+        private let lock = NSLock()
+        private var stopped = false
+        var isStopped: Bool {
+            lock.lock(); defer { lock.unlock() }
+            return stopped
+        }
+        func stop() {
+            lock.lock(); stopped = true; lock.unlock()
+        }
+    }
 
     private(set) var connected: Bool = false
     private(set) var lastConnectedAt: Date?
@@ -71,6 +86,13 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     }
 
     private func kickReconnect() {
+        // Signal the previous run thread to exit before spawning a new one.
+        // Without this, the old runLoop stays live after cancelTask unblocks
+        // sessionEnded.wait(), reconnects on its own, and leaks a parallel
+        // WebSocket. Mirrors the Windows port's _runCts cancellation.
+        lock.lock()
+        activeStopToken?.stop()
+        lock.unlock()
         cancelTask()
         startRunThread()
     }
@@ -84,23 +106,24 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     }
 
     private func startRunThread() {
-        let thread = Thread { [weak self] in self?.runLoop() }
+        let token = StopToken()
+        let thread = Thread { [weak self] in self?.runLoop(token: token) }
         thread.name = "focuslock.cloudsync"
         lock.lock()
-        shouldStop = false
+        activeStopToken = token
         currentDelay = Self.reconnectMin
         runThread = thread
         lock.unlock()
         thread.start()
     }
 
-    private func runLoop() {
-        while !shouldStop {
+    private func runLoop(token: StopToken) {
+        while !token.isStopped {
             guard let cfg = family.current else { return }
 
             do {
                 try pullSnapshot(cfg)
-                try runSession(cfg)
+                try runSession(cfg, token: token)
                 lock.lock(); currentDelay = Self.reconnectMin; lock.unlock()
             } catch CloudError.unauthorized {
                 fputs("[cloudsync] device unauthorized — clearing pairing\n", stderr)
@@ -123,8 +146,14 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
             // the alert lands within roughly half a minute of the threshold.
             maybeAuditOutage()
 
-            Thread.sleep(forTimeInterval: delay)
-            if shouldStop { return }
+            // Sleep in short slices so a stop signal is observed within ~250ms
+            // instead of up to reconnectMax seconds.
+            let sliceCount = Int(ceil(delay / 0.25))
+            for _ in 0..<max(sliceCount, 1) {
+                if token.isStopped { return }
+                Thread.sleep(forTimeInterval: 0.25)
+            }
+            if token.isStopped { return }
         }
     }
 
@@ -175,7 +204,7 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
 
     // ── WebSocket session ──────────────────────────────────────────────────
 
-    private func runSession(_ cfg: FamilyConfig) throws {
+    private func runSession(_ cfg: FamilyConfig, token: StopToken) throws {
         guard let wsUrl = makeWsUrl(cfg.serverUrl) else { throw CloudError.invalidUrl }
 
         var req = URLRequest(url: wsUrl, timeoutInterval: 30)
@@ -203,7 +232,7 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
             sessionError = err
             sessionEnded.signal()
         }
-        startHeartbeat(task: task) { err in
+        startHeartbeat(task: task, token: token) { err in
             if sessionError == nil { sessionError = err }
             sessionEnded.signal()
         }
@@ -255,10 +284,10 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
         }
     }
 
-    private func startHeartbeat(task: URLSessionWebSocketTask, onEnd: @escaping (Error?) -> Void) {
+    private func startHeartbeat(task: URLSessionWebSocketTask, token: StopToken, onEnd: @escaping (Error?) -> Void) {
         Thread.detachNewThread { [weak self] in
             guard let self = self else { onEnd(nil); return }
-            while !self.shouldStop, task.state == .running {
+            while !token.isStopped, task.state == .running {
                 let monoNs = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) &- self.bootMonotonic
                 let wall = ISO8601DateFormatter().string(from: Date())
                 let payload: [String: Any] = [
