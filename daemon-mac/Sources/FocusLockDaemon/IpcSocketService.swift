@@ -150,7 +150,22 @@ final class IpcSocketService {
 
     // ── Request dispatch ──────────────────────────────────────────────────────
 
+    /// Outer error boundary. Mirrors the Windows daemon's `try/catch` wrapper
+    /// around `IpcPipeService.Handle` so an unhandled Swift error thrown by
+    /// (or added to) any individual handler produces a structured `.error`
+    /// response rather than tearing down the client connection task with no
+    /// trace. `dispatch` is marked `throws` so the outer `catch` stays
+    /// reachable even while every current handler is non-throwing.
     private func handle(_ req: IpcRequest) -> IpcResponse {
+        do {
+            return try dispatch(req)
+        } catch {
+            fputs("[ipc] handler for \(req.type) threw: \(error)\n", stderr)
+            return .error("Internal error: \(error.localizedDescription)")
+        }
+    }
+
+    private func dispatch(_ req: IpcRequest) throws -> IpcResponse {
         switch req.type {
         case "ping":          return .pong()
         case "get_status":    return .status(buildStatus())
