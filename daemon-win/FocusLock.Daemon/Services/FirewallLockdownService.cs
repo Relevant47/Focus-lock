@@ -182,29 +182,69 @@ public sealed class FirewallLockdownService : BackgroundService
 
     /// <summary>
     /// Sweeps any FocusLockFamilyOffline-* rules left over from a previous
-    /// daemon run. PowerShell handles the wildcard match netsh doesn't.
+    /// daemon run. Enumerates every firewall rule via `netsh show rule
+    /// name=all`, picks out the names that carry our prefix, and deletes
+    /// them one by one via `netsh ... delete rule name="..."`.
+    ///
+    /// Pre-v1.5.0 this shelled out to PowerShell's
+    /// `Get-NetFirewallRule | Remove-NetFirewallRule` for the wildcard match,
+    /// but managed/enterprise Windows images routinely ship with a restricted
+    /// ExecutionPolicy (`AllSigned`, `Restricted`) that silently refuses the
+    /// one-liner even when running as SYSTEM — leaving orphan rules in place
+    /// across reboots. netsh is a signed Microsoft binary with no scripting
+    /// policy attached, so the cleanup now works in those environments too.
     /// </summary>
     private void TryCleanupOrphanedRules()
     {
-        var psCmd = $"Get-NetFirewallRule -DisplayName '{RulePrefix}*' -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue";
         try
         {
-            var psi = new ProcessStartInfo
+            var orphans = EnumerateOrphanedRuleNames();
+            foreach (var ruleName in orphans)
             {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -NonInteractive -Command \"{psCmd}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-            using var p = Process.Start(psi);
-            p?.WaitForExit(15_000);
+                RunNetsh($"advfirewall firewall delete rule name=\"{ruleName}\"");
+            }
         }
         catch (Exception ex)
         {
             _log.LogDebug(ex, "Orphaned firewall rule cleanup failed");
         }
+    }
+
+    private HashSet<string> EnumerateOrphanedRuleNames()
+    {
+        var orphans = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var psi = new ProcessStartInfo
+        {
+            FileName = "netsh.exe",
+            Arguments = "advfirewall firewall show rule name=all",
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        using var p = Process.Start(psi);
+        if (p == null) return orphans;
+        var output = p.StandardOutput.ReadToEnd();
+        if (!p.WaitForExit(15_000)) { try { p.Kill(); } catch { } return orphans; }
+        if (p.ExitCode != 0) return orphans;
+
+        // netsh prints a block per rule; names are tagged with a line that
+        // starts "Rule Name:" (localised Windows builds may use a different
+        // leader, but the English leader is the one every piece of our docs
+        // and tooling targets). Grab the first colon-separated value on each
+        // such line.
+        foreach (var raw in output.Split('\n'))
+        {
+            var line = raw.TrimStart();
+            const string leader = "Rule Name:";
+            if (!line.StartsWith(leader, StringComparison.OrdinalIgnoreCase)) continue;
+            var name = line[leader.Length..].Trim();
+            if (name.StartsWith(RulePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                orphans.Add(name);
+            }
+        }
+        return orphans;
     }
 
     private bool RunNetsh(string args)
