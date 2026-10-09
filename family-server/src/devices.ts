@@ -66,8 +66,22 @@ export async function createRuleHandler(
   if (body.kind === 'schedule' && typeof body.scheduleCron !== 'string') {
     return badRequest('scheduleCron required for kind=schedule');
   }
-  if (body.kind === 'unblock_specific' && typeof body.expiresAt !== 'string') {
-    return badRequest('expiresAt required for kind=unblock_specific');
+  if (body.kind === 'unblock_specific') {
+    if (typeof body.expiresAt !== 'string') {
+      return badRequest('expiresAt required for kind=unblock_specific');
+    }
+    // SQLite's string comparison is lexicographic, so a garbage value like
+    // "never" sorts above every real ISO date and would create a permanent
+    // unblock. Normalize to an ISO 8601 UTC string and require it to be in
+    // the future.
+    const parsed = Date.parse(body.expiresAt);
+    if (Number.isNaN(parsed)) {
+      return badRequest('expiresAt must be a valid ISO 8601 date-time');
+    }
+    if (parsed <= Date.now()) {
+      return badRequest('expiresAt must be in the future');
+    }
+    body.expiresAt = new Date(parsed).toISOString();
   }
   const apps = Array.isArray(body.targetApps) ? body.targetApps.filter(s => typeof s === 'string') : undefined;
   const domains = Array.isArray(body.targetDomains) ? body.targetDomains.filter(s => typeof s === 'string') : undefined;
