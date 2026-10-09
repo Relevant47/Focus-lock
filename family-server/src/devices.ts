@@ -63,8 +63,22 @@ export async function createRuleHandler(
       && body.kind !== 'unblock_all' && body.kind !== 'unblock_specific') {
     return badRequest('kind must be block_now | schedule | unblock_all | unblock_specific');
   }
-  if (body.kind === 'schedule' && typeof body.scheduleCron !== 'string') {
-    return badRequest('scheduleCron required for kind=schedule');
+  if (body.kind === 'schedule') {
+    if (typeof body.scheduleCron !== 'string') {
+      return badRequest('scheduleCron required for kind=schedule');
+    }
+    // Exactly 5 whitespace-separated fields; cap length so a malformed value
+    // can't bloat D1 or stress the child daemon's parser. CronEvaluator on the
+    // child side is the authoritative parser — this gate catches the common
+    // typos (plain-English strings, 4-field expressions) at the API edge.
+    const cron = body.scheduleCron.trim();
+    if (cron.length === 0 || cron.length > 100) {
+      return badRequest('scheduleCron must be 1-100 characters');
+    }
+    if (!/^\S+\s+\S+\s+\S+\s+\S+\s+\S+$/.test(cron)) {
+      return badRequest('scheduleCron must be a 5-field cron expression (e.g. "0 9 * * 1-5")');
+    }
+    body.scheduleCron = cron;
   }
   if (body.kind === 'unblock_specific' && typeof body.expiresAt !== 'string') {
     return badRequest('expiresAt required for kind=unblock_specific');
