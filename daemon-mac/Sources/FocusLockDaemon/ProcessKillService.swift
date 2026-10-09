@@ -79,7 +79,7 @@ final class ProcessKillService {
                 if blockedBundleIds.contains(bid) {
                     let pid = app.processIdentifier
                     if pid > 0 && isSafeToKill(pid: pid, name: app.localizedName?.lowercased() ?? "") {
-                        kill(pid, SIGKILL)
+                        killProcessAndGroup(pid)
                         session.incrementBlockAttempt()
                     }
                 }
@@ -122,8 +122,26 @@ final class ProcessKillService {
             if uid < 100 { continue }
             if !isSafeToKill(pid: pid, name: name) { continue }
 
-            kill(pid, SIGKILL)
+            killProcessAndGroup(pid)
             session.incrementBlockAttempt()
+        }
+    }
+
+    /// SIGKILL the matched pid; if it is a process-group leader (pgid == pid,
+    /// which is the normal case for NSWorkspace-launched GUI apps and anything
+    /// `launchd` started), SIGKILL the whole group so child/helper processes
+    /// go with it. This is the macOS equivalent of Windows'
+    /// `Process.Kill(entireProcessTree: true)` and closes the loophole where
+    /// Electron renderer helpers or XPC services survive and relaunch the
+    /// parent. When the matched pid is a child of some other group (e.g. a
+    /// binary run from an interactive shell) we don't group-kill — that could
+    /// take the shell down — and fall back to the single-pid signal.
+    private func killProcessAndGroup(_ pid: Int32) {
+        let pgid = getpgid(pid)
+        if pgid > 1 && pgid == pid {
+            killpg(pgid, SIGKILL)
+        } else {
+            kill(pid, SIGKILL)
         }
     }
 
