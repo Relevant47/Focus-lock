@@ -99,7 +99,7 @@ export type IpcRequest =
   | { type: "change_parent_pin"; payload: { oldPin: string; newPin: string } }
   | { type: "clear_parent_pin"; payload: { pin: string } }
   | { type: "verify_recovery_key"; payload: { key: string } }
-  | { type: "regenerate_recovery_key"; payload: { pin: string } & ParentTokenEnvelope }
+  | { type: "regenerate_recovery_key"; payload: { pin: string } }
   | { type: "get_parent_audit"; payload?: { limit?: number } & ParentTokenEnvelope }
   // ── Family controls (Phase 2.3) — child-side daemon ↔ cloud sync ─────────
   | { type: "family_redeem_code"; payload: FamilyRedeemPayload & ParentTokenEnvelope }
