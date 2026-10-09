@@ -23,6 +23,12 @@ import {
 const SESSION_TTL_SECONDS = 30 * 24 * 3600;        // 30 days
 const RESET_TOKEN_TTL_SECONDS = 60 * 60;           // 1 hour to redeem a reset link
 const MIN_PASSWORD_LENGTH = 8;
+// Cap input length BEFORE calling hashPassword (100 000 PBKDF2 iters). An
+// attacker enumerating fresh signup emails with multi-KB passwords would
+// otherwise amplify CPU per request several-fold and risk tripping the
+// Worker CPU wall-clock. 128 chars is ample for any real passphrase and
+// keeps the maximum amplification under ~2× a typical password.
+const MAX_PASSWORD_LENGTH = 128;
 
 interface AuthBody { email?: unknown; password?: unknown }
 interface ResetRequestBody  { email?: unknown }
@@ -42,6 +48,7 @@ export async function signup(req: Request, env: Env): Promise<Response> {
   const password = body.password;
   if (!isValidEmail(email))                return badRequest('invalid email');
   if (password.length < MIN_PASSWORD_LENGTH) return badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+  if (password.length > MAX_PASSWORD_LENGTH) return badRequest(`password must be at most ${MAX_PASSWORD_LENGTH} characters`);
 
   if (await findAccountByEmail(env.DB, email)) {
     return conflict('email already registered');
@@ -160,6 +167,9 @@ export async function resetConfirm(req: Request, env: Env): Promise<Response> {
   }
   if (body.newPassword.length < MIN_PASSWORD_LENGTH) {
     return badRequest(`password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+  }
+  if (body.newPassword.length > MAX_PASSWORD_LENGTH) {
+    return badRequest(`password must be at most ${MAX_PASSWORD_LENGTH} characters`);
   }
   const verified = await verifyJwt(body.token, env.JWT_SECRET);
   if (!verified || verified.payload.kind !== 'reset' || typeof verified.payload.sub !== 'string') {
