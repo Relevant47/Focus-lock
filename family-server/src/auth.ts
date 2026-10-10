@@ -47,9 +47,21 @@ export async function signup(req: Request, env: Env): Promise<Response> {
     return conflict('email already registered');
   }
   const hash = await hashPassword(password);
-  const account = await createAccount(env.DB, email, hash);
-  await logAudit(env.DB, account.id, null, 'signup', { email }, clientIp(req));
-  return issueSession(env, account.id);
+  // The pre-check above closes the common case, but two concurrent signups
+  // for the same email can both pass it and race to INSERT. D1 enforces the
+  // UNIQUE constraint on accounts.email, so the loser's INSERT throws — we
+  // translate that to a clean 409 instead of letting the router emit a 500.
+  try {
+    const account = await createAccount(env.DB, email, hash);
+    await logAudit(env.DB, account.id, null, 'signup', { email }, clientIp(req));
+    return issueSession(env, account.id);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/unique/i.test(msg)) {
+      return conflict('email already registered');
+    }
+    throw e;
+  }
 }
 
 export async function login(req: Request, env: Env): Promise<Response> {
