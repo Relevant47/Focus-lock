@@ -359,7 +359,7 @@ export default function Settings() {
 
         <div className="space-y-5">
           {/* Daily goal */}
-          <Section title="Daily focus goal" hint="Your streak only counts on days you hit this goal.">
+          <Section title="Daily focus goal" hint="Your streak advances on any day you complete at least one focus session.">
             <div className="flex items-baseline gap-3 mb-2">
               <span className="text-3xl font-bold tracking-tighter2 tnum text-accent">
                 {Math.floor(goalMinutes / 60)}<span className="text-base text-muted">h</span>
