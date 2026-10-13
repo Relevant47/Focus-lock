@@ -246,6 +246,15 @@ public sealed class FamilyService
         if (cfg == null || string.IsNullOrEmpty(cfg.DeviceToken))
             return ("Device is not paired", null);
 
+        // The IPC pipe is accessible to any local user; the family-server mints
+        // request ids as crypto.randomUUID(), so reject anything that isn't a
+        // canonical hyphenated GUID before interpolating into the URL. Without
+        // this, a crafted id like "foo/../rules" or "foo?x=y" would redirect
+        // this authenticated GET to a different endpoint under the same device
+        // bearer token.
+        if (!Guid.TryParseExact(requestId, "D", out _))
+            return ("Invalid requestId", null);
+
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         http.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", cfg.DeviceToken);
