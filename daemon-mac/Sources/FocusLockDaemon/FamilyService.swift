@@ -250,6 +250,15 @@ final class FamilyService {
     /// GET /api/v1/device/requests/:id — kid polls the status of an outstanding ask.
     func requestStatus(requestId: String) -> (error: String?, result: RequestStatusResult?) {
         guard let cfg = current else { return ("Device is not paired", nil) }
+        // The IPC socket is world-accessible (chmod 0o666); the family-server
+        // mints request ids as crypto.randomUUID(), so reject anything that
+        // isn't a canonical UUID before interpolating into the URL. Without
+        // this, a crafted id like "foo/../rules" or "foo?x=y" would redirect
+        // the daemon's authenticated GET to a different endpoint under the
+        // same device bearer token.
+        guard UUID(uuidString: requestId) != nil else {
+            return ("Invalid requestId", nil)
+        }
         guard let url = URL(string: "\(cfg.serverUrl)/api/v1/device/requests/\(requestId)") else {
             return ("Invalid server URL", nil)
         }
