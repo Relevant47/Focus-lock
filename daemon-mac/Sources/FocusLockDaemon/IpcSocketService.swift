@@ -15,8 +15,22 @@ final class IpcSocketService {
     private let envProbe: EnvironmentProbe
     private let firewallLockdown: FirewallLockdownService
     private let usageSvc: UsageService
+    // serverFd and isRunning are mutated from start() (caller thread) and
+    // stop() (signal-handler thread) and read from acceptLoop() (its own
+    // detached thread). Plain stored Int32/Bool are not atomic in Swift —
+    // concurrent read+write is undefined behavior. All access goes through
+    // `stateQueue.sync { … }`.
+    private let stateQueue = DispatchQueue(label: "app.focuslock.ipc.state")
     private var serverFd: Int32 = -1
     private var isRunning = false
+
+    private func currentIsRunning() -> Bool {
+        stateQueue.sync { isRunning }
+    }
+
+    private func currentServerFd() -> Int32 {
+        stateQueue.sync { serverFd }
+    }
 
     private let jsonEnc: JSONEncoder = {
         let e = JSONEncoder()
@@ -67,8 +81,8 @@ final class IpcSocketService {
     func start() {
         unlink(Self.socketPath)
 
-        serverFd = socket(AF_UNIX, SOCK_STREAM, 0)
-        guard serverFd >= 0 else { return }
+        let newFd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard newFd >= 0 else { return }
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
@@ -81,18 +95,22 @@ final class IpcSocketService {
 
         let bindResult = withUnsafePointer(to: &addr) { ptr in
             ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sptr in
-                bind(serverFd, sptr, socklen_t(MemoryLayout<sockaddr_un>.size))
+                bind(newFd, sptr, socklen_t(MemoryLayout<sockaddr_un>.size))
             }
         }
         guard bindResult == 0 else {
             fputs("[ipc] Failed to bind socket\n", stderr)
+            close(newFd)
             return
         }
 
         // Allow any local user to connect (daemon runs as root)
         chmod(Self.socketPath, 0o666)
-        listen(serverFd, 10)
-        isRunning = true
+        listen(newFd, 10)
+        stateQueue.sync {
+            serverFd = newFd
+            isRunning = true
+        }
         fputs("[ipc] Listening on \(Self.socketPath)\n", stderr)
 
         Thread.detachNewThread { [weak self] in
@@ -101,18 +119,25 @@ final class IpcSocketService {
     }
 
     func stop() {
-        isRunning = false
-        if serverFd >= 0 { close(serverFd) }
+        let fdToClose: Int32 = stateQueue.sync {
+            isRunning = false
+            let fd = serverFd
+            serverFd = -1
+            return fd
+        }
+        if fdToClose >= 0 { close(fdToClose) }
         unlink(Self.socketPath)
     }
 
     private func acceptLoop() {
-        while isRunning {
+        while currentIsRunning() {
             var clientAddr = sockaddr_un()
             var addrLen = socklen_t(MemoryLayout<sockaddr_un>.size)
+            let fd = currentServerFd()
+            guard fd >= 0 else { break }
             let client = withUnsafeMutablePointer(to: &clientAddr) { ptr in
                 ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sptr in
-                    accept(serverFd, sptr, &addrLen)
+                    accept(fd, sptr, &addrLen)
                 }
             }
             guard client >= 0 else { continue }
