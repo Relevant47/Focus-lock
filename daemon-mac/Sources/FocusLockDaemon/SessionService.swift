@@ -294,12 +294,21 @@ final class SessionService {
         guard let data = try? enc.encode(log),
               var line = String(data: data, encoding: .utf8) else { return }
         line += "\n"
-        if let fileHandle = FileHandle(forWritingAtPath: Self.logPath.path) {
-            fileHandle.seekToEndOfFile()
-            fileHandle.write(line.data(using: .utf8)!)
-            fileHandle.closeFile()
+        guard let bytes = line.data(using: .utf8) else { return }
+        if let fileHandle = try? FileHandle(forWritingTo: Self.logPath) {
+            // Use the throws-based API (macOS 10.15.4+). The legacy
+            // FileHandle.write(_:) raises NSFileHandleOperationException on
+            // I/O errors (e.g. disk-full) which Swift do/catch cannot catch,
+            // crashing the daemon — the sole enforcer of blocks.
+            do {
+                try fileHandle.seekToEnd()
+                try fileHandle.write(contentsOf: bytes)
+            } catch {
+                fputs("[session] appendLog write failed: \(error)\n", stderr)
+            }
+            try? fileHandle.close()
         } else {
-            try? line.data(using: .utf8)?.write(to: Self.logPath)
+            try? bytes.write(to: Self.logPath)
         }
     }
 
