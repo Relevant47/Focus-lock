@@ -122,6 +122,13 @@ final class IpcSocketService {
         }
     }
 
+    // Hard cap on how much un-newline-terminated data a single client may
+    // accumulate before we close its connection. 1 MiB is far more than any
+    // legitimate IPC payload (largest are profile saves, typically < 10 KiB).
+    // Without this cap a local process can OOM the daemon by sending bytes
+    // without a terminating newline.
+    private static let maxClientBufferBytes = 1 * 1024 * 1024
+
     private func handleClient(_ fd: Int32) {
         defer { close(fd) }
         var buffer = Data()
@@ -144,6 +151,11 @@ final class IpcSocketService {
                     let out = (line + "\n").data(using: .utf8)!
                     out.withUnsafeBytes { _ = write(fd, $0.baseAddress, $0.count) }
                 }
+            }
+
+            if buffer.count > Self.maxClientBufferBytes {
+                fputs("[ipc] client exceeded max buffer size (\(buffer.count) bytes), closing\n", stderr)
+                break
             }
         }
     }
