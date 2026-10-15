@@ -11,6 +11,7 @@
 // timer state required.
 
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDaemon } from '../stores/daemon';
 import { Icon } from './Icons';
 import { fmtClock } from '../lib/fmt';
@@ -19,6 +20,7 @@ import { cn } from '../lib/cn';
 export default function ActiveSessionBanner() {
   const status = useDaemon(s => s.status);
   const stopSession = useDaemon(s => s.stopSession);
+  const { pathname } = useLocation();
 
   const sessionActive = !!status?.sessionActive;
   const hardcore = !!status?.session?.hardcoreMode;
@@ -29,7 +31,12 @@ export default function ActiveSessionBanner() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  if (!sessionActive) return null;
+  // The Dashboard route swaps its whole view into the dedicated ActiveSession
+  // sub-component (ring, pomodoro dots, "End session" button) when a session
+  // is active. The banner is intended for /profiles, /blocklists, etc. —
+  // hide it on the Dashboard so the user doesn't see two countdowns and two
+  // "End session" buttons stacked.
+  if (!sessionActive || pathname === '/') return null;
 
   async function handleEnd() {
     setError('');
