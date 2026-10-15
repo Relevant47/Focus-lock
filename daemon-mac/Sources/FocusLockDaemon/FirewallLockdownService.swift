@@ -76,11 +76,17 @@ final class FirewallLockdownService {
     /// Cancel the timer and flush the anchor. main.swift should call this
     /// on the shutdown path (signal handler / process exit).
     func stop() {
+        // Cancel the timer first so no new evaluate() iterations are
+        // scheduled, then dispatch the queue-owned mutations through
+        // queue.sync — stop() is invoked from a signal handler on a
+        // different thread, so a direct write would race with evaluate().
         timer?.cancel()
         timer = nil
         flushAnchor()
-        currentlyLocked = false
-        lastAppliedDomains = []
+        queue.sync {
+            currentlyLocked = false
+            lastAppliedDomains = []
+        }
     }
 
     private func evaluate() {
