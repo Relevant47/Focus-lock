@@ -3,6 +3,30 @@ import CryptoKit
 import CommonCrypto
 import Security
 
+// Write `data` to `path` atomically, creating the file with 0600 permissions
+// (no world-readable window between write and chmod). Returns true on success.
+@discardableResult
+fileprivate func writeAtomic0600(_ data: Data, to path: URL) -> Bool {
+    let dir = path.deletingLastPathComponent()
+    let tmp = dir.appendingPathComponent(".\(UUID().uuidString).tmp")
+    let fd = open(tmp.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+    guard fd >= 0 else { return false }
+    let bytesWritten: Int = data.withUnsafeBytes { buf in
+        guard let base = buf.baseAddress else { return -1 }
+        return write(fd, base, data.count)
+    }
+    close(fd)
+    guard bytesWritten == data.count else {
+        unlink(tmp.path)
+        return false
+    }
+    if rename(tmp.path, path.path) != 0 {
+        unlink(tmp.path)
+        return false
+    }
+    return true
+}
+
 /// Parental controls: a PIN gates sensitive mutations (profile/schedule edits,
 /// Hardcore disable, stopping a parent-locked session). Verifying the PIN issues
 /// a short-lived HMAC grace token. The UI caches that token in memory and supplies
@@ -416,8 +440,8 @@ final class ParentService {
         enc.dateEncodingStrategy = .iso8601
         enc.outputFormatting = .prettyPrinted
         if let data = try? enc.encode(dto) {
-            try? data.write(to: credPath)
-            chmod(credPath.path, 0o600)
+            // Create with 0600 from the start — no world-readable window.
+            _ = writeAtomic0600(data, to: credPath)
         }
     }
 
@@ -427,8 +451,8 @@ final class ParentService {
         }
         let key = SymmetricKey(size: .bits256)
         let raw = key.withUnsafeBytes { Data($0) }
-        try? raw.write(to: tokenKeyPath)
-        chmod(tokenKeyPath.path, 0o600)
+        // Create with 0600 from the start — no world-readable window.
+        _ = writeAtomic0600(raw, to: tokenKeyPath)
         return key
     }
 
