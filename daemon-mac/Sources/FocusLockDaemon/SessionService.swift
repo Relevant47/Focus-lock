@@ -1,6 +1,30 @@
 import Foundation
 import CryptoKit
 
+// Write `data` to `path` atomically, creating the file with 0600 permissions
+// (no world-readable window between write and chmod). Returns true on success.
+@discardableResult
+fileprivate func writeAtomic0600(_ data: Data, to path: URL) -> Bool {
+    let dir = path.deletingLastPathComponent()
+    let tmp = dir.appendingPathComponent(".\(UUID().uuidString).tmp")
+    let fd = open(tmp.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+    guard fd >= 0 else { return false }
+    let bytesWritten: Int = data.withUnsafeBytes { buf in
+        guard let base = buf.baseAddress else { return -1 }
+        return write(fd, base, data.count)
+    }
+    close(fd)
+    guard bytesWritten == data.count else {
+        unlink(tmp.path)
+        return false
+    }
+    if rename(tmp.path, path.path) != 0 {
+        unlink(tmp.path)
+        return false
+    }
+    return true
+}
+
 // ── Pomodoro state machine ────────────────────────────────────────────────────
 
 private final class PomodoroState {
@@ -324,9 +348,9 @@ final class SessionService {
         }
         let key = SymmetricKey(size: .bits256)
         let raw = key.withUnsafeBytes { Data($0) }
-        try? raw.write(to: path)
-        // Restrict permissions: only root can read
-        chmod(path.path, 0o600)
+        // Create the key file with 0600 from the start (atomic tmp + rename),
+        // so no world-readable window exists between write and chmod.
+        _ = writeAtomic0600(raw, to: path)
         return key
     }
 
