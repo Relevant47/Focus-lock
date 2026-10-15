@@ -219,8 +219,12 @@ fn make_tray_icon() -> tauri::image::Image<'static> {
 }
 
 fn session_label(status: &Value) -> String {
-    if status.get("sessionActive").and_then(|v| v.as_bool()).unwrap_or(false) {
-        let secs = status
+    // Caller passes the raw IPC wrapper {"type":"status","payload":{…}}
+    // from ipc_call. sessionActive / secondsRemaining live under "payload".
+    // Fall back to `status` itself so pre-extracted payloads also work.
+    let inner = status.get("payload").unwrap_or(status);
+    if inner.get("sessionActive").and_then(|v| v.as_bool()).unwrap_or(false) {
+        let secs = inner
             .get("secondsRemaining")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0) as u64;
