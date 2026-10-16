@@ -198,6 +198,6 @@ Tables:
 - **Parent dashboard UI** — Phase 2.2 UI (React tab in FocusLock app); separate session
 - **Child daemon integration** — Phase 2.3 (Windows C# + macOS Swift WS clients)
 - **Anti-bypass hardening** — Phase 2.4 (monotonic clocks, Safe-Mode registration, admin-protected uninstall, non-admin-account auto-setup)
-- **Email service integration** — currently `console.log` only
+- **Outbound email domain verification** — Resend is wired (`src/email.ts`), but `tryfocuslock.com` is not yet verified in Resend, so until `EMAIL_FROM` is set as a Worker secret the sender falls back to Resend's sandbox `onboarding@resend.dev` (deliverable only to the account owner's inbox). See the project root `CLAUDE.md` § "Domain, DNS, and email" for the step-by-step unblock
 - **Rate limiting** — Cloudflare WAF covers us during beta; per-IP/per-account limits before public launch
 - **TOTP 2FA** — Phase 3+
