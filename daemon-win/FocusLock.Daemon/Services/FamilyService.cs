@@ -180,7 +180,7 @@ public sealed class FamilyService
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
         http.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", cfg.DeviceToken);
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("FocusLock-Daemon/1.3.0");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("FocusLock-Daemon/1.5.0");
 
         HttpResponseMessage resp;
         try
@@ -249,7 +249,7 @@ public sealed class FamilyService
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         http.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", cfg.DeviceToken);
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("FocusLock-Daemon/1.3.0");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("FocusLock-Daemon/1.5.0");
 
         HttpResponseMessage resp;
         try

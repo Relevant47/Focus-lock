@@ -71,7 +71,7 @@ final class FamilyService {
         var req = URLRequest(url: url, timeoutInterval: 15)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("FocusLock-Daemon/1.2.1", forHTTPHeaderField: "User-Agent")
+        req.setValue("FocusLock-Daemon/1.5.0", forHTTPHeaderField: "User-Agent")
 
         let host = Host.current().localizedName ?? "macOS"
         let body: [String: Any] = [
@@ -185,7 +185,7 @@ final class FamilyService {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("Bearer \(cfg.deviceToken)", forHTTPHeaderField: "Authorization")
-        req.setValue("FocusLock-Daemon/1.3.0", forHTTPHeaderField: "User-Agent")
+        req.setValue("FocusLock-Daemon/1.5.0", forHTTPHeaderField: "User-Agent")
 
         let body: [String: Any] = [
             "target":           target,
@@ -256,7 +256,7 @@ final class FamilyService {
         var req = URLRequest(url: url, timeoutInterval: 10)
         req.httpMethod = "GET"
         req.setValue("Bearer \(cfg.deviceToken)", forHTTPHeaderField: "Authorization")
-        req.setValue("FocusLock-Daemon/1.3.0", forHTTPHeaderField: "User-Agent")
+        req.setValue("FocusLock-Daemon/1.5.0", forHTTPHeaderField: "User-Agent")
 
         struct Envelope: Decodable {
             struct R: Decodable {
