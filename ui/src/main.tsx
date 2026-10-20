@@ -13,7 +13,9 @@ seedMockFromQueryParam();
 // callbacks, module-load failures) by writing directly to the DOM. Without
 // this, a JS error before React mounts leaves the window completely blank
 // with no clue what went wrong — and the WKWebView inspector isn't always
-// accessible in production builds.
+// accessible in production builds. The overlay carries a close button so a
+// transient error (e.g. a one-off IPC timeout the app recovers from) doesn't
+// permanently obscure the working UI underneath.
 function showFatal(label: string, detail: string): void {
   const root = document.getElementById('root');
   if (!root) return;
@@ -22,7 +24,23 @@ function showFatal(label: string, detail: string): void {
     'position:fixed;inset:24px;padding:20px;background:#1a0a0a;color:#ffd4d4;' +
     'border:1px solid #d44;border-radius:10px;font-family:-apple-system,monospace;' +
     'font-size:12px;line-height:1.55;z-index:2147483647;overflow:auto;white-space:pre-wrap';
-  card.textContent = `[${label}]\n\n${detail}`;
+
+  const close = document.createElement('button');
+  close.setAttribute('type', 'button');
+  close.setAttribute('aria-label', 'Dismiss error');
+  close.textContent = '×';
+  close.style.cssText =
+    'position:absolute;top:8px;right:12px;background:transparent;color:#ffd4d4;' +
+    'border:0;font-size:22px;line-height:1;cursor:pointer;padding:4px 8px;' +
+    'font-family:-apple-system,sans-serif';
+  close.addEventListener('click', () => { card.remove(); });
+
+  const body = document.createElement('div');
+  body.style.cssText = 'margin-right:28px';
+  body.textContent = `[${label}]\n\n${detail}`;
+
+  card.appendChild(close);
+  card.appendChild(body);
   document.body.appendChild(card);
 }
 
