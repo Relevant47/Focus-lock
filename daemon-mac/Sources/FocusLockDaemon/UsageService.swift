@@ -22,11 +22,12 @@ final class UsageService {
     private var dbPath: String { "\(stateDir)/usage.db" }
     private var walPath: String { "\(stateDir)/usage.db-wal" }
     private var shmPath: String { "\(stateDir)/usage.db-shm" }
-    /// Rollback-journal sidecar. `UsageDB` currently opens in the default
-    /// rollback mode, not WAL, so a force-killed daemon can leave this file
-    /// on disk holding pre-transaction pages with sample data. We wipe it
-    /// alongside `-wal` / `-shm` on every delete path so a future switch
-    /// between journal modes can't leave recoverable sample bytes behind.
+    /// Rollback-journal sidecar. `UsageDB` opens in WAL mode (see
+    /// `UsageDB.init` — `PRAGMA journal_mode=WAL`), so SQLite does not create
+    /// a `-journal` file for us today. We still wipe it alongside `-wal` /
+    /// `-shm` on every delete path as belt-and-suspenders in case a future
+    /// change switches journal modes, so no recoverable sample bytes can be
+    /// left behind.
     private var journalPath: String { "\(stateDir)/usage.db-journal" }
 
     // MARK: - Init
