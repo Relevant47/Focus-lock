@@ -1229,14 +1229,13 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
   const [busy, setBusy] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [status, setStatus] = useState<
-    'pending' | 'approved' | 'denied' | 'expired' | null
+    'pending' | 'approved' | 'denied' | 'cooldown' | 'expired' | null
   >(null);
-  /** v1.4.1: when the row is in `denied`, the ISO timestamp at which the kid
-   *  can re-ask (resolved_at + 10 min). Null in every other state. */
+  /** v1.4.1: when the row is in `denied` or `cooldown`, the ISO timestamp at
+   *  which the kid can re-ask (resolved_at + 10 min). Null in every other
+   *  state. */
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
-  /** v1.4.1: server-side rejection message for pending_exists. The
-   *  deny_cooldown reject is rendered via the `denied` status branch
-   *  instead, since the visual treatment matches. */
+  /** v1.4.1: server-side rejection message for pending_exists. */
   const [rejection, setRejection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -1251,8 +1250,11 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
       } else if (res.code === 'pending_exists') {
         setRejection('You already have a pending request. Wait for your parent to answer.');
       } else if (res.code === 'deny_cooldown') {
+        // Distinct from `denied`: the server rejected this ask automatically
+        // because a *previous* ask was denied in the last 10 min. The parent
+        // did not act on this request, so avoid wording that implies they did.
         setCooldownUntil(res.retryAfter);
-        setStatus('denied');
+        setStatus('cooldown');
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not reach parent');
@@ -1293,9 +1295,10 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
     return () => untrackPendingRequest(requestId);
   }, [requestId, status, trackPendingRequest, untrackPendingRequest]);
 
-  // v1.4.1: auto-recover from a denied row once the 10-min cooldown lapses.
+  // v1.4.1: auto-recover from a denied or cooldown row once the 10-min
+  // cooldown lapses.
   useEffect(() => {
-    if (status !== 'denied' || !cooldownUntil) return;
+    if ((status !== 'denied' && status !== 'cooldown') || !cooldownUntil) return;
     const ms = Date.parse(cooldownUntil) - Date.now();
     if (ms <= 0) { setStatus(null); setCooldownUntil(null); return; }
     const t = window.setTimeout(() => { setStatus(null); setCooldownUntil(null); }, ms);
@@ -1312,6 +1315,16 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
     return (
       <p className="text-faint">
         Denied by parent. {mins ? `Ask again in ${mins} min.` : 'Ask again in a moment.'}
+      </p>
+    );
+  }
+  if (status === 'cooldown') {
+    const mins = cooldownUntil
+      ? Math.max(1, Math.ceil((Date.parse(cooldownUntil) - Date.now()) / 60_000))
+      : null;
+    return (
+      <p className="text-faint">
+        {mins ? `Please wait ${mins} min before asking again.` : 'Please wait a moment before asking again.'}
       </p>
     );
   }
