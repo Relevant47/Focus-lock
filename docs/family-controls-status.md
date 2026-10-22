@@ -22,7 +22,8 @@ This file exists so anyone (you, future-Claude, a contributor) can pick up the c
 | Phase 2.9 — per-email rate limiting (login + reset) | ✅ | `family-server/src/rateLimit.ts`, migration `0002_auth_rate_limits.sql` | `eefce7f` |
 | Phase 2.8 — verified Resend sender domain (`hello@tryfocuslock.com`) | ✅ | Worker secrets only (`RESEND_API_KEY` rotated, `EMAIL_FROM`, `RESET_URL_BASE`); no source change | — (config) |
 | Phase 3.1 — Family Inbox (in-app notification feed; weekly digest + device-paired cards) | ✅ | `family-server/src/notifications.ts`, `digest.ts`, migration `0004_notifications.sql`, weekly cron in `wrangler.toml`; `ui/src/components/FamilyInbox.tsx`, `ui/src/stores/family.ts`, badge in `Nav.tsx` | shipped in v1.3.0 |
-| Phase 3.2 — Family Approval Requests (kid asks 5/15/30/60m, parent approves/denies in Inbox; time-limited `unblock_specific` rule) | ✅ | `family-server/src/approvalRequests.ts`, migrations `0005`/`0006`, per-minute cron; `daemon-{win,mac}` `unblock_specific` enforcement + IPC handlers; `ui/src/components/FamilyInbox.tsx` card variant + `useNewRequestAlerts.ts`; `ChildPairedView` ask flow in `ui/src/pages/Family.tsx` | shipped in v1.4.0 |
+| Phase 3.2 — Family Approval Requests (kid asks 15/30/60m, parent approves/denies in Inbox; time-limited `unblock_specific` rule) | ✅ | `family-server/src/approvalRequests.ts`, migrations `0005`/`0006`, per-minute cron; `daemon-{win,mac}` `unblock_specific` enforcement + IPC handlers; `ui/src/components/FamilyInbox.tsx` card variant + `useNewRequestAlerts.ts`; `ChildPairedView` ask flow in `ui/src/pages/Family.tsx` | shipped in v1.4.0 |
+| Phase 3.2.1 — Approval Requests v1.4.1 policy tightening (dropped 5m preset; pending window extended to 24h; anti-spam: one pending per device + 10-min deny cooldown; typed 409 codes `pending_exists` / `deny_cooldown`) | ✅ | `family-server/src/approvalRequests.ts` (`APPR_DENY_COOLDOWN_MS`, `findAnyPendingForDevice`); `ui/src/stores/family.ts` `pendingRequestIds`; `AskUnblockRow` in `ui/src/pages/Family.tsx` | shipped in v1.4.1 |
 | **Releases** | ✅ | v1.1.0 (`15c9f1a`), v1.1.1 (`cd64833`), v1.1.2 (`e9d06cf`); Swift build fix `f6efceb` | — |
 
 Settings lock (formerly "Parent controls", single-device PIN — **different feature**) shipped earlier in 1.0.25 / 1.0.26 and is unrelated to family controls. Don't conflate them.
@@ -85,10 +86,8 @@ Parent device (Tauri app, `ui/src/pages/Family.tsx`) signs in to a Cloudflare Wo
 
 ## How to pick this up later
 
-Phases 2.1–2.9, 3.1 (Family Inbox), and **3.2 (Family Approval Requests, v1.4.0, June 10)** are all shipped. Before picking the next big thing, the queued item is:
+Phases 2.1–2.9, 3.1 (Family Inbox), **3.2 (Family Approval Requests, v1.4.0, June 10)**, and **3.2.1 (v1.4.1 policy tightening, June 12)** are all shipped. The 3.2.1 design is at `docs/superpowers/specs/2026-06-12-approval-requests-v141-tightening-design.md`; no schema change was needed.
 
-- **Phase 3.2.1 — Approval Requests v1.4.1 policy tightening** (designed 2026-06-12). Three small refinements to the live v1.4.0 feature: drop the 5-minute preset, extend the pending window from 1h to 24h, add anti-spam (one pending per device + 10-min deny cooldown). Design: `docs/superpowers/specs/2026-06-12-approval-requests-v141-tightening-design.md`. No schema change.
-
-After 3.2.1, the remaining loose ends are the small bullets in "Known issues / TODOs" above and the Resend account-login switch noted under Phase 2.8. Genuinely-new Phase-3 work to pick from (none of these are designed yet): parent WS push (live device-online state, currently a 30s poll); approval-request templates ("always allow weekend reddit until 10pm" — closer to a scheduling feature); Vitest + miniflare test suite on the Worker.
+The remaining loose ends are the small bullets in "Known issues / TODOs" above and the Resend account-login switch noted under Phase 2.8. Genuinely-new Phase-3 work to pick from (none of these are designed yet): parent WS push (live device-online state, currently a 30s poll); approval-request templates ("always allow weekend reddit until 10pm" — closer to a scheduling feature); Vitest + miniflare test suite on the Worker.
 
 Memory at `~/.claude/projects/-Users-oscarpetrikas/memory/MEMORY.md` autoloads with full context.
