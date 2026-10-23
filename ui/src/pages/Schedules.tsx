@@ -45,11 +45,16 @@ function isValidCronField(field: string, min: number, max: number): boolean {
     if (range === '*') return true;
     const bounds = range.split('-');
     if (bounds.length > 2) return false;
-    return bounds.every(b => {
+    const inRange = bounds.every(b => {
       if (!/^\d+$/.test(b)) return false;
       const n = Number(b);
       return n >= min && n <= max;
     });
+    if (!inRange) return false;
+    // Both daemons (ScheduleService.cs / .swift) treat lo-hi as value >= lo && value <= hi,
+    // so a descending range like "22-6" matches nothing and silently never fires. Reject up front.
+    if (bounds.length === 2 && Number(bounds[0]) > Number(bounds[1])) return false;
+    return true;
   });
 }
 
@@ -85,7 +90,7 @@ function ScheduleForm({ initial, onSave, onCancel }: {
   async function handleSave() {
     if (!form.label.trim()) { setError('Label is required'); return; }
     if (!form.profileId)   { setError('Select a profile'); return; }
-    if (!isValidCron(form.cronExpression)) { setError('Invalid cron expression — use format: minute hour day month weekday'); return; }
+    if (!isValidCron(form.cronExpression)) { setError('Invalid cron expression — use format: minute hour day month weekday. Ranges must go low-to-high; for overnight windows use two rules (e.g. 22-23 and 0-6).'); return; }
     setSaving(true); setError('');
     try { await onSave({ ...form, cronExpression: normalizeCronWeekday(form.cronExpression) }); }
     catch (e) { setError(e instanceof Error ? e.message : 'Save failed'); }
@@ -138,7 +143,7 @@ function ScheduleForm({ initial, onSave, onCancel }: {
             >{ex.label}</button>
           ))}
         </div>
-        <p className="text-[11px] text-faint mt-1.5">Format: minute hour day month weekday</p>
+        <p className="text-[11px] text-faint mt-1.5">Format: minute hour day month weekday. Ranges go low-to-high — for overnight windows, split into two rules (e.g. <code className="font-mono">22-23</code> and <code className="font-mono">0-6</code>).</p>
       </div>
       <div>
         <div className="flex justify-between text-xs">
