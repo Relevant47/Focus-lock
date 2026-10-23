@@ -26,11 +26,18 @@ function fieldMatches(field: string, value: number): boolean {
   return +field === value;
 }
 
-function getScheduleHour(expr: string): number | null {
+// Calendar-cell time label for the cron expression's hour field. A bare integer
+// gets the familiar "9:00"; a range / list / step (all documented as valid in
+// ARCHITECTURE.md and matched by the daemon CronEvaluator and the local
+// fieldMatches() helper above) shows the raw hour field plus ":00" so the cell
+// doesn't look like a parse failure for schedules that actually fire.
+function getScheduleHourLabel(expr: string): string | null {
   const parts = expr.trim().split(/\s+/);
   if (parts.length !== 5) return null;
-  const h = parseInt(parts[1]);
-  return isNaN(h) ? null : h;
+  const h = parts[1].trim();
+  if (h === '' || h === '*') return null;
+  if (/^\d+$/.test(h)) return `${parseInt(h, 10)}:00`;
+  return `${h}:00`;
 }
 
 // minute, hour, day-of-month, month, day-of-week
@@ -221,7 +228,7 @@ function CalendarView({ schedules, profiles, onEdit }: {
                         className="w-full text-left px-1.5 py-0.5 rounded-md text-[11px] bg-accent/15 text-accent hover:bg-accent/25 transition-colors truncate mb-0.5"
                         title={s.label}
                       >
-                        {getScheduleHour(s.cronExpression) !== null ? `${getScheduleHour(s.cronExpression)}:00 ` : ''}{p?.name ?? s.label}
+                        {getScheduleHourLabel(s.cronExpression) !== null ? `${getScheduleHourLabel(s.cronExpression)} ` : ''}{p?.name ?? s.label}
                       </button>
                     );
                   })}
