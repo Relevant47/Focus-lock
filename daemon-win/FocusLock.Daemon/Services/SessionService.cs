@@ -528,11 +528,50 @@ public sealed class SessionService
         private DateTime _phaseEnd;
 
         public PomodoroState(PomodoroConfig cfg, DateTime sessionStart)
+            : this(cfg, sessionStart, DateTime.UtcNow) { }
+
+        public PomodoroState(PomodoroConfig cfg, DateTime sessionStart, DateTime now)
         {
             _cfg = cfg;
             _sessionStart = sessionStart;
-            _phaseEnd = sessionStart.AddMinutes(cfg.WorkMinutes);
+
+            // Fast-forward the phase sequence from sessionStart to `now` so a
+            // daemon restart mid-session lands in the phase that actually
+            // straddles now, not always in "work" starting at sessionStart.
+            // Without this, any restart after the first work cycle spuriously
+            // flips phase on the very next tick.
+            // Math.Max(1, …) on the minute values guarantees each iteration
+            // advances _phaseEnd by at least 60s, so a pathological zero-minute
+            // config can't spin forever; the 100k iteration cap is a belt-and-
+            // suspenders.
+            var workSec = Math.Max(1, cfg.WorkMinutes) * 60.0;
+            var breakSec = Math.Max(1, cfg.BreakMinutes) * 60.0;
+            var longBreakSec = Math.Max(1, cfg.LongBreakMinutes) * 60.0;
+            var cyclesBefore = Math.Max(1, cfg.CyclesBeforeLongBreak);
+
             Phase = "work";
+            _phaseEnd = sessionStart.AddSeconds(workSec);
+            _completedCycles = 0;
+
+            var guardCount = 0;
+            while (_phaseEnd <= now && guardCount < 100_000)
+            {
+                guardCount++;
+                if (Phase == "work")
+                {
+                    _completedCycles++;
+                    var isLong = _completedCycles % cyclesBefore == 0;
+                    Phase = isLong ? "long_break" : "break";
+                    _phaseEnd = _phaseEnd.AddSeconds(isLong ? longBreakSec : breakSec);
+                }
+                else
+                {
+                    Phase = "work";
+                    _phaseEnd = _phaseEnd.AddSeconds(workSec);
+                }
+            }
+
+            SecondsRemaining = (_phaseEnd - now).TotalSeconds;
         }
 
         public void Tick(DateTime now)
