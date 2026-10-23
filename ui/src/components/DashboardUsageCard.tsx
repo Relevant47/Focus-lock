@@ -33,6 +33,7 @@ export default function DashboardUsageCard() {
   const queryUsage = useDaemon(s => s.queryUsage);
 
   const [rows, setRows] = useState<UsageQueryRow[] | null>(null);
+  const [otherSecs, setOtherSecs] = useState(0);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,7 +47,10 @@ export default function DashboardUsageCard() {
       top_n: 3,
       split_by_focus: false,
     })
-      .then(res => setRows(res.rows))
+      .then(res => {
+        setRows(res.rows);
+        setOtherSecs(res.other_apps_total_seconds ?? 0);
+      })
       .catch(e => setErr(e instanceof Error ? e.message : 'Query failed'));
   }, [usageTracking.enabled, queryUsage]);
 
@@ -79,7 +83,7 @@ export default function DashboardUsageCard() {
     else agg.set(r.bundle_id, { name: r.app_name, total: r.seconds });
   }
   const top3 = [...agg.values()].sort((a, b) => b.total - a.total).slice(0, 3);
-  const totalToday = top3.reduce((a, r) => a + r.total, 0);
+  const totalToday = top3.reduce((a, r) => a + r.total, 0) + otherSecs;
 
   return (
     <div className="card p-4">
