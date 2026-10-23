@@ -91,8 +91,9 @@ export function evaluate(
       if (start.getHours() < 7 && unlock('early_bird', map)) {
         newlyUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'early_bird')!);
       }
-      // night_owl: ended after 11pm
-      if (end && end.getHours() >= 23 && unlock('night_owl', map)) {
+      // night_owl: ended after 11pm — also catches past-midnight ends (00:00–03:59),
+      // which would otherwise fall back to getHours() 0–3 and silently miss.
+      if (end && (end.getHours() >= 23 || end.getHours() < 4) && unlock('night_owl', map)) {
         newlyUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'night_owl')!);
       }
       // marathon: >= 4h
