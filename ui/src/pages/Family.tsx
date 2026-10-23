@@ -276,31 +276,36 @@ function ChildPairedView({ family }: { family: FamilyStatus }) {
         </div>
       )}
 
-      {/* Opt-in firewall lockdown */}
-      <div className="card p-4 space-y-2 border-border/50">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold flex items-center gap-1.5">
-              <Icon.Shield size={11} /> Firewall lockdown
-              <Pill tone="warn" className="ml-1">Experimental</Pill>
-              {family.firewallLockdownActive && <Pill tone="danger" className="ml-1">Active now</Pill>}
-            </p>
-            <p className="text-xs text-faint mt-1 leading-relaxed">
-              When the daemon's been offline from the family server for &gt;5 minutes, block outbound traffic from currently-blocked apps via Windows Firewall. On top of the kill-process loop, so renaming binaries doesn't escape. Windows-only.
-            </p>
+      {/* Opt-in firewall lockdown — Windows-only. macOS daemon accepts the
+          flag but has no enforcement path, so don't tempt the child (or the
+          parent watching over their shoulder) with a toggle that silently
+          does nothing. */}
+      {!IS_MACOS && (
+        <div className="card p-4 space-y-2 border-border/50">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold flex items-center gap-1.5">
+                <Icon.Shield size={11} /> Firewall lockdown
+                <Pill tone="warn" className="ml-1">Experimental</Pill>
+                {family.firewallLockdownActive && <Pill tone="danger" className="ml-1">Active now</Pill>}
+              </p>
+              <p className="text-xs text-faint mt-1 leading-relaxed">
+                When the daemon's been offline from the family server for &gt;5 minutes, block outbound traffic from currently-blocked apps via Windows Firewall. On top of the kill-process loop, so renaming binaries doesn't escape.
+              </p>
+            </div>
+            <button
+              onClick={() => handleToggleLockdown(!family.firewallLockdownEnabled)}
+              disabled={togglingLockdown}
+              className={cn(
+                'btn-ghost px-3 py-1.5 text-xs shrink-0',
+                family.firewallLockdownEnabled ? 'text-success' : 'text-muted hover:text-text',
+              )}
+            >
+              {togglingLockdown ? 'Working…' : family.firewallLockdownEnabled ? 'Turn off' : 'Turn on'}
+            </button>
           </div>
-          <button
-            onClick={() => handleToggleLockdown(!family.firewallLockdownEnabled)}
-            disabled={togglingLockdown}
-            className={cn(
-              'btn-ghost px-3 py-1.5 text-xs shrink-0',
-              family.firewallLockdownEnabled ? 'text-success' : 'text-muted hover:text-text',
-            )}
-          >
-            {togglingLockdown ? 'Working…' : family.firewallLockdownEnabled ? 'Turn off' : 'Turn on'}
-          </button>
         </div>
-      </div>
+      )}
 
       <div className="card p-4 space-y-2 border-border/50">
         <p className="text-[10px] uppercase tracking-[0.18em] text-dim font-semibold">Device info</p>
