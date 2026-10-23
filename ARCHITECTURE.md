@@ -178,7 +178,27 @@ The raw unlock token is never stored. Only `SHA-256(token)` is written to
 session state. Rate-limiting: 10s → 30s → 60s → 5min backoff per failed attempt.
 
 ### Uninstall protection
-Uninstall scripts read `session.json` and abort if `endTime > now`.
+**Windows (shipped NSIS installer, `ui/src-tauri/nsis-hook.nsh`):** the
+pre-uninstall hook gates uninstall behind the **settings-lock PIN** when one
+is configured. The daemon writes a `%ProgramData%\FocusLock\uninstall-authorized.token`
+(Unix-epoch expiry on the first line, 15-minute TTL) only after a
+PIN-verified `family_authorize_uninstall` IPC call (`IpcPipeService.HandleAuthorizeUninstall`).
+The NSIS hook reads that token, validates the expiry, deletes it, and only
+then proceeds to `sc.exe stop`/`delete`. **Without a settings-lock PIN
+configured (the common case for solo/productivity users), the hook is a
+no-op** and uninstall proceeds immediately — consistent with the "friction,
+not security" framing in `CLAUDE.md`. Neither the hook nor the daemon
+currently checks `session.json`; an active session does not block uninstall.
+
+**Legacy `installer/windows/uninstall.ps1`:** the off-pipeline manual
+PowerShell uninstaller still contains the older `session.json` / `endTime`
+check. That script is **not** invoked by the shipped NSIS installer.
+
+**macOS:** no uninstall-time gate. `SMAppService` registration can be
+revoked from System Settings → Login Items, and the `.app` can be dragged
+to Trash like any other app. As on Windows, this reflects the
+"friction, not security" framing — a determined admin on the local
+machine can always uninstall.
 
 ---
 
