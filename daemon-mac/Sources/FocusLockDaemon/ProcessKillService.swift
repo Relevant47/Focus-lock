@@ -78,7 +78,16 @@ final class ProcessKillService {
                 guard let bid = app.bundleIdentifier?.lowercased() else { continue }
                 if blockedBundleIds.contains(bid) {
                     let pid = app.processIdentifier
-                    if pid > 0 && isSafeToKill(pid: pid, name: app.localizedName?.lowercased() ?? "") {
+                    guard pid > 0 else { continue }
+                    // A nil localizedName previously fell through as "" and
+                    // isSafeToKill's `protected.contains("")` returned true
+                    // for every protected entry, silently sparing the target.
+                    // With no display name to check, skip the name-based guard
+                    // — pid > 1 in isSafeToKill still blocks launchd, and the
+                    // user explicitly added this bundle-id to their blocklist.
+                    let safe = app.localizedName
+                        .map { isSafeToKill(pid: pid, name: $0.lowercased()) } ?? (pid > 1)
+                    if safe {
                         kill(pid, SIGKILL)
                         session.incrementBlockAttempt()
                     }
