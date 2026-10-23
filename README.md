@@ -158,7 +158,9 @@ dotnet tool install --global wix
 # ui/     ← from ui/src-tauri/target/.../release/bundle/
 
 cd installer/windows
-wix build FocusLock.wxs -o FocusLock.msi
+# AppVersion is read from ui/package.json (single source of truth).
+$ver = (Get-Content ..\..\ui\package.json -Raw | ConvertFrom-Json).version
+wix build -d AppVersion=$ver FocusLock.wxs -o FocusLock.msi
 ```
 
 ### Step 6 — macOS DMG (produced by Tauri)

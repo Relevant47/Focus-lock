@@ -1,13 +1,28 @@
 #Requires -RunAsAdministrator
 
 param(
-    [string]$InstallDir = "$env:ProgramFiles\FocusLock"
+    [string]$InstallDir = "$env:ProgramFiles\FocusLock",
+    [string]$AppVersion = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $ServiceName   = 'FocusLockDaemon'
 $DisplayName   = 'FocusLock Daemon'
-$AppVersion    = '1.0.0'
+
+# Derive version from ui/package.json (single source of truth, per CLAUDE.md).
+# Allow override via -AppVersion for the rare case a builder needs to stamp a
+# different value.
+if (-not $AppVersion) {
+    $scriptDirForVersion = Split-Path -Parent $MyInvocation.MyCommand.Definition
+    $pkgJson             = Join-Path $scriptDirForVersion '..\..\ui\package.json'
+    if (-not (Test-Path $pkgJson)) {
+        Write-Error "Could not find ui/package.json at $pkgJson. Run from a checkout, or pass -AppVersion explicitly."
+    }
+    $AppVersion = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
+    if (-not $AppVersion) {
+        Write-Error "ui/package.json has no 'version' field."
+    }
+}
 
 function Write-Step([string]$msg) { Write-Host "  $msg" -ForegroundColor Cyan }
 function Write-Ok([string]$msg)   { Write-Host "  $msg" -ForegroundColor Green }
