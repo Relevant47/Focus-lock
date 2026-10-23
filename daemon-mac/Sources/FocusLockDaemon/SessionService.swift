@@ -331,6 +331,12 @@ final class SessionService {
     }
 
     private static func sign(_ s: SessionState, key: SymmetricKey) -> String {
+        let pomodoro: String
+        if let p = s.pomodoroConfig {
+            pomodoro = "\(p.workMinutes):\(p.breakMinutes):\(p.longBreakMinutes):\(p.cyclesBeforeLongBreak):\(p.strictMode)"
+        } else {
+            pomodoro = ""
+        }
         let parts: [String] = [
             s.sessionId,
             s.startTime.iso8601,
@@ -340,6 +346,7 @@ final class SessionService {
             s.blockedProcesses.joined(separator: ","),
             s.allowlistedDomains.joined(separator: ","),
             s.unlockTokenHash ?? "",
+            pomodoro,
         ]
         let payload = parts.joined(separator: "|")
         let mac = HMAC<SHA256>.authenticationCode(for: Data(payload.utf8), using: key)

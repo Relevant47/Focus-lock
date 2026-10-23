@@ -128,9 +128,20 @@ Stored at:
 ```
 payload = sessionId|startTime|endTime|hardcoreMode|
           blockedDomains(csv)|blockedProcesses(csv)|
-          allowlistedDomains(csv)|unlockTokenHash
+          allowlistedDomains(csv)|unlockTokenHash|
+          pomodoroConfig
 signature = HMAC-SHA256(signingKey, payload)
 ```
+
+`pomodoroConfig` is empty when the session has no pomodoro. When present, the
+fields are colon-separated in a fixed order:
+`workMinutes:breakMinutes:longBreakMinutes:cyclesBeforeLongBreak:strictMode`.
+This closes a tamper bypass where an attacker (or the user during a Hardcore
+session) could edit `pomodoroConfig.strictMode` or shorten `workMinutes`
+without invalidating the HMAC.
+
+`motivationalMessage`, `intention`, and `blockAttempts` remain excluded —
+they are display-only / running counters, not enforcement-defining fields.
 
 The signing key is a 32-byte random value stored at:
 - Windows: `%ProgramData%\FocusLock\daemon.key` (SYSTEM-only ACL)
