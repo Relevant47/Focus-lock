@@ -68,9 +68,10 @@ export interface DeviceSummary {
 }
 export interface LockRule {
   id: string; deviceId: string;
-  kind: 'block_now' | 'schedule' | 'unblock_all';
+  kind: 'block_now' | 'schedule' | 'unblock_all' | 'unblock_specific';
   targetApps: string[]; targetDomains: string[];
   scheduleCron: string | null; active: boolean; createdAt: string;
+  expiresAt: string | null;
 }
 export interface Notification {
   id: number;
@@ -92,6 +93,7 @@ export interface ApprovalRequest {
   expiresAt: string;
   resolvedAt: string | null;
   resolutionRuleId: string | null;
+  resolutionRuleExpiresAt: string | null;
 }
 export interface NotificationListResponse {
   notifications: Notification[];

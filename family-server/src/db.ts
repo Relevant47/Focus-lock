@@ -241,6 +241,12 @@ export async function deleteRule(db: D1Database, ruleId: string, deviceId: strin
   return (res.meta?.changes ?? 0) > 0;
 }
 
+export async function findRuleExpiresAt(db: D1Database, ruleId: string): Promise<string | null> {
+  const row = await db.prepare('SELECT expires_at FROM lock_rules WHERE id = ?')
+    .bind(ruleId).first<{ expires_at: string | null }>();
+  return row?.expires_at ?? null;
+}
+
 function rowToRule(r: LockRuleRow): LockRule {
   return {
     id: r.id,

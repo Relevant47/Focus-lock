@@ -13,7 +13,7 @@ import {
   APPR_DENY_COOLDOWN_MS,
   createApprovalRequest, createNotification, createRule, findApprovalRequestById,
   findAnyPendingForDevice, findPendingApprovalForTarget,
-  findRecentDenialForTarget, markApprovalResolved,
+  findRecentDenialForTarget, findRuleExpiresAt, markApprovalResolved,
 } from './db';
 import type {
   ApprovalRequest, ApprovalRequestRow, CreateApprovalRequestBody, Env,
@@ -25,7 +25,7 @@ import {
 
 const ALLOWED_MINUTES = new Set([15, 30, 60]);
 
-function toApi(row: ApprovalRequestRow): ApprovalRequest {
+function toApi(row: ApprovalRequestRow, resolutionRuleExpiresAt: string | null = null): ApprovalRequest {
   return {
     id: row.id,
     deviceId: row.device_id,
@@ -37,7 +37,15 @@ function toApi(row: ApprovalRequestRow): ApprovalRequest {
     expiresAt: row.expires_at,
     resolvedAt: row.resolved_at,
     resolutionRuleId: row.resolution_rule_id,
+    resolutionRuleExpiresAt,
   };
+}
+
+// Look up the associated rule's expires_at when the request has been approved,
+// so the inbox can surface when the temporary unblock closes.
+async function resolveRuleExpiry(env: Env, row: ApprovalRequestRow): Promise<string | null> {
+  if (row.status !== 'approved' || !row.resolution_rule_id) return null;
+  return findRuleExpiresAt(env.DB, row.resolution_rule_id);
 }
 
 // ── Kid creates a request ──────────────────────────────────────────────────
@@ -120,7 +128,8 @@ export async function deviceGetRequestHandler(
   if (!ctx) return unauthorized();
   const row = await findApprovalRequestById(env.DB, params.id);
   if (!row || row.device_id !== ctx.deviceId) return notFound();
-  return json({ request: toApi(row) });
+  const ruleExpires = await resolveRuleExpiry(env, row);
+  return json({ request: toApi(row, ruleExpires) });
 }
 
 // ── Parent hydrates one row ────────────────────────────────────────────────
@@ -132,7 +141,8 @@ export async function parentGetRequestHandler(
   if (!ctx) return unauthorized();
   const row = await findApprovalRequestById(env.DB, params.id);
   if (!row || row.account_id !== ctx.accountId) return notFound();
-  return json({ request: toApi(row) });
+  const ruleExpires = await resolveRuleExpiry(env, row);
+  return json({ request: toApi(row, ruleExpires) });
 }
 
 // ── Parent approves ────────────────────────────────────────────────────────
@@ -168,7 +178,10 @@ export async function approveRequestHandler(
   await notifyDevice(env, row.device_id, { type: 'rule_change', rule }).catch(() => { /* offline */ });
 
   return json({
-    request: toApi({ ...row, status: 'approved', resolved_at: new Date().toISOString(), resolution_rule_id: rule.id }),
+    request: toApi(
+      { ...row, status: 'approved', resolved_at: new Date().toISOString(), resolution_rule_id: rule.id },
+      rule.expiresAt,
+    ),
     rule,
   });
 }

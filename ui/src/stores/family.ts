@@ -198,8 +198,13 @@ export const useFamily = create<Store>((set, get) => ({
     const s = get().session;
     if (!s) return;
     try {
-      const { request } = await familyRequests.approve(s.token, id);
-      set({ requestsById: { ...get().requestsById, [id]: request } });
+      const { request, rule } = await familyRequests.approve(s.token, id);
+      const rules = get().rulesByDevice;
+      const existing = rules[rule.deviceId] ?? [];
+      set({
+        requestsById: { ...get().requestsById, [id]: request },
+        rulesByDevice: { ...rules, [rule.deviceId]: [rule, ...existing] },
+      });
     } catch (e) {
       if (e instanceof FamilyApiError && e.status === 409) {
         // Already resolved by another path — refresh notifications so the card
