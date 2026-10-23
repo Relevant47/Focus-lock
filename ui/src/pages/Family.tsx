@@ -1248,9 +1248,9 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
       if (res.ok) {
         setRequestId(res.requestId);
         setStatus('pending');
-      } else if (res.code === 'pending_exists') {
+      } else if (res.conflictCode === 'pending_exists') {
         setRejection('You already have a pending request. Wait for your parent to answer.');
-      } else if (res.code === 'deny_cooldown') {
+      } else if (res.conflictCode === 'deny_cooldown') {
         setCooldownUntil(res.retryAfter);
         setStatus('denied');
       }
