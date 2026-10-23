@@ -72,6 +72,17 @@ export async function createRuleHandler(
   const apps = Array.isArray(body.targetApps) ? body.targetApps.filter(s => typeof s === 'string') : undefined;
   const domains = Array.isArray(body.targetDomains) ? body.targetDomains.filter(s => typeof s === 'string') : undefined;
 
+  // block_now and unblock_specific rules must actually target something.
+  // Without this, an empty-targets rule is a no-op on the child but still
+  // costs a D1 write + DO broadcast per call.
+  if (body.kind === 'block_now' || body.kind === 'unblock_specific') {
+    const hasApps = (apps?.length ?? 0) > 0;
+    const hasDomains = (domains?.length ?? 0) > 0;
+    if (!hasApps && !hasDomains) {
+      return badRequest('targetApps or targetDomains required (non-empty)');
+    }
+  }
+
   const rule = await createRule(
     env.DB, params.id, ctx.accountId, body.kind,
     apps, domains,
