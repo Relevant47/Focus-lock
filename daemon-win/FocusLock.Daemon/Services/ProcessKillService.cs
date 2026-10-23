@@ -47,14 +47,21 @@ public sealed class ProcessKillService
 
         if (sessionProcs.Count == 0 && familyProcs.Count == 0) return;
 
-        // Build a lookup of names and full paths to match against (session ∪ family)
-        var unionProcs = sessionProcs.Concat(familyProcs);
-
-        var blockedNames = unionProcs
+        // Split lookups by source so blockAttempts only counts session-rule kills.
+        // Killing an app that only a family (parent) rule wanted to block is not
+        // the user "trying to break their own session" and shouldn't inflate the
+        // focus-score penalty on Analytics.
+        var sessionNames = sessionProcs
             .Select(p => Path.GetFileNameWithoutExtension(p).ToLowerInvariant())
             .ToHashSet();
-
-        var blockedPaths = unionProcs
+        var sessionPaths = sessionProcs
+            .Where(p => p.Contains('\\') || p.Contains('/'))
+            .Select(p => p.ToLowerInvariant())
+            .ToHashSet();
+        var familyNames = familyProcs
+            .Select(p => Path.GetFileNameWithoutExtension(p).ToLowerInvariant())
+            .ToHashSet();
+        var familyPaths = familyProcs
             .Where(p => p.Contains('\\') || p.Contains('/'))
             .Select(p => p.ToLowerInvariant())
             .ToHashSet();
@@ -75,25 +82,37 @@ public sealed class ProcessKillService
                 catch { continue; }
                 if (sessionId == 0) continue;
 
-                var nameMatch = blockedNames.Contains(procName);
+                var sessionNameMatch = sessionNames.Contains(procName);
+                var familyNameMatch = !sessionNameMatch && familyNames.Contains(procName);
 
-                bool pathMatch = false;
-                if (!nameMatch && blockedPaths.Count > 0)
+                bool sessionPathMatch = false;
+                bool familyPathMatch = false;
+                if (!sessionNameMatch && !familyNameMatch
+                    && (sessionPaths.Count > 0 || familyPaths.Count > 0))
                 {
                     try
                     {
                         var path = proc.MainModule?.FileName?.ToLowerInvariant();
-                        pathMatch = path != null && blockedPaths.Contains(path);
+                        if (path != null)
+                        {
+                            sessionPathMatch = sessionPaths.Contains(path);
+                            familyPathMatch = !sessionPathMatch && familyPaths.Contains(path);
+                        }
                     }
                     catch { /* access denied for some processes */ }
                 }
 
-                if (nameMatch || pathMatch)
+                var sessionKill = sessionNameMatch || sessionPathMatch;
+                var familyKill = familyNameMatch || familyPathMatch;
+
+                if (sessionKill || familyKill)
                 {
                     proc.Kill(entireProcessTree: true);
-                    _session.IncrementBlockAttempt();
-                    _log.LogInformation("Killed blocked process: {Name} (PID {Pid})",
-                        proc.ProcessName, proc.Id);
+                    // Only the session rule feeds blockAttempts + focus score.
+                    if (sessionKill) _session.IncrementBlockAttempt();
+                    _log.LogInformation(
+                        "Killed blocked process: {Name} (PID {Pid}) — source: {Source}",
+                        proc.ProcessName, proc.Id, sessionKill ? "session" : "family");
                 }
             }
             catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
