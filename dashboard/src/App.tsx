@@ -256,7 +256,7 @@ function buildOsTrend(dict: Record<string, Record<string, number>> | undefined) 
 const AGE_ORDER = ['under_18', '18_24', '25_34', '35_44', '45_54', '55_plus', 'prefer_not_to_say'];
 const AGE_LABEL: Record<string, string> = {
   under_18: 'Under 18', '18_24': '18–24', '25_34': '25–34', '35_44': '35–44',
-  '45_54': '45–54', '55_plus': '55+', prefer_not_to_say: 'Prefer N/A',
+  '45_54': '45–54', '55_plus': '55+', prefer_not_to_say: 'Prefer not to say',
 };
 function buildNpsByAge(dict: Record<string, number> | undefined) {
   if (!dict) return [];
