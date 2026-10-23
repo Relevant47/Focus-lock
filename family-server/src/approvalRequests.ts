@@ -92,9 +92,30 @@ export async function createRequestHandler(req: Request, env: Env): Promise<Resp
     }, 409);
   }
 
-  const row = await createApprovalRequest(
-    env.DB, ctx.accountId, ctx.deviceId, body.targetKind, target, Number(body.requestedMinutes),
-  );
+  // The findAnyPendingForDevice check above is racy on its own: two concurrent
+  // requests can both see no pending row and both INSERT. Migration 0007 adds
+  // a partial UNIQUE index on (device_id) WHERE status = 'pending' so SQLite
+  // enforces the invariant at write time; if the loser of that race trips it,
+  // re-query the winning row and return the same structured 409.
+  let row;
+  try {
+    row = await createApprovalRequest(
+      env.DB, ctx.accountId, ctx.deviceId, body.targetKind, target, Number(body.requestedMinutes),
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/UNIQUE constraint failed/i.test(msg)) {
+      const winner = await findAnyPendingForDevice(env.DB, ctx.deviceId);
+      if (winner) {
+        return json({
+          error: 'pending_exists',
+          code: 'pending_exists',
+          pendingRequestId: winner.id,
+        }, 409);
+      }
+    }
+    throw err;
+  }
 
   // Hydrate hostname so the notification title is human-readable.
   const dev = await env.DB.prepare('SELECT hostname FROM devices WHERE id = ?')
