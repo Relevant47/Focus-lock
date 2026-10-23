@@ -1,6 +1,6 @@
 import { hashPassword, signJwt, verifyJwt, verifyPassword } from './crypto';
 import {
-  createAccount, findAccountByEmail, isResetJtiUsed, logAudit, markResetJtiUsed, updatePassword,
+  createAccount, findAccountByEmail, logAudit, markResetJtiUsed, updatePassword,
 } from './db';
 import { sendResetEmail } from './email';
 import {
@@ -166,25 +166,29 @@ export async function resetConfirm(req: Request, env: Env): Promise<Response> {
     return unauthorized('invalid or expired reset token');
   }
   // Single-use enforcement: tokens minted with a `jti` (every token after this
-  // deploy) are recorded on first redeem and rejected on any replay. Tokens
-  // without a jti are pre-deploy and grandfathered for the remaining minutes
-  // of their 1-hour TTL — they remain reusable as before until they expire.
+  // deploy) are claimed by inserting their jti into used_reset_tokens BEFORE
+  // the password update. The table's PRIMARY KEY on jti acts as the mutex —
+  // a concurrent second request with the same jti loses on the INSERT, gets
+  // treated as a replay, and never touches the password. Tokens without a
+  // jti are pre-deploy and grandfathered for the remaining minutes of their
+  // 1-hour TTL — they remain reusable as before until they expire.
   const jti = typeof verified.payload.jti === 'string' ? verified.payload.jti : null;
   if (jti) {
-    if (await isResetJtiUsed(env.DB, jti)) {
+    // exp is in seconds; the cleanup column wants ms.
+    const expMs = typeof verified.payload.exp === 'number'
+      ? verified.payload.exp * 1000
+      : Date.now() + RESET_TOKEN_TTL_SECONDS * 1000;
+    try {
+      await markResetJtiUsed(env.DB, jti, expMs);
+    } catch {
+      // PRIMARY KEY collision → this jti was already claimed (either a
+      // sequential replay or a concurrent second request that lost the race).
       await logAudit(env.DB, verified.payload.sub, null, 'password_reset_replay_blocked', null, clientIp(req));
       return unauthorized('reset link already used');
     }
   }
   const newHash = await hashPassword(body.newPassword);
   await updatePassword(env.DB, verified.payload.sub, newHash);
-  if (jti) {
-    // exp is in seconds; the cleanup column wants ms.
-    const expMs = typeof verified.payload.exp === 'number'
-      ? verified.payload.exp * 1000
-      : Date.now() + RESET_TOKEN_TTL_SECONDS * 1000;
-    await markResetJtiUsed(env.DB, jti, expMs);
-  }
   await logAudit(env.DB, verified.payload.sub, null, 'password_reset_completed', null, clientIp(req));
   return issueSession(env, verified.payload.sub);
 }
