@@ -7,6 +7,12 @@ final class ProcessKillService {
     private let session: SessionService
     private let family: FamilyEnforcementService
 
+    /// PIDs we already counted as a block attempt on a previous poll. Ensures a
+    /// single long-running blocked process contributes one increment, not one
+    /// per 2-second tick. A killed process's PID drops off the OS's list, so a
+    /// restart lands under a fresh PID and legitimately counts again.
+    private var seenBlockedPids: Set<pid_t> = []
+
     /// System processes we must never touch. Killing any of these would
     /// destabilize the OS or kick the user out of their session. The daemon
     /// also refuses to kill itself.
@@ -38,7 +44,12 @@ final class ProcessKillService {
             : []
         let (_, familyProcs) = family.union()
 
-        if sessionProcs.isEmpty && familyProcs.isEmpty { return }
+        if sessionProcs.isEmpty && familyProcs.isEmpty {
+            if !seenBlockedPids.isEmpty { seenBlockedPids.removeAll() }
+            return
+        }
+
+        var currentBlockedPids: Set<pid_t> = []
 
         let unionProcs = sessionProcs + familyProcs
 
@@ -79,14 +90,23 @@ final class ProcessKillService {
                 if blockedBundleIds.contains(bid) {
                     let pid = app.processIdentifier
                     if pid > 0 && isSafeToKill(pid: pid, name: app.localizedName?.lowercased() ?? "") {
+                        currentBlockedPids.insert(pid)
                         kill(pid, SIGKILL)
-                        session.incrementBlockAttempt()
+                        // Only count the first time we see this PID — otherwise every
+                        // 2-second poll that catches the same process before it's
+                        // reaped floors the focus score within ~36 s.
+                        if !seenBlockedPids.contains(pid) {
+                            session.incrementBlockAttempt()
+                        }
                     }
                 }
             }
         }
 
-        if blockedNames.isEmpty && blockedPaths.isEmpty { return }
+        if blockedNames.isEmpty && blockedPaths.isEmpty {
+            seenBlockedPids = currentBlockedPids
+            return
+        }
 
         // ── Name / path matching via ps ──────────────────────────────────
         // Adding `uid` lets us filter out root and other system service users
@@ -122,9 +142,17 @@ final class ProcessKillService {
             if uid < 100 { continue }
             if !isSafeToKill(pid: pid, name: name) { continue }
 
+            currentBlockedPids.insert(pid)
             kill(pid, SIGKILL)
-            session.incrementBlockAttempt()
+            // Only count the first time we see this PID — otherwise every
+            // 2-second poll that catches the same process before it's
+            // reaped floors the focus score within ~36 s.
+            if !seenBlockedPids.contains(pid) {
+                session.incrementBlockAttempt()
+            }
         }
+
+        seenBlockedPids = currentBlockedPids
     }
 
     /// Last-line guard against killing protected processes regardless of how

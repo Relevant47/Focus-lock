@@ -14,6 +14,12 @@ public sealed class ProcessKillService
     private readonly SessionService _session;
     private readonly FamilyEnforcementService _family;
 
+    // PIDs we already counted as a block attempt on a previous poll. Ensures a
+    // single long-running blocked process contributes one increment, not one
+    // per 2-second tick. A killed process's PID drops off the OS's list, so a
+    // restart lands under a fresh PID and legitimately counts again.
+    private HashSet<int> _seenBlockedPids = new();
+
     // Processes we will NEVER kill, even if a user adds them to a blocklist.
     // Killing winlogon/explorer/svchost would nuke the shell or take down Windows.
     private static readonly HashSet<string> ProtectedNames = new(StringComparer.OrdinalIgnoreCase)
@@ -45,7 +51,13 @@ public sealed class ProcessKillService
         var sessionProcs = (state != null && state.IsActive && !liftBreak) ? state.BlockedProcesses : new List<string>();
         var (_, familyProcs) = _family.GetUnion();
 
-        if (sessionProcs.Count == 0 && familyProcs.Count == 0) return;
+        if (sessionProcs.Count == 0 && familyProcs.Count == 0)
+        {
+            if (_seenBlockedPids.Count > 0) _seenBlockedPids.Clear();
+            return;
+        }
+
+        var currentBlockedPids = new HashSet<int>();
 
         // Build a lookup of names and full paths to match against (session ∪ family)
         var unionProcs = sessionProcs.Concat(familyProcs);
@@ -90,10 +102,18 @@ public sealed class ProcessKillService
 
                 if (nameMatch || pathMatch)
                 {
+                    var pid = proc.Id;
+                    currentBlockedPids.Add(pid);
                     proc.Kill(entireProcessTree: true);
-                    _session.IncrementBlockAttempt();
+                    // Only count the first time we see this PID — otherwise every
+                    // 2-second poll that catches the same process before it's
+                    // reaped floors the focus score within ~36 s.
+                    if (!_seenBlockedPids.Contains(pid))
+                    {
+                        _session.IncrementBlockAttempt();
+                    }
                     _log.LogInformation("Killed blocked process: {Name} (PID {Pid})",
-                        proc.ProcessName, proc.Id);
+                        proc.ProcessName, pid);
                 }
             }
             catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
@@ -105,5 +125,7 @@ public sealed class ProcessKillService
                 proc.Dispose();
             }
         }
+
+        _seenBlockedPids = currentBlockedPids;
     }
 }
