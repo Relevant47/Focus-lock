@@ -12,7 +12,6 @@ import type { Env } from './types';
  * writing the devices table on every 60-second ping.
  */
 export class DeviceConnection implements DurableObject {
-  private state: DurableObjectState;
   private env: Env;
   private ws: WebSocket | null = null;
   private deviceId: string | null = null;
@@ -20,8 +19,7 @@ export class DeviceConnection implements DurableObject {
 
   private static readonly LAST_SEEN_MIN_WRITE_INTERVAL_MS = 60_000;
 
-  constructor(state: DurableObjectState, env: Env) {
-    this.state = state;
+  constructor(_state: DurableObjectState, env: Env) {
     this.env = env;
   }
 

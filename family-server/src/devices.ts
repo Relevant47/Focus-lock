@@ -3,7 +3,7 @@ import {
   listDevicesForAccount, logAudit,
 } from './db';
 import type {
-  CreateRuleRequest, DeviceRow, DeviceSummary, Env, LockRule,
+  CreateRuleRequest, DeviceRow, DeviceSummary, Env,
 } from './types';
 import {
   badRequest, clientIp, forbidden, json, notFound, requireAuth, requireDeviceAuth, safeJson,
