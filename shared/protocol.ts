@@ -15,18 +15,25 @@ export interface PomodoroConfig {
 
 export interface SessionState {
   sessionId: string;
-  profileId: string | null;
+  profileId: string | null;    // NOT signed — belongs to session provenance, not enforcement state
   startTime: string; // ISO 8601
   endTime: string;   // ISO 8601
   hardcoreMode: boolean;
   blockedDomains: string[];
   blockedProcesses: string[];  // exe name or full path
   allowlistedDomains: string[];
-  pomodoroConfig: PomodoroConfig | null;
-  motivationalMessage?: string | null;
-  intention?: string | null;   // user's "what will you focus on?" — not signed
-  blockAttempts?: number;      // running distraction-attempt counter, persisted so it survives a daemon restart — not signed (like motivationalMessage + intention); absent in older session files (treated as 0)
-  signature: string; // HMAC-SHA256 of everything above (excluding motivationalMessage + intention + blockAttempts)
+  pomodoroConfig: PomodoroConfig | null;  // NOT signed — daemon derives phase from wall-clock, not the persisted config
+  motivationalMessage?: string | null;    // NOT signed — user-supplied text
+  intention?: string | null;              // NOT signed — user's "what will you focus on?" answer
+  blockAttempts?: number;                 // NOT signed — running counter that mutates during the session
+  // Signed payload (pipe-joined, in this exact order, see ARCHITECTURE.md):
+  //   sessionId | startTime | endTime | hardcoreMode |
+  //   blockedDomains(csv) | blockedProcesses(csv) | allowlistedDomains(csv) |
+  //   unlockTokenHash
+  // (unlockTokenHash is set by the daemon in friend-lock sessions; it is
+  // present in the on-disk file but not currently exposed on this interface —
+  // see #43.)
+  signature: string;
 }
 
 // ── Focus Profile ─────────────────────────────────────────────────────────────
