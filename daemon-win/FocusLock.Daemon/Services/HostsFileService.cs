@@ -145,8 +145,15 @@ public sealed class HostsFileService
         }
         sb.AppendLine(BlockMarkerStart);
         sb.AppendLine("# Managed by FocusLock - do not edit manually");
+        // Pair every IPv4 loopback entry with an IPv6 (::1) entry. On dual-stack
+        // machines (Windows 10/11 default), Happy Eyeballs races A vs AAAA and
+        // will pick the real IPv6 address if we only sinkhole the A record —
+        // bypassing the block silently. Issue #262.
         foreach (var d in domains.OrderBy(x => x))
+        {
             sb.AppendLine($"127.0.0.1 {d}");
+            sb.AppendLine($"::1 {d}");
+        }
         sb.AppendLine(BlockMarkerEnd);
 
         File.WriteAllText(HostsPath, sb.ToString(), Encoding.ASCII);

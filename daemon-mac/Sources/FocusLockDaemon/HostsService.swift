@@ -88,8 +88,13 @@ final class HostsService {
         if !out.isEmpty { out += "\n\n" }
         out += Self.markerStart + "\n"
         out += "# Managed by FocusLock - do not edit manually\n"
+        // Pair every IPv4 loopback entry with an IPv6 (::1) entry. On dual-stack
+        // machines (the modern-macOS default), Happy Eyeballs races A vs AAAA and
+        // will pick the real IPv6 address if we only sinkhole the A record —
+        // bypassing the block silently. Issue #262.
         for d in domains {
             out += "127.0.0.1 \(d)\n"
+            out += "::1 \(d)\n"
         }
         out += Self.markerEnd + "\n"
 
