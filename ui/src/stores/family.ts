@@ -202,9 +202,7 @@ export const useFamily = create<Store>((set, get) => ({
       set({ requestsById: { ...get().requestsById, [id]: request } });
     } catch (e) {
       if (e instanceof FamilyApiError && e.status === 409) {
-        // Already resolved by another path — refresh notifications so the card
-        // updates with the new status.
-        await get().loadNotifications();
+        await refreshResolvedRequest(s.token, id, set, get);
       } else { console.warn('approveRequest failed', id, e); }
     }
   },
@@ -217,7 +215,7 @@ export const useFamily = create<Store>((set, get) => ({
       set({ requestsById: { ...get().requestsById, [id]: request } });
     } catch (e) {
       if (e instanceof FamilyApiError && e.status === 409) {
-        await get().loadNotifications();
+        await refreshResolvedRequest(s.token, id, set, get);
       } else { console.warn('denyRequest failed', id, e); }
     }
   },
@@ -297,6 +295,24 @@ function omit<T extends Record<string, unknown>>(obj: T, k: string): T {
   const next: Record<string, unknown> = {};
   for (const [key, v] of Object.entries(obj)) if (key !== k) next[key] = v;
   return next as T;
+}
+
+// 409 means the request was already resolved/expired server-side (race with the
+// 24h cron sweep or a second parent device/session). Re-fetch the canonical row
+// so `requestsById[id]` reflects the real terminal status — otherwise the
+// `ApprovalRequestCard` (which derives `isPending` from `requestsById[id]`)
+// keeps showing live Approve/Deny buttons that 409 forever. Also reload the
+// notification feed so its rendered status badge matches.
+async function refreshResolvedRequest(
+  token: string, id: string,
+  set: (partial: Partial<State>) => void,
+  get: () => Store,
+): Promise<void> {
+  try {
+    const { request } = await familyRequests.getById(token, id);
+    set({ requestsById: { ...get().requestsById, [id]: request } });
+  } catch (e) { console.warn('refreshResolvedRequest failed', id, e); }
+  await get().loadNotifications();
 }
 
 function errMsg(e: unknown): string {
