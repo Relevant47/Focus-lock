@@ -4,6 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <meta name="robots" content="noindex"/>
+  <!-- Override the family-server API base per-deploy (e.g. a custom domain or a self-hosted worker). -->
+  <meta name="family-api-base" content=""/>
   <title>Reset your password — FocusLock</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -47,9 +49,10 @@
 
 <script>
   // Resolve the family-server origin. Default to the production worker;
-  // can be overridden per-deploy by setting a meta tag if we ever host
-  // the landing under a different account.
-  const API_BASE = 'https://focuslock-family.oscarpetrikas.workers.dev';
+  // overridable per-deploy via a <meta name="family-api-base"> tag (see <head>).
+  const API_BASE =
+    document.querySelector('meta[name="family-api-base"]')?.content?.trim() ||
+    'https://focuslock-family.oscarpetrikas.workers.dev';
 
   const params = new URLSearchParams(location.search);
   const token = params.get('token');
