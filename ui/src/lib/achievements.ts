@@ -144,5 +144,9 @@ function consecutiveDays(logs: SessionLog[]): number {
   let n = 0;
   const d = new Date();
   while (days.has(d.toDateString())) { n++; d.setDate(d.getDate() - 1); }
+  // If today has no completed session yet, re-anchor to yesterday so a live
+  // streak isn't reported as 0 just because the user opened the app before
+  // today's first session. Matches Analytics.computeStreaks().
+  if (n === 0) { d.setDate(d.getDate() - 1); while (days.has(d.toDateString())) { n++; d.setDate(d.getDate() - 1); } }
   return n;
 }
