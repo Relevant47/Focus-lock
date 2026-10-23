@@ -27,7 +27,13 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     private var session: URLSession?
     private var task: URLSessionWebSocketTask?
     private var runThread: Thread?
-    private var shouldStop = false
+    /// Bumped on every `kickReconnect()`/`cancelTask()` so any previous
+    /// `runLoop` thread captures a stale generation and exits, mirroring the
+    /// Windows daemon's CancellationToken-per-generation pattern. Without this
+    /// an older thread could keep reconnecting in parallel with the replacement
+    /// (e.g. when `setFirewallLockdownEnabled` re-fires `onConfigChanged`),
+    /// leaking one WebSocket per toggle.
+    private var activeGeneration: Int = 0
     private var currentDelay: TimeInterval = reconnectMin
     private var bootMonotonic: UInt64 = 0
 
@@ -71,31 +77,45 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     }
 
     private func kickReconnect() {
-        cancelTask()
-        startRunThread()
+        let gen = bumpGenerationAndCancelTask()
+        startRunThread(generation: gen)
     }
 
     private func cancelTask() {
+        _ = bumpGenerationAndCancelTask()
+    }
+
+    /// Invalidates any in-flight `runLoop` by bumping `activeGeneration`,
+    /// cancels the current WS task to unblock its read loop, and returns the
+    /// new generation token for the next thread.
+    private func bumpGenerationAndCancelTask() -> Int {
         lock.lock()
+        activeGeneration += 1
+        let gen = activeGeneration
         task?.cancel(with: .goingAway, reason: nil)
         task = nil
         connected = false
+        currentDelay = Self.reconnectMin
         lock.unlock()
+        return gen
     }
 
-    private func startRunThread() {
-        let thread = Thread { [weak self] in self?.runLoop() }
+    private func startRunThread(generation: Int) {
+        let thread = Thread { [weak self] in self?.runLoop(generation: generation) }
         thread.name = "focuslock.cloudsync"
         lock.lock()
-        shouldStop = false
-        currentDelay = Self.reconnectMin
         runThread = thread
         lock.unlock()
         thread.start()
     }
 
-    private func runLoop() {
-        while !shouldStop {
+    private func isActive(_ generation: Int) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        return generation == activeGeneration
+    }
+
+    private func runLoop(generation: Int) {
+        while isActive(generation) {
             guard let cfg = family.current else { return }
 
             do {
@@ -123,8 +143,9 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
             // the alert lands within roughly half a minute of the threshold.
             maybeAuditOutage()
 
+            if !isActive(generation) { return }
             Thread.sleep(forTimeInterval: delay)
-            if shouldStop { return }
+            if !isActive(generation) { return }
         }
     }
 
@@ -258,7 +279,7 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
     private func startHeartbeat(task: URLSessionWebSocketTask, onEnd: @escaping (Error?) -> Void) {
         Thread.detachNewThread { [weak self] in
             guard let self = self else { onEnd(nil); return }
-            while !self.shouldStop, task.state == .running {
+            while task.state == .running {
                 let monoNs = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) &- self.bootMonotonic
                 let wall = ISO8601DateFormatter().string(from: Date())
                 let payload: [String: Any] = [
