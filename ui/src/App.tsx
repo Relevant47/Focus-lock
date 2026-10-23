@@ -25,7 +25,9 @@ import Usage from './pages/Usage';
 import Family from './pages/Family';
 import Settings from './pages/Settings';
 import SetupRequired from './pages/SetupRequired';
+import WindowsDaemonDisconnected from './pages/WindowsDaemonDisconnected';
 import { familyEnabled } from './lib/familyApi';
+import { IS_WINDOWS } from './lib/platform';
 
 function RoutedShell() {
   const location = useLocation();
@@ -112,11 +114,15 @@ export default function App() {
     setAchievementQueue(q => q.filter(a => a.id !== id));
   }
 
-  // macOS-only: if we've completed at least one poll cycle and we're not
-  // connected, route to SetupRequired. Windows handles this via its own
-  // in-line "daemon not running" handling in the Rust install_daemon flow.
+  // Once we've completed at least one poll cycle and we're still not
+  // connected, route to a platform-specific "daemon not running" screen.
+  // macOS uses SetupRequired (talks to SMAppService via daemon_status_macos
+  // / legacy_install_present_macos); Windows uses WindowsDaemonDisconnected
+  // (drives try_install_daemon_sync via install_daemon and treats its bare
+  // string return as "service is up, retry connect"). The two screens
+  // deliberately diverge — see CLAUDE.md.
   if (bootChecked && !connected) {
-    return <SetupRequired />;
+    return IS_WINDOWS ? <WindowsDaemonDisconnected /> : <SetupRequired />;
   }
 
   return (
