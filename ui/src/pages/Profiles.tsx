@@ -296,6 +296,16 @@ export default function Profiles() {
       const text = await file.text();
       const parsed = JSON.parse(text) as FocusProfile;
       if (!parsed.name || !parsed.id) throw new Error('Invalid profile file');
+      // Guard array fields so a malformed file can't crash the later
+      // .flatMap()/.length calls at session start with a cryptic TypeError.
+      const isStrArray = (v: unknown): v is string[] =>
+        Array.isArray(v) && v.every(x => typeof x === 'string');
+      if (!isStrArray(parsed.blockedCategories) ||
+          !isStrArray(parsed.customBlockedDomains) ||
+          !isStrArray(parsed.customBlockedProcesses) ||
+          !isStrArray(parsed.allowlistedDomains)) {
+        throw new Error('Invalid profile file: array fields are malformed');
+      }
       const now = new Date().toISOString();
       await saveProfile({ ...parsed, id: crypto.randomUUID(), name: `${parsed.name} (imported)`, createdAt: now, updatedAt: now });
     } catch (err) {
