@@ -1,6 +1,6 @@
 # FocusLock — Family Controls Server
 
-Cloudflare Worker + D1 + Durable Objects backend for cross-device family controls (a parent on one device hard-locks apps on a child's device). **Phase 2.2 — pairing, devices, rules, WebSocket.**
+Cloudflare Worker + D1 + Durable Objects backend for cross-device family controls (a parent on one device hard-locks apps on a child's device). **Phases 2.1–3.2 — auth, pairing, devices, rules, WebSocket, data portability, Family Inbox, approval requests.**
 
 See [`docs/family-controls-design.md`](../docs/family-controls-design.md) for the full architecture and design decisions.
 
@@ -32,6 +32,31 @@ See [`docs/family-controls-design.md`](../docs/family-controls-design.md) for th
 | `/api/v1/family/devices/:id/rules/:ruleId`           | DELETE | Bearer (session) | Soft-delete a rule (sets `active = 0`); pushes to child                           |
 | `/api/v1/device/rules`                               | GET    | Bearer (device)  | Child daemon pulls its own active rules (e.g. after reconnect)                    |
 | `/api/v1/device/ws`                                  | GET    | Bearer (device)  | WebSocket upgrade — server-pushed rule changes + child heartbeat                  |
+
+### Account data portability (Phase 2.7)
+
+| Route                              | Method | Auth             | What it does                                                                      |
+|------------------------------------|--------|------------------|-----------------------------------------------------------------------------------|
+| `/api/v1/account/export`           | GET    | Bearer (session) | Download a JSON dump of the account row, devices, lock rules, and audit log       |
+| `/api/v1/account`                  | DELETE | Bearer (session) | Hard-delete the account (cascades devices, rules, notifications, requests)        |
+
+### Notifications — Family Inbox (Phase 3.1)
+
+| Route                                          | Method | Auth             | What it does                                                                 |
+|------------------------------------------------|--------|------------------|------------------------------------------------------------------------------|
+| `/api/v1/notifications`                        | GET    | Bearer (session) | List inbox entries (paired/unpaired, offline-5min, cache-tampered, etc.)     |
+| `/api/v1/notifications/:id/read`               | POST   | Bearer (session) | Mark one notification read                                                   |
+| `/api/v1/notifications/read-all`               | POST   | Bearer (session) | Mark every notification read                                                 |
+
+### Approval Requests (Phase 3.2)
+
+| Route                                                 | Method | Auth             | What it does                                                                       |
+|-------------------------------------------------------|--------|------------------|------------------------------------------------------------------------------------|
+| `/api/v1/family/requests`                             | POST   | Bearer (device)  | Kid asks for a temporary unblock (15/30/60 min) on a target app or domain          |
+| `/api/v1/family/requests/:id`                         | GET    | Bearer (session) | Parent reads the full request row (parent Inbox card hydration)                    |
+| `/api/v1/family/requests/:id/approve`                 | POST   | Bearer (session) | Parent approves; server creates a time-limited `unblock_specific` rule on the device |
+| `/api/v1/family/requests/:id/deny`                    | POST   | Bearer (session) | Parent denies; kid receives the verdict via WS + on next poll                      |
+| `/api/v1/device/requests/:id`                         | GET    | Bearer (device)  | Kid polls the verdict (`pending` / `approved` / `denied` / `expired`)              |
 
 **Auth model:**
 - **Session tokens** (parent): HS256 JWT, `kind` is unset (only `sub` = accountId). 30-day TTL. Issued by signup / login / refresh / reset-confirm.
