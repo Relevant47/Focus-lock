@@ -20,7 +20,16 @@ const CRON_EXAMPLES = [
 
 function fieldMatches(field: string, value: number): boolean {
   if (field === '*') return true;
-  if (field.includes('/')) { const [b, s] = field.split('/'); const start = b === '*' ? 0 : +b; return value >= start && (value - start) % +s === 0; }
+  if (field.includes('/')) {
+    const [b, s] = field.split('/');
+    const step = +s;
+    if (b === '*') return value % step === 0;
+    if (b.includes('-')) {
+      const [lo, hi] = b.split('-').map(Number);
+      return value >= lo && value <= hi && (value - lo) % step === 0;
+    }
+    return +b === value;
+  }
   if (field.includes(',')) return field.split(',').map(Number).includes(value);
   if (field.includes('-')) { const [lo, hi] = field.split('-').map(Number); return value >= lo && value <= hi; }
   return +field === value;
