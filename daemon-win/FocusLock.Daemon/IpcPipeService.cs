@@ -310,7 +310,9 @@ public sealed class IpcPipeService : BackgroundService
         var gate = GateOrNull(req);
         if (gate != null) return gate;
 
-        var id = req.Payload?.GetProperty("id").GetString();
+        if (!req.Payload.HasValue || !req.Payload.Value.TryGetProperty("id", out var idEl))
+            return IpcResponse.Error("Missing id");
+        var id = idEl.GetString();
         if (string.IsNullOrEmpty(id)) return IpcResponse.Error("Missing id");
         _profiles.DeleteProfile(id);
         return IpcResponse.Ok();
@@ -341,7 +343,9 @@ public sealed class IpcPipeService : BackgroundService
         var gate = GateOrNull(req);
         if (gate != null) return gate;
 
-        var id = req.Payload?.GetProperty("id").GetString();
+        if (!req.Payload.HasValue || !req.Payload.Value.TryGetProperty("id", out var idEl))
+            return IpcResponse.Error("Missing id");
+        var id = idEl.GetString();
         if (string.IsNullOrEmpty(id)) return IpcResponse.Error("Missing id");
         _profiles.DeleteSchedule(id);
         return IpcResponse.Ok();
