@@ -73,8 +73,15 @@ final class BrowserDohPolicyService {
         // the *original* user preference, which is what we need to restore.
         // Re-snapshotting now would lock in our own "off" value as the user's
         // preference, defeating the restore.
+        //
+        // Trust the loaded dict, not FileManager.fileExists: a corrupt or
+        // empty file used to satisfy fileExists but produced an empty dict,
+        // which caused apply() to skip capture *and* skip save (leaving the
+        // corrupt file in place) — and later caused restore() to delete
+        // every DoH policy value. loadBackup() now clears corrupt files;
+        // !backup.isEmpty is the ground truth.
         var backup = loadBackup()
-        let backupExisted = !backup.isEmpty || FileManager.default.fileExists(atPath: Self.backupPath.path)
+        let backupExisted = !backup.isEmpty
 
         for target in Self.targets {
             do {
@@ -110,6 +117,17 @@ final class BrowserDohPolicyService {
         }
 
         let backup = loadBackup()
+
+        if backup.isEmpty {
+            // Backup file was empty or unreadable (loadBackup already
+            // cleared it if it was corrupt). We have no record of the user's
+            // original DoH preferences — deleting all four values now would
+            // silently wipe them. Leave the current "off" values in place;
+            // the operator can rerun a fresh session to re-capture, or
+            // manually reconfigure their browser DoH.
+            fputs("[doh] backup was empty or unreadable — skipping restore to avoid wiping unknown originals\n", stderr)
+            return
+        }
 
         for target in Self.targets {
             do {
@@ -324,7 +342,12 @@ final class BrowserDohPolicyService {
         guard let data = try? Data(contentsOf: Self.backupPath) else { return [:] }
         let dec = JSONDecoder()
         guard let dict = try? dec.decode([String: BackupEntry].self, from: data) else {
-            fputs("[doh] backup file unreadable — treating as empty\n", stderr)
+            fputs("[doh] backup file unreadable — deleting and treating as fresh\n", stderr)
+            do {
+                try FileManager.default.removeItem(at: Self.backupPath)
+            } catch {
+                fputs("[doh] could not delete corrupt DoH backup file at \(Self.backupPath.path): \(error)\n", stderr)
+            }
             return [:]
         }
         return dict
