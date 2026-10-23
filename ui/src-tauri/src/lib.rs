@@ -13,6 +13,15 @@ mod macos_daemon;
 
 // ── Platform-specific IPC ─────────────────────────────────────────────────────
 
+// Cover the daemon's slowest configured outbound-HTTP timeout (15s on
+// family_redeem_code / request_unblock; 10s on request_status) with a safe
+// margin. The socket-level timeout fires first on macOS; the total timeout in
+// ipc_request is a Windows-side ceiling since std's named-pipe File handle
+// has no read/write timeout API.
+#[cfg(target_os = "macos")]
+const IPC_SOCKET_TIMEOUT: Duration = Duration::from_secs(20);
+const IPC_TOTAL_TIMEOUT: Duration = Duration::from_secs(25);
+
 #[cfg(target_os = "windows")]
 fn ipc_call(request: &Value) -> Result<Value, String> {
     let pipe = std::fs::OpenOptions::new()
@@ -40,8 +49,8 @@ fn ipc_call(request: &Value) -> Result<Value, String> {
 
     let stream = UnixStream::connect("/var/run/focuslock.sock")
         .map_err(|_| "Daemon not running".to_string())?;
-    stream.set_write_timeout(Some(Duration::from_secs(5))).ok();
-    stream.set_read_timeout(Some(Duration::from_secs(5))).ok();
+    stream.set_write_timeout(Some(IPC_SOCKET_TIMEOUT)).ok();
+    stream.set_read_timeout(Some(IPC_SOCKET_TIMEOUT)).ok();
 
     {
         let mut w = BufWriter::new(&stream);
@@ -60,9 +69,11 @@ fn ipc_call(request: &Value) -> Result<Value, String> {
 
 #[tauri::command]
 async fn ipc_request(request: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || ipc_call(&request))
-        .await
-        .map_err(|e| e.to_string())?
+    let handle = tokio::task::spawn_blocking(move || ipc_call(&request));
+    match tokio::time::timeout(IPC_TOTAL_TIMEOUT, handle).await {
+        Ok(join_result) => join_result.map_err(|e| e.to_string())?,
+        Err(_) => Err("Daemon request timed out".to_string()),
+    }
 }
 
 #[cfg(target_os = "windows")]
