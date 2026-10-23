@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDaemon } from '../stores/daemon';
-import { registerParentUnlockListener } from '../lib/parentGate';
+import { ParentUnlockCancelledError, registerParentUnlockListener } from '../lib/parentGate';
 import { Icon } from './Icons';
 
 interface Pending {
@@ -46,7 +46,7 @@ export default function ParentUnlockModal() {
     if (!pending) return;
     const p = pending;
     setPending(null);
-    if (success) p.resolve(); else p.reject(new Error('Parent unlock cancelled'));
+    if (success) p.resolve(); else p.reject(new ParentUnlockCancelledError());
   }
 
   async function submitPin(e: React.FormEvent) {
