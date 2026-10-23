@@ -342,13 +342,16 @@ public sealed class SessionService
 
     private void FinalizeSession(bool completed)
     {
-        // Persist the log before clearing state
+        // Persist the log before clearing state. For naturally-completed
+        // sessions use the scheduled EndTime — expired-while-offline sessions
+        // (sleep/crash/shutdown) would otherwise log the daemon-restart time
+        // and show hours of ghost focus in Analytics totals.
         var log = new SessionLog
         {
             SessionId = _active!.SessionId,
             ProfileId = _active.ProfileId,
             StartTime = _active.StartTime,
-            EndTime = DateTime.UtcNow,
+            EndTime = completed ? _active.EndTime : DateTime.UtcNow,
             Completed = completed,
             BlockAttempts = _blockAttempts,
             FocusScore = CalculateScore(completed),
