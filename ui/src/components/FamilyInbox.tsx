@@ -26,12 +26,14 @@ export default function FamilyInbox(): JSX.Element | null {
   }, [loadNotifs]);
 
   // Hydrate every approval_request we see, if not cached. Cheap call — store
-  // dedups by id, so re-running is a no-op for already-loaded rows.
+  // dedups by id, so re-running is a no-op for already-loaded rows. Uses key
+  // presence (not truthy) so a `null` failure sentinel also short-circuits
+  // this and stops re-firing on every 60s notification poll.
   useEffect(() => {
     for (const n of notifications) {
       if (n.kind === 'approval_request') {
         const id = (n.payload as { requestId?: string } | null)?.requestId;
-        if (id && !requestsById[id]) hydrateRequest(id);
+        if (id && !(id in requestsById)) hydrateRequest(id);
       }
     }
   }, [notifications, requestsById, hydrateRequest]);
@@ -59,7 +61,8 @@ export default function FamilyInbox(): JSX.Element | null {
         {notifications.map(n => {
           if (n.kind === 'approval_request') {
             const id = (n.payload as { requestId?: string } | null)?.requestId;
-            const req = id ? requestsById[id] : undefined;
+            // undefined => not yet attempted; null => hydrate failed (sentinel).
+            const req = id && id in requestsById ? requestsById[id] : undefined;
             return <ApprovalRequestCard key={n.id} notification={n}
               request={req}
               onMarkRead={() => markRead(n.id)} />;
@@ -119,7 +122,8 @@ function relativeTime(iso: string): string {
 
 function ApprovalRequestCard({ notification, request, onMarkRead }: {
   notification: Notification;
-  request: ApprovalRequest | undefined;
+  // undefined => hydrate not yet attempted; null => hydrate failed.
+  request: ApprovalRequest | null | undefined;
   onMarkRead: () => void;
 }): JSX.Element {
   const approveRequest = useFamily(s => s.approveRequest);
@@ -141,6 +145,15 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
     setBusy('deny');
     try { await denyRequest(request!.id); onMarkRead(); }
     finally { setBusy(null); }
+  }
+
+  if (request === null) {
+    return (
+      <li className="border rounded-md p-3 border-border/50">
+        <p className="text-sm text-text">{notification.title}</p>
+        <p className="text-xs text-faint mt-1">Unable to load request details.</p>
+      </li>
+    );
   }
 
   if (!request) {

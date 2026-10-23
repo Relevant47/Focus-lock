@@ -31,7 +31,9 @@ interface State {
   pairCode: { code: string; expiresAt: string } | null;
   notifications: Notification[];
   unreadCount: number;
-  requestsById: Record<string, ApprovalRequest>;
+  // `null` is a failure sentinel — the entry stops `hydrateRequest` retrying
+  // and lets the card render an error state instead of "Loading…" forever.
+  requestsById: Record<string, ApprovalRequest | null>;
 }
 
 interface Actions {
@@ -187,11 +189,19 @@ export const useFamily = create<Store>((set, get) => ({
   async hydrateRequest(id) {
     const s = get().session;
     if (!s) return;
-    if (get().requestsById[id]) return;   // already cached
+    // Key-presence check (not truthy) so a stored `null` failure sentinel
+    // also short-circuits the guard and stops the 60s retry loop.
+    if (id in get().requestsById) return;
     try {
       const { request } = await familyRequests.getById(s.token, id);
       set({ requestsById: { ...get().requestsById, [id]: request } });
-    } catch (e) { console.warn('hydrateRequest failed', id, e); }
+    } catch (e) {
+      console.warn('hydrateRequest failed', id, e);
+      // Sentinel: prevents the 60s notification poll from re-firing this
+      // fetch forever. The card reads `null` as "failed" and renders an
+      // error state instead of the perpetual "Loading…" spinner.
+      set({ requestsById: { ...get().requestsById, [id]: null } });
+    }
   },
 
   async approveRequest(id) {
