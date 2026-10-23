@@ -85,17 +85,44 @@ final class ScheduleService {
     }
 
     // POSIX cron treats weekday 7 as Sunday (alias of 0). `wday` only produces
-    // 0-6, so a literal 7 would never match. Weekday field values are
-    // single-digit 0-7, so plain char replacement is safe.
+    // 0-6, so a literal 7 would never match. Rewrite only value positions
+    // (single tokens and range endpoints) — never the step of `*/N` or `A-B/N`,
+    // where 7 means "every 7 days", not Sunday. Character-level replace would
+    // corrupt `*/7` into `*/0` (crash on modulo-by-zero) and `1-7` into `1-0`
+    // (empty range).
     private func normalizeWeekday(_ field: String) -> String {
-        return field.replacingOccurrences(of: "7", with: "0")
+        return field.components(separatedBy: ",")
+            .map(normalizeWeekdayItem)
+            .joined(separator: ",")
+    }
+
+    private func normalizeWeekdayItem(_ item: String) -> String {
+        if item.contains("/") {
+            let p = item.components(separatedBy: "/")
+            guard p.count == 2 else { return item }
+            return normalizeWeekdayValue(p[0]) + "/" + p[1]
+        }
+        return normalizeWeekdayValue(item)
+    }
+
+    private func normalizeWeekdayValue(_ value: String) -> String {
+        if value.contains("-") {
+            let p = value.components(separatedBy: "-")
+            guard p.count == 2 else { return value }
+            return normalizeWeekdaySingle(p[0]) + "-" + normalizeWeekdaySingle(p[1])
+        }
+        return normalizeWeekdaySingle(value)
+    }
+
+    private func normalizeWeekdaySingle(_ s: String) -> String {
+        return s == "7" ? "0" : s
     }
 
     private func fieldMatches(_ field: String, value: Int) -> Bool {
         if field == "*" { return true }
         if field.contains("/") {
             let p = field.components(separatedBy: "/")
-            guard p.count == 2, let step = Int(p[1]) else { return false }
+            guard p.count == 2, let step = Int(p[1]), step > 0 else { return false }
             let start = p[0] == "*" ? 0 : (Int(p[0]) ?? 0)
             return value >= start && (value - start) % step == 0
         }
