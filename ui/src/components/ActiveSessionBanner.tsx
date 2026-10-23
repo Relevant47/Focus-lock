@@ -11,6 +11,7 @@
 // timer state required.
 
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDaemon } from '../stores/daemon';
 import { Icon } from './Icons';
 import { fmtClock } from '../lib/fmt';
@@ -19,6 +20,7 @@ import { cn } from '../lib/cn';
 export default function ActiveSessionBanner() {
   const status = useDaemon(s => s.status);
   const stopSession = useDaemon(s => s.stopSession);
+  const location = useLocation();
 
   const sessionActive = !!status?.sessionActive;
   const hardcore = !!status?.session?.hardcoreMode;
@@ -30,6 +32,11 @@ export default function ActiveSessionBanner() {
   const [error, setError] = useState('');
 
   if (!sessionActive) return null;
+  // Dashboard's own ActiveSession view already renders the countdown, End
+  // session button, and friend-lock unlock-token input — duplicating the banner
+  // here would stack two of each on the same screen (and two independent
+  // unlock-token inputs in friend-lock mode).
+  if (location.pathname === '/') return null;
 
   async function handleEnd() {
     setError('');
