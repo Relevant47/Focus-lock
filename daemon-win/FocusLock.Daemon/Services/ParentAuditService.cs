@@ -63,7 +63,11 @@ public sealed class ParentAuditService
         if (!File.Exists(LogPath)) return Array.Empty<ParentAuditEntry>();
         try
         {
-            var lines = File.ReadAllLines(LogPath);
+            string[] lines;
+            lock (_writeLock)
+            {
+                lines = File.ReadAllLines(LogPath);
+            }
             return lines
                 .Reverse()
                 .Take(limit)
