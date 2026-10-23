@@ -94,10 +94,27 @@ final class ScheduleService {
     private func fieldMatches(_ field: String, value: Int) -> Bool {
         if field == "*" { return true }
         if field.contains("/") {
+            // Parse `body/step` where body is `*`, a range `A-B`, or a bare
+            // integer. Previous code did `Int(p[0]) ?? 0` on the body — that
+            // silently produced `0` for the standard POSIX `A-B/N` form
+            // (e.g. `1-5/2`), so `1-5/2` fired at 0, 2, 4… instead of 1, 3, 5.
             let p = field.components(separatedBy: "/")
-            guard p.count == 2, let step = Int(p[1]) else { return false }
-            let start = p[0] == "*" ? 0 : (Int(p[0]) ?? 0)
-            return value >= start && (value - start) % step == 0
+            guard p.count == 2, let step = Int(p[1]), step > 0 else { return false }
+            let body = p[0]
+            let rangeStart: Int
+            let rangeEnd: Int
+            if body == "*" {
+                rangeStart = 0; rangeEnd = Int.max
+            } else if body.contains("-") {
+                let r = body.components(separatedBy: "-")
+                guard r.count == 2, let lo = Int(r[0]), let hi = Int(r[1]) else { return false }
+                rangeStart = lo; rangeEnd = hi
+            } else {
+                guard let lo = Int(body) else { return false }
+                rangeStart = lo; rangeEnd = Int.max
+            }
+            return value >= rangeStart && value <= rangeEnd
+                && (value - rangeStart) % step == 0
         }
         if field.contains(",") {
             return field.components(separatedBy: ",").compactMap(Int.init).contains(value)
