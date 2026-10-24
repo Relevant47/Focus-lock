@@ -274,7 +274,30 @@ final class UsageService {
                 fputs("[usage] Cleared all usage data (tracking remains on)\n", stderr)
                 return (nil, true)
             } catch {
-                return ("Failed to reset usage.db: \(error)", false)
+                // Recreate failed. Without this retry self.db stays nil and the
+                // next handleGetSettings reports enabled:false even though the
+                // user never disabled tracking. Scrub any partial state and
+                // try once more; if that still fails return an error that
+                // explicitly names the disabled state so the UI can surface it.
+                try? FileManager.default.removeItem(atPath: dbPath)
+                try? FileManager.default.removeItem(atPath: walPath)
+                try? FileManager.default.removeItem(atPath: shmPath)
+                try? FileManager.default.removeItem(atPath: journalPath)
+                do {
+                    let retry = try UsageDB(path: dbPath)
+                    try retry.runMigrations()
+                    try retry.seedMeta(
+                        retentionDays: retention,
+                        sampleRateSeconds: rate,
+                        enabledAtUTC: enabledAt
+                    )
+                    self.db = retry
+                    fputs("[usage] Cleared all usage data (recreated after retry)\n", stderr)
+                    return (nil, true)
+                } catch let retryError {
+                    fputs("[usage] clear_all_data: recreate failed twice — tracking is now disabled: \(retryError)\n", stderr)
+                    return ("Failed to reset usage.db — tracking is now disabled, please re-enable in Settings: \(error)", false)
+                }
             }
         }
     }
