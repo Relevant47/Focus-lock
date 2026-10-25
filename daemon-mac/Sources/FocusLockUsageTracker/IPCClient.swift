@@ -52,9 +52,16 @@ final class IPCClient {
         }
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
-        _ = withUnsafeMutableBytes(of: &addr.sun_path) { dst in
-            socketPath.utf8.withContiguousStorageIfAvailable { src in
-                dst.copyMemory(from: UnsafeRawBufferPointer(src))
+        // `withContiguousStorageIfAvailable` is allowed to NOT invoke its
+        // closure if the String's UTF-8 storage happens to be non-contiguous
+        // (bridged NSString, composed forms). That left sun_path all zeros
+        // and connect() failed with ENOENT. `withCString` guarantees a
+        // contiguous null-terminated buffer; copy up to sun_path.count-1 so
+        // the trailing NUL byte (from the zero-init) stays intact.
+        withUnsafeMutableBytes(of: &addr.sun_path) { dst in
+            socketPath.withCString { src in
+                let len = min(dst.count - 1, Int(strlen(src)))
+                memcpy(dst.baseAddress!, src, len)
             }
         }
         let rc = withUnsafePointer(to: &addr) { ptr in
