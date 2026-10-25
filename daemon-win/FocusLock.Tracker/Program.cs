@@ -88,10 +88,21 @@ internal static class Program
     private static bool ParseSessionActive(JsonElement? payload)
     {
         if (payload is null) return false;
-        if (payload.Value.TryGetProperty("sessionActive", out var sa)
-            && sa.ValueKind is JsonValueKind.True or JsonValueKind.False)
-            return sa.GetBoolean();
-        return false;
+        if (!payload.Value.TryGetProperty("sessionActive", out var sa)
+            || sa.ValueKind is not (JsonValueKind.True or JsonValueKind.False)
+            || !sa.GetBoolean())
+            return false;
+        // During a pomodoro break the session is still "active" but blocks
+        // are lifted and the user is resting — see ARCHITECTURE.md's pomodoro
+        // state machine. Counting break samples as in_focus inflated "In
+        // focus" time on the Usage page (issue #573).
+        if (payload.Value.TryGetProperty("pomodoroPhase", out var pp)
+            && pp.ValueKind == JsonValueKind.String)
+        {
+            var phase = pp.GetString();
+            if (phase == "break" || phase == "long_break") return false;
+        }
+        return true;
     }
 
     private static int ParseSampleRate(JsonElement? payload, int fallback)
