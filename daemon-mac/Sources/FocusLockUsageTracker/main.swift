@@ -74,12 +74,23 @@ private let isoUtc: ISO8601DateFormatter = {
 }()
 func nowUtcIso() -> String { isoUtc.string(from: Date()) }
 
-/// Extract `session_active` from a get_status response. The mac daemon
-/// encodes responses with `.convertToSnakeCase`, so `sessionActive` on the
-/// Swift side becomes `session_active` on the wire.
+/// Extract `session_active` from a get_status response and treat pomodoro
+/// break phases as out-of-focus. The mac daemon encodes responses with
+/// `.convertToSnakeCase`, so `sessionActive` on the Swift side becomes
+/// `session_active` on the wire (likewise `pomodoroPhase` → `pomodoro_phase`).
+///
+/// During a pomodoro `break` or `long_break`, `session_active` remains true
+/// (the session is still running) but blocks are lifted and the user is
+/// resting — see ARCHITECTURE.md's pomodoro state machine. Counting break
+/// samples as `in_focus` inflated "In focus" time on the Usage page.
 func parseSessionActive(_ resp: [String: Any]?) -> Bool {
     guard let payload = resp?["payload"] as? [String: Any] else { return false }
-    return (payload["session_active"] as? Bool) ?? false
+    guard (payload["session_active"] as? Bool) == true else { return false }
+    if let phase = payload["pomodoro_phase"] as? String,
+       phase == "break" || phase == "long_break" {
+        return false
+    }
+    return true
 }
 
 /// Extract `sample_rate_seconds` from a usage.get_settings response. Falls
