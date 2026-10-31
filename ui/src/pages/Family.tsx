@@ -1316,7 +1316,17 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
     );
   }
   if (status === 'expired') {
-    return <p className="text-faint">No reply in 24h — try again.</p>;
+    return (
+      <p className="text-faint">
+        No reply in 24h —{' '}
+        <button
+          onClick={() => { setStatus(null); setRequestId(null); }}
+          className="text-accent underline hover:text-text">
+          ask again
+        </button>
+        .
+      </p>
+    );
   }
   if (status === 'pending') {
     return <p className="text-accent">Waiting for parent…</p>;
