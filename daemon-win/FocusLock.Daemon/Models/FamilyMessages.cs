@@ -10,7 +10,7 @@ namespace FocusLock.Daemon.Models;
 /// </summary>
 public sealed class FamilyConfig
 {
-    public string ServerUrl   { get; set; } = string.Empty;   // e.g. https://family.focus-lock.app
+    public string ServerUrl   { get; set; } = string.Empty;   // e.g. https://family.tryfocuslock.com
     public string AccountId   { get; set; } = string.Empty;
     public string DeviceId    { get; set; } = string.Empty;
     public string DeviceToken { get; set; } = string.Empty;   // long-lived (1y) JWT

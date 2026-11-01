@@ -292,7 +292,7 @@ export interface FamilyRuleSummary {
 export interface FamilyRedeemPayload {
   /// 6-digit code from the parent's dashboard.
   code: string;
-  /// Cloud server origin (e.g. https://family.focus-lock.app). Self-hosters
+  /// Cloud server origin (e.g. https://family.tryfocuslock.com). Self-hosters
   /// supply their own; the UI typically passes its build-time VITE_FAMILY_API_URL.
   serverUrl: string;
 }
