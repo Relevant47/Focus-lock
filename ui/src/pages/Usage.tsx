@@ -97,6 +97,10 @@ export default function Usage() {
 
   useEffect(() => {
     if (!usageTracking.enabled) return;
+    // Guard against a slower earlier query (e.g. "this week") resolving after a
+    // faster later one (e.g. "today") and overwriting the current result with
+    // the wrong date range's data. Issue #582.
+    let cancelled = false;
     setBusy(true); setErr(null);
     queryUsage({
       start_date: start,
@@ -104,9 +108,10 @@ export default function Usage() {
       top_n: topN,
       split_by_focus: true, // always request the split; UI decides how to render
     })
-      .then(setResult)
-      .catch(e => setErr(e instanceof Error ? e.message : 'Query failed'))
-      .finally(() => setBusy(false));
+      .then(r => { if (!cancelled) setResult(r); })
+      .catch(e => { if (!cancelled) setErr(e instanceof Error ? e.message : 'Query failed'); })
+      .finally(() => { if (!cancelled) setBusy(false); });
+    return () => { cancelled = true; };
   }, [usageTracking.enabled, start, end, topN, queryUsage, refreshTick]);
 
   // Empty state — tracking disabled OR loaded but no rows yet.
