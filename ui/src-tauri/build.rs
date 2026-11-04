@@ -24,6 +24,13 @@ fn bundle_macos_daemon() {
         .join(".build")
         .join("release")
         .join("FocusLockDaemon");
+    let tracker_src = manifest_dir
+        .join("..")
+        .join("..")
+        .join("daemon-mac")
+        .join(".build")
+        .join("release")
+        .join("FocusLockUsageTracker");
     let plist_src = manifest_dir
         .join("..")
         .join("..")
@@ -49,6 +56,22 @@ fn bundle_macos_daemon() {
         );
     }
 
+    if tracker_src.exists() {
+        let dest = stage_dir.join("FocusLockUsageTracker");
+        std::fs::copy(&tracker_src, &dest).expect("copy tracker binary");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o755))
+                .expect("chmod tracker");
+        }
+    } else {
+        println!(
+            "cargo:warning=tracker binary not found at {} — run `cd daemon-mac && swift build -c release` first",
+            tracker_src.display()
+        );
+    }
+
     if plist_src.exists() {
         std::fs::copy(&plist_src, stage_dir.join("com.focuslock.daemon.plist"))
             .expect("copy plist");
@@ -60,5 +83,6 @@ fn bundle_macos_daemon() {
     }
 
     println!("cargo:rerun-if-changed={}", daemon_src.display());
+    println!("cargo:rerun-if-changed={}", tracker_src.display());
     println!("cargo:rerun-if-changed={}", plist_src.display());
 }

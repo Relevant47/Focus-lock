@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // Post-bundle hook: Tauri places resources at Contents/Resources/Library/...,
-// but SMAppService requires the daemon plist at Contents/Library/LaunchDaemons/.
-// This script moves the daemon binary + plist to where macOS expects them, and
-// signs the daemon ad-hoc if no signing identity is configured (dev builds).
+// but SMAppService requires the daemon plist at Contents/Library/LaunchDaemons/
+// and UsageService.swift resolves the tracker as a sibling of
+// Contents/Library/LaunchAgents/. This script moves the daemon binary + plist
+// AND the usage-tracker binary to where macOS / the daemon expect them, and
+// signs them ad-hoc if no signing identity is configured (dev builds).
 //
 // Usage:
 //   node scripts/place-mac-daemon.mjs [path/to/FocusLock.app]
@@ -21,19 +23,21 @@ if (!existsSync(appPath)) {
   process.exit(1);
 }
 
-const src = path.join(appPath, 'Contents/Resources/Library/LaunchDaemons');
-const dst = path.join(appPath, 'Contents/Library/LaunchDaemons');
+const daemonSrc = path.join(appPath, 'Contents/Resources/Library/LaunchDaemons');
+const daemonDst = path.join(appPath, 'Contents/Library/LaunchDaemons');
+const agentsSrc = path.join(appPath, 'Contents/Resources/Library/LaunchAgents');
+const agentsDst = path.join(appPath, 'Contents/Library/LaunchAgents');
 
-if (!existsSync(src)) {
-  console.error(`[place-mac-daemon] no staged daemon at ${src} — did tauri.conf.json resources copy them?`);
+if (!existsSync(daemonSrc)) {
+  console.error(`[place-mac-daemon] no staged daemon at ${daemonSrc} — did tauri.conf.json resources copy them?`);
   process.exit(1);
 }
 
-mkdirSync(dst, { recursive: true });
+mkdirSync(daemonDst, { recursive: true });
 
 for (const f of ['FocusLockDaemon', 'com.focuslock.daemon.plist']) {
-  const a = path.join(src, f);
-  const b = path.join(dst, f);
+  const a = path.join(daemonSrc, f);
+  const b = path.join(daemonDst, f);
   if (!existsSync(a)) {
     console.error(`[place-mac-daemon] missing ${a}`);
     process.exit(1);
@@ -42,37 +46,63 @@ for (const f of ['FocusLockDaemon', 'com.focuslock.daemon.plist']) {
 }
 
 // Ensure the daemon is executable (Tauri's bundle copy may have dropped +x).
-chmodSync(path.join(dst, 'FocusLockDaemon'), 0o755);
+chmodSync(path.join(daemonDst, 'FocusLockDaemon'), 0o755);
+
+// Move the usage tracker from Contents/Resources/Library/LaunchAgents/ to
+// Contents/Library/LaunchAgents/, matching UsageService.swift's resolver.
+if (existsSync(agentsSrc)) {
+  mkdirSync(agentsDst, { recursive: true });
+  const tracker = 'FocusLockUsageTracker';
+  const a = path.join(agentsSrc, tracker);
+  const b = path.join(agentsDst, tracker);
+  if (!existsSync(a)) {
+    console.error(`[place-mac-daemon] missing ${a}`);
+    process.exit(1);
+  }
+  renameSync(a, b);
+  chmodSync(b, 0o755);
+} else {
+  console.error(`[place-mac-daemon] no staged tracker at ${agentsSrc} — did tauri.conf.json resources copy it?`);
+  process.exit(1);
+}
 
 // Clean up the now-empty Contents/Resources/Library tree.
 try {
-  rmdirSync(src);
-  rmdirSync(path.dirname(src));
+  rmdirSync(daemonSrc);
+  rmdirSync(agentsSrc);
+  rmdirSync(path.dirname(daemonSrc));
 } catch {
   // not empty or already gone — fine
 }
 
-// Re-sign the daemon if SIGN_IDENTITY env var is set (CI sets this from
-// secrets.APPLE_SIGNING_IDENTITY). Otherwise leave it ad-hoc so dev runs work.
+// Re-sign the daemon and tracker if APPLE_SIGNING_IDENTITY is set (CI sets
+// this from secrets.APPLE_SIGNING_IDENTITY). Otherwise leave them ad-hoc so
+// dev runs work.
 const identity = process.env.APPLE_SIGNING_IDENTITY;
 if (identity) {
-  console.log(`[place-mac-daemon] re-signing daemon with: ${identity}`);
-  try {
-    execFileSync(
-      'codesign',
-      [
-        '--force',
-        '--options', 'runtime',
-        '--sign', identity,
-        '--entitlements', path.resolve('../daemon-mac/entitlements.plist'),
-        path.join(dst, 'FocusLockDaemon'),
-      ],
-      { stdio: 'inherit' },
-    );
-  } catch (e) {
-    console.error('[place-mac-daemon] codesign failed:', e?.message ?? e);
-    process.exit(1);
+  console.log(`[place-mac-daemon] re-signing binaries with: ${identity}`);
+  for (const bin of [
+    path.join(daemonDst, 'FocusLockDaemon'),
+    path.join(agentsDst, 'FocusLockUsageTracker'),
+  ]) {
+    try {
+      execFileSync(
+        'codesign',
+        [
+          '--force',
+          '--options', 'runtime',
+          '--sign', identity,
+          '--entitlements', path.resolve('../daemon-mac/entitlements.plist'),
+          bin,
+        ],
+        { stdio: 'inherit' },
+      );
+    } catch (e) {
+      console.error(`[place-mac-daemon] codesign failed for ${bin}:`, e?.message ?? e);
+      process.exit(1);
+    }
   }
 }
 
-console.log(`[place-mac-daemon] daemon installed at ${dst}`);
+console.log(`[place-mac-daemon] daemon installed at ${daemonDst}`);
+console.log(`[place-mac-daemon] tracker installed at ${agentsDst}`);
