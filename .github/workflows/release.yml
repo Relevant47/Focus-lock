@@ -169,12 +169,7 @@ jobs:
             .build/arm64-apple-macosx/release/FocusLockDaemon \
             .build/x86_64-apple-macosx/release/FocusLockDaemon \
             -output .build/release/FocusLockDaemon
-          lipo -create \
-            .build/arm64-apple-macosx/release/FocusLockUsageTracker \
-            .build/x86_64-apple-macosx/release/FocusLockUsageTracker \
-            -output .build/release/FocusLockUsageTracker
           file .build/release/FocusLockDaemon
-          file .build/release/FocusLockUsageTracker
         working-directory: daemon-mac
 
       - name: Import Apple certificates
@@ -204,10 +199,6 @@ jobs:
             --sign "$APPLE_SIGNING_IDENTITY" \
             --entitlements daemon-mac/entitlements.plist \
             daemon-mac/.build/release/FocusLockDaemon
-          codesign --force --options runtime \
-            --sign "$APPLE_SIGNING_IDENTITY" \
-            --entitlements daemon-mac/entitlements.plist \
-            daemon-mac/.build/release/FocusLockUsageTracker
 
       - name: Set up SDK root for cross-compilation
         if: matrix.target == 'x86_64-apple-darwin'
