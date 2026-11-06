@@ -6,7 +6,7 @@
 //   POST /api/v1/notifications/read-all
 
 import {
-  countUnreadNotifications, listNotificationsForAccount,
+  listNotificationsForAccount,
   markAllNotificationsRead, markNotificationRead,
 } from './db';
 import type { Env, Notification, NotificationRow } from './types';
@@ -32,7 +32,7 @@ export async function listNotificationsHandler(req: Request, env: Env): Promise<
   const ctx = await requireAuth(req, env);
   if (!ctx) return unauthorized();
   const rows = await listNotificationsForAccount(env.DB, ctx.accountId);
-  const unreadCount = await countUnreadNotifications(env.DB, ctx.accountId);
+  const unreadCount = rows.reduce((n, r) => n + (r.read_at === null ? 1 : 0), 0);
   return json({ notifications: rows.map(toApi), unreadCount });
 }
 
