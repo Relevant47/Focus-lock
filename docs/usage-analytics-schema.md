@@ -1,12 +1,12 @@
-# FocusLock Usage Analytics — Contract (Phase 1)
+# FocusLock Usage Analytics — Contract (v1 / All Phases Shipped)
 
 Companion to `docs/usage-analytics-plan.md`. This file is the **consumable
-reference** for Phases 2–5. Every downstream engineer reads this before
-touching a keyboard.
+reference** for the usage-analytics subsystem. Every downstream engineer
+reads this before touching a keyboard.
 
-**Scope of Phase 1:** types, DDL, IPC surface, and store skeleton. **Nothing
-runs at runtime yet.** Phase 2 wires handlers to storage; Phase 3 ships the
-tracker; Phase 4 builds the UI.
+**Status:** All four phases (types/DDL/IPC surface, handlers, tracker, UI)
+are implemented as of v1.4.x. This file documents the in-effect contract,
+not a future-state plan.
 
 **Non-negotiables (from the master brief §2):**
 - No network calls for usage data. Ever.
@@ -239,11 +239,11 @@ sharding change.
 
 ## 6. Phase 2 handoff checklist
 
-- [ ] Execute `UsageMigrations.v1` on first `usage.enable` (idempotent DDL).
-- [ ] Seed `usage_meta` rows per §1.3 on first enable.
-- [ ] Register the seven `usage.*` handlers in both daemons' dispatchers.
-- [ ] Wire retention prune on daemon start + 24h timer (skip when `'forever'`).
-- [ ] Reuse `get_status` for in-focus tagging (Q2 answer — do not add a new IPC).
-- [ ] macOS: build `UsageDB.swift` with raw `SQLite3` (Q1 answer — no GRDB).
-- [ ] Windows: use existing `Microsoft.Data.Sqlite` (already in `.csproj`).
-- [ ] Verify `snake_case` field names round-trip on both platforms.
+- [x] Execute `UsageMigrations.v1` on first `usage.enable` (idempotent DDL).
+- [x] Seed `usage_meta` rows per §1.3 on first enable.
+- [x] Register the seven `usage.*` handlers in both daemons' dispatchers.
+- [x] Wire retention prune on daemon start + 24h timer (skip when `'forever'`).
+- [x] Reuse `get_status` for in-focus tagging (Q2 answer — do not add a new IPC).
+- [x] macOS: build `UsageDB.swift` with raw `SQLite3` (Q1 answer — no GRDB).
+- [x] Windows: use existing `Microsoft.Data.Sqlite` (already in `.csproj`).
+- [x] Verify `snake_case` field names round-trip on both platforms.
