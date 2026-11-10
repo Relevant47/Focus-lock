@@ -52,6 +52,11 @@ let termSrc = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 let intSrc  = DispatchSource.makeSignalSource(signal: SIGINT,  queue: .main)
 let onShutdown: () -> Void = {
     fputs("[focuslock] shutting down\n", stderr)
+    // Close the family-server WebSocket first so the server learns the
+    // device is going away before we tear down local firewall rules —
+    // without this the TCP connection sits open for 30–90 s and the
+    // parent dashboard shows the child as online after shutdown.
+    cloudSync.stop()
     firewallLockdown.stop()
     exit(0)
 }
