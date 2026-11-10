@@ -75,6 +75,18 @@ final class CloudSyncService: NSObject, URLSessionWebSocketDelegate {
         startRunThread()
     }
 
+    /// Signals the run loop to exit and closes the WebSocket task with a
+    /// `goingAway` frame. Called from the SIGTERM/SIGINT shutdown handler so
+    /// the family server learns the device is going away before the TCP
+    /// connection times out (30–90 s otherwise), keeping the parent dashboard
+    /// in sync with the actual connection state.
+    func stop() {
+        lock.lock()
+        shouldStop = true
+        lock.unlock()
+        cancelTask()
+    }
+
     private func cancelTask() {
         lock.lock()
         task?.cancel(with: .goingAway, reason: nil)
