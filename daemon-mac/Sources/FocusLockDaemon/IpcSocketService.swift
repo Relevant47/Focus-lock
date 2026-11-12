@@ -122,10 +122,23 @@ final class IpcSocketService {
         }
     }
 
+    // Handlers that block on an HTTP round-trip to the family server
+    // (URLSession + DispatchSemaphore) take up to 15 s. Running them inline
+    // on the per-connection thread would stall every later command on the
+    // same socket — e.g. the UI's 1 s get_status poll freezes while an
+    // "Ask to Unblock" is in flight. Dispatch these to a background queue
+    // and continue reading the socket. Issues #515, #594.
+    private static let asyncRequestTypes: Set<String> = [
+        "family_redeem_code",
+        "request_unblock",
+        "request_status",
+    ]
+
     private func handleClient(_ fd: Int32) {
         defer { close(fd) }
         var buffer = Data()
         var buf = [UInt8](repeating: 0, count: 4096)
+        let writeLock = NSLock()
 
         while true {
             let n = read(fd, &buf, buf.count)
@@ -138,14 +151,30 @@ final class IpcSocketService {
                 buffer = buffer[buffer.index(after: newline)...]
 
                 guard let req = try? jsonDec.decode(IpcRequest.self, from: line) else { continue }
-                let resp = handle(req)
-                if let data = try? jsonEnc.encode(resp),
-                   let line = String(data: data, encoding: .utf8) {
-                    let out = (line + "\n").data(using: .utf8)!
-                    out.withUnsafeBytes { _ = write(fd, $0.baseAddress, $0.count) }
+
+                if Self.asyncRequestTypes.contains(req.type) {
+                    DispatchQueue.global().async { [weak self] in
+                        guard let self = self else { return }
+                        let resp = self.handle(req)
+                        self.respond(resp, fd: fd, writeLock: writeLock)
+                    }
+                } else {
+                    let resp = handle(req)
+                    respond(resp, fd: fd, writeLock: writeLock)
                 }
             }
         }
+    }
+
+    // Serializes writes from the connection's read loop and from async
+    // handlers dispatched off it, so interleaved responses can't tear.
+    private func respond(_ resp: IpcResponse, fd: Int32, writeLock: NSLock) {
+        guard let data = try? jsonEnc.encode(resp),
+              let line = String(data: data, encoding: .utf8) else { return }
+        let out = (line + "\n").data(using: .utf8)!
+        writeLock.lock()
+        defer { writeLock.unlock() }
+        out.withUnsafeBytes { _ = write(fd, $0.baseAddress, $0.count) }
     }
 
     // ── Request dispatch ──────────────────────────────────────────────────────
