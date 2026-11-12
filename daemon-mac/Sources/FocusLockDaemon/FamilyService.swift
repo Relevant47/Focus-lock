@@ -55,9 +55,10 @@ final class FamilyService {
         for l in listenersCopy { l(cfg) }
     }
 
-    /// Synchronous wrapper around the redeem POST — IpcSocketService dispatches
-    /// each client on its own thread, so blocking here is fine and keeps the
-    /// IPC reply on the same connection.
+    /// Synchronous wrapper around the redeem POST. IpcSocketService routes
+    /// `family_redeem_code` through its async-request dispatch, so the
+    /// blocking `sem.wait()` below runs on a background queue — issues
+    /// #515, #594. Do not call this from the per-connection read thread.
     func redeem(code: String, serverUrl: String) -> (error: String?, result: FamilyRedeemResult?) {
         let trimmedUrl = serverUrl.trimmingCharacters(in: CharacterSet(charactersIn: " /"))
         let trimmedCode = code.trimmingCharacters(in: .whitespaces)
