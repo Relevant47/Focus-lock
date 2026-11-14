@@ -16,10 +16,18 @@
 
 import { verifyPassword } from './crypto';
 import { deleteAccount, findAccountById, loadAccountExport, logAudit } from './db';
+import {
+  DELETE_ACCOUNT_POLICY, checkRateLimit, deleteAccountKey, recordFailure, recordSuccess,
+} from './rateLimit';
 import type { AuditLogRow, DeviceRow, Env, LockRuleRow } from './types';
 import {
-  badRequest, clientIp, json, requireAuth, safeJson, unauthorized,
+  badRequest, clientIp, json, requireAuth, safeJson, tooManyRequests, unauthorized,
 } from './utils';
+
+function humanMinutes(seconds: number): string {
+  const m = Math.ceil(seconds / 60);
+  return m === 1 ? '1 minute' : `${m} minutes`;
+}
 
 const EXPORT_SCHEMA_VERSION = '1.0';
 
@@ -62,13 +70,30 @@ export async function deleteAccountHandler(req: Request, env: Env): Promise<Resp
     return badRequest('password required');
   }
 
+  // Rate-limit BEFORE password verify (PBKDF2 is expensive — otherwise a stolen
+  // JWT can both brute-force the password AND sustain Worker CPU load).
+  const rlKey = deleteAccountKey(ctx.accountId);
+  const rlState = await checkRateLimit(env, rlKey, DELETE_ACCOUNT_POLICY);
+  if (rlState.blocked) {
+    return tooManyRequests(rlState.retryAfterSeconds,
+      `Too many failed attempts. Try again in ${humanMinutes(rlState.retryAfterSeconds)}.`);
+  }
+
   const account = await findAccountById(env.DB, ctx.accountId);
   if (!account) return unauthorized();
   const ok = await verifyPassword(body.password, account.password_hash);
   if (!ok) {
     await logAudit(env.DB, ctx.accountId, null, 'account_delete_failed', null, clientIp(req));
+    const after = await recordFailure(env, rlKey, DELETE_ACCOUNT_POLICY);
+    if (after.blocked) {
+      await logAudit(env.DB, ctx.accountId, null, 'account_delete_rate_limited', null, clientIp(req));
+      return tooManyRequests(after.retryAfterSeconds,
+        `Too many failed attempts. Try again in ${humanMinutes(after.retryAfterSeconds)}.`);
+    }
     return unauthorized('invalid password');
   }
+
+  await recordSuccess(env, rlKey);
 
   // Write the forensic trail with account_id=NULL so the row survives the
   // cascade — payload carries the (now-tombstone) email for ops lookup.

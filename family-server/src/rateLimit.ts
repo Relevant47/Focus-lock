@@ -44,6 +44,17 @@ export const RESET_POLICY: RateLimitPolicy = {
   blockSeconds: 60 * 60,    // 1 hour
 };
 
+// DELETE /api/v1/account re-verifies the password before wiping the account.
+// Keep the window tight — a legitimate user should only ever enter their
+// password once or twice here; anything more is probably a stolen JWT walking
+// the keyspace. Each attempt triggers a full PBKDF2 verification, so this also
+// bounds the CPU DoS surface on the Worker.
+export const DELETE_ACCOUNT_POLICY: RateLimitPolicy = {
+  maxAttempts: 3,
+  windowSeconds: 15 * 60,   // 15 minutes
+  blockSeconds: 30 * 60,    // 30 minutes
+};
+
 export interface RateLimitState {
   blocked: boolean;
   /// Seconds the caller should wait before the key unblocks. 0 when not blocked.
@@ -125,3 +136,4 @@ export async function recordSuccess(env: Env, key: string): Promise<void> {
 
 export function loginKey(email: string): string { return `login:${email.toLowerCase()}`; }
 export function resetKey(email: string): string { return `reset:${email.toLowerCase()}`; }
+export function deleteAccountKey(accountId: string): string { return `del:${accountId}`; }
