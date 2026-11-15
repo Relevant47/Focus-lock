@@ -354,9 +354,32 @@ public sealed class UsageService : IDisposable
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "usage.clear_all_data: failed to recreate DB");
-                _store = null;
-                return ("Failed to recreate usage database", false);
+                // Recreate failed. Without this retry _store stays null and
+                // the next HandleGetSettings reports Enabled=false even though
+                // the user never disabled tracking. Scrub any partial state
+                // and try once more; if that still fails return an error that
+                // explicitly names the disabled state so the UI can surface
+                // it. Mirrors the macOS UsageService fix (issue #570).
+                _log.LogError(ex, "usage.clear_all_data: failed to recreate DB, retrying");
+                // Dispose any partially-initialized store before scrubbing
+                // so the SQLite file handles are released on Windows.
+                CloseStoreQuiet();
+                DeleteDbAndSidecarsQuiet();
+                try
+                {
+                    _store = new UsageStore(_dbPath, _factory.CreateLogger<UsageStore>());
+                    _store.RunMigrations();
+                    _store.SeedMeta(retention, rate, enabledAt);
+                    _store.SetMeta("enabled", "1");
+                    _store.SetMeta("enabled_at_utc", enabledAt);
+                    _log.LogInformation("usage.clear_all_data: recreated after retry");
+                }
+                catch (Exception retryEx)
+                {
+                    _log.LogError(retryEx, "usage.clear_all_data: recreate failed twice — tracking is now disabled");
+                    _store = null;
+                    return ("Failed to reset usage database — tracking is now disabled, please re-enable in Settings", false);
+                }
             }
             return (null, true);
         }
