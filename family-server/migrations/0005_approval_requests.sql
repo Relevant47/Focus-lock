@@ -8,10 +8,10 @@ CREATE TABLE approval_requests (
   device_id           TEXT NOT NULL,
   target_kind         TEXT NOT NULL,             -- 'app' | 'domain'
   target              TEXT NOT NULL,             -- 'reddit.com' or 'Discord'
-  requested_minutes   INTEGER NOT NULL,          -- 5 | 15 | 30 | 60
+  requested_minutes   INTEGER NOT NULL,          -- 15 | 30 | 60
   status              TEXT NOT NULL,             -- 'pending' | 'approved' | 'denied' | 'expired'
   created_at          TEXT NOT NULL,
-  expires_at          TEXT NOT NULL,             -- created_at + 1h
+  expires_at          TEXT NOT NULL,             -- created_at + 24h
   resolved_at         TEXT,
   resolution_rule_id  TEXT,
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
