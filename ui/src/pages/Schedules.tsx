@@ -60,12 +60,34 @@ function isValidCron(expr: string): boolean {
 }
 
 // POSIX cron treats weekday 7 as Sunday (alias of 0). Daemons only match 0-6,
-// so rewrite any 7 in the weekday field to 0 before save and before preview.
-// The weekday field's valid range is single-digit 0-7, so plain char replacement is safe.
+// so rewrite any 7 in the weekday field before save. Token-aware so that
+// ranges ending in 7 (e.g. `1-7`, `5-7`, `0-7/2`) are expanded explicitly
+// into an enumerated list instead of being blindly string-replaced into
+// `1-0`/`5-0`/`0-0/2`, which both CronEvaluators reject (`rangeStart > rangeEnd`)
+// — silently killing the schedule.
 function normalizeCronWeekday(expr: string): string {
   const parts = expr.trim().split(/\s+/);
   if (parts.length !== 5) return expr;
-  parts[4] = parts[4].replace(/7/g, '0');
+  const tokens = parts[4].split(',').map(raw => {
+    const tok = raw.trim();
+    // Range ending in 7, with optional step: enumerate and map 7 → 0
+    const rangeMatch = tok.match(/^(\d+)-7(?:\/(\d+))?$/);
+    if (rangeMatch) {
+      const lo = Number(rangeMatch[1]);
+      const step = rangeMatch[2] ? Number(rangeMatch[2]) : 1;
+      if (step < 1) return tok;
+      const days: number[] = [];
+      for (let d = lo; d <= 7; d += step) {
+        const norm = d === 7 ? 0 : d;
+        if (!days.includes(norm)) days.push(norm);
+      }
+      return days.join(',');
+    }
+    // Standalone 7 → 0
+    if (tok === '7') return '0';
+    return tok;
+  });
+  parts[4] = tokens.join(',');
   return parts.join(' ');
 }
 
