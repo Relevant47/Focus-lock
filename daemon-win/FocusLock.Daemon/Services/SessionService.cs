@@ -40,6 +40,14 @@ public sealed class SessionService
     // Hardcore mode 24-hour cooldown
     private DateTime? _hardcoreCooldownUntil;
 
+    // Upper bound on how many of the most-recent log entries the streak /
+    // focus-score calculations scan. The previous value of 90 was ENTRIES,
+    // not days — a Pomodoro user running 10 work+break cycles per day drained
+    // it in ~9 days and silently saw CurrentStreak == 0. 3650 covers 365
+    // days at 10 sessions/day, well above realistic use, and GetLogs already
+    // reads the full log file today. See issue #607.
+    private const int StreakLookbackLogs = 3650;
+
     public SessionService(ILogger<SessionService> log)
         : this(log, doh: null, stateDir: null) { }
 
@@ -138,7 +146,7 @@ public sealed class SessionService
             var rateLimitRemaining = _nextUnlockAllowed > DateTime.UtcNow
                 ? (_nextUnlockAllowed - DateTime.UtcNow).TotalSeconds
                 : (double?)null;
-            var logs = GetLogs(90);
+            var logs = GetLogs(StreakLookbackLogs);
             return new DaemonStatus
             {
                 SessionActive = _active?.IsActive ?? false,
@@ -382,7 +390,7 @@ public sealed class SessionService
         var base_ = Math.Max(100 - penalty, 10);
 
         // Streak multiplier: +2% per day, capped at +20%
-        var streak = ComputeCurrentStreak(GetLogs(90));
+        var streak = ComputeCurrentStreak(GetLogs(StreakLookbackLogs));
         var multiplier = 1.0 + Math.Min(streak * 0.02, 0.20);
         return Math.Min((int)(base_ * multiplier), 100);
     }

@@ -68,6 +68,14 @@ final class SessionService {
     // Hardcore cooldown
     private var _hardcoreCooldownUntil: Date?
 
+    // Upper bound on how many of the most-recent log entries the streak /
+    // focus-score calculations scan. The previous value of 90 was ENTRIES,
+    // not days — a Pomodoro user running 10 work+break cycles per day drained
+    // it in ~9 days and silently saw `currentStreak == 0`. 3650 covers 365
+    // days at 10 sessions/day, well above realistic use, and the suffix read
+    // over the whole log file is already O(n) today. See issue #607.
+    private static let streakLookbackLogs = 3650
+
     init(doh: BrowserDohPolicyService? = nil) {
         _doh = doh
         _signingKey = Self.loadOrCreateKey()
@@ -117,7 +125,7 @@ final class SessionService {
     func getStatus() -> DaemonStatus {
         lock.withLock {
             let rateRemaining = _nextUnlockAllowed > Date() ? _nextUnlockAllowed.timeIntervalSinceNow : nil
-            let logs = getLogs(limit: 90)
+            let logs = getLogs(limit: Self.streakLookbackLogs)
             return DaemonStatus(
                 sessionActive: _active?.isActive ?? false,
                 session: _active,
@@ -275,7 +283,7 @@ final class SessionService {
         guard completed else { return 0 }
         let penalty = min(_blockAttempts * 5, 50)
         let base = max(100 - penalty, 10)
-        let streak = computeCurrentStreak(logs: getLogs(limit: 90))
+        let streak = computeCurrentStreak(logs: getLogs(limit: Self.streakLookbackLogs))
         let multiplier = 1.0 + min(Double(streak) * 0.02, 0.20)
         return min(Int(Double(base) * multiplier), 100)
     }
