@@ -25,6 +25,12 @@ import {
 
 const ALLOWED_MINUTES = new Set([15, 30, 60]);
 
+// Realistic ceiling well above the longest app bundle ID or domain name. Anything
+// larger is either client bug or abuse — we reject before the row hits D1 so a
+// compromised kid device can't inflate the parent's storage or break the inbox
+// render path (FamilyInbox renders `request.target` directly). See #611.
+const MAX_TARGET_LENGTH = 2048;
+
 function toApi(row: ApprovalRequestRow): ApprovalRequest {
   return {
     id: row.id,
@@ -52,6 +58,9 @@ export async function createRequestHandler(req: Request, env: Env): Promise<Resp
   }
   if (typeof body.target !== 'string' || body.target.trim() === '') {
     return badRequest('target required');
+  }
+  if (body.target.length > MAX_TARGET_LENGTH) {
+    return badRequest(`target must be at most ${MAX_TARGET_LENGTH} characters`);
   }
   if (!ALLOWED_MINUTES.has(Number(body.requestedMinutes))) {
     return badRequest('requestedMinutes must be 15, 30, or 60');
