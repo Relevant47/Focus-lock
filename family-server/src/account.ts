@@ -23,6 +23,13 @@ import {
 
 const EXPORT_SCHEMA_VERSION = '1.0';
 
+// Cap input length BEFORE calling verifyPassword (100 000 PBKDF2 iters).
+// An authenticated attacker could otherwise force the Worker to hash a
+// multi-KB string per request and burn CPU budget even on a wrong password.
+// Matches the signup/resetConfirm cap in auth.ts (#509/#610); 128 chars is
+// ample for any real passphrase.
+const MAX_PASSWORD_LENGTH = 128;
+
 interface DeleteAccountBody { password?: unknown }
 
 export async function exportAccount(req: Request, env: Env): Promise<Response> {
@@ -60,6 +67,9 @@ export async function deleteAccountHandler(req: Request, env: Env): Promise<Resp
   const body = await safeJson<DeleteAccountBody>(req);
   if (!body || typeof body.password !== 'string') {
     return badRequest('password required');
+  }
+  if (body.password.length > MAX_PASSWORD_LENGTH) {
+    return badRequest(`password must be at most ${MAX_PASSWORD_LENGTH} characters`);
   }
 
   const account = await findAccountById(env.DB, ctx.accountId);
