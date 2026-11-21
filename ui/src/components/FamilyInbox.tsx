@@ -161,7 +161,7 @@ function ApprovalRequestCard({ notification, request, onMarkRead }: {
       <p className="text-xs text-muted mt-1 leading-relaxed">{notification.body}</p>
       {isPending && (
         <>
-          <p className="text-[11px] text-faint mt-2 tnum">Expires in {fmtCountdown(secondsLeft)}</p>
+          <p className="text-[11px] text-faint mt-2 tnum">Expires in {fmtDuration(secondsLeft)}</p>
           <div className="flex gap-2 mt-2">
             <button onClick={approve} disabled={!!busy}
               className="btn-primary px-3 py-1.5 text-xs flex-1">
@@ -198,8 +198,15 @@ function useCountdown(iso: string | null): number {
   return target ? Math.max(0, Math.floor((target - now) / 1000)) : 0;
 }
 
-function fmtCountdown(s: number): string {
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${String(r).padStart(2, '0')}`;
+// Duration formatter sized for the inbox pending-window, which is 24h since
+// v1.4.1 (was 1h pre-1.4.1). The old `M:SS` formatter rendered a fresh
+// request as "1440:00", unreadable. See #615.
+function fmtDuration(s: number): string {
+  if (s >= 3600) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  if (s >= 60) return `${Math.floor(s / 60)}m`;
+  return `${s}s`;
 }
