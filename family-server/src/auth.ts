@@ -127,7 +127,12 @@ export async function resetRequest(req: Request, env: Env): Promise<Response> {
   const after = await recordFailure(env, rlKey, RESET_POLICY);
 
   const account = await findAccountByEmail(env.DB, email);
-  if (account) {
+  // Skip the email when this very request tips the counter over the limit —
+  // otherwise the user receives a working reset link AND a 429 at the same
+  // time. The timing-attack protection is preserved: the recordFailure call
+  // above runs for every request regardless of email existence, so the
+  // response timing doesn't change.
+  if (account && !after.blocked) {
     // jti makes the token single-use: resetConfirm records the jti after a
     // successful redeem and refuses any subsequent reuse within the 1-hour TTL.
     const jti = crypto.randomUUID();
