@@ -25,16 +25,18 @@ export default function FamilyInbox(): JSX.Element | null {
     return () => window.clearInterval(t);
   }, [loadNotifs]);
 
-  // Hydrate every approval_request we see, if not cached. Cheap call — store
-  // dedups by id, so re-running is a no-op for already-loaded rows.
+  // Hydrate every approval_request we see on each notifications refresh. The
+  // store short-circuits on terminal (approved/denied/expired) entries, so
+  // re-running is a no-op for those, but a cached 'pending' row still gets
+  // re-fetched so remote resolutions become visible without a manual reload.
   useEffect(() => {
     for (const n of notifications) {
       if (n.kind === 'approval_request') {
         const id = (n.payload as { requestId?: string } | null)?.requestId;
-        if (id && !requestsById[id]) hydrateRequest(id);
+        if (id) hydrateRequest(id);
       }
     }
-  }, [notifications, requestsById, hydrateRequest]);
+  }, [notifications, hydrateRequest]);
 
   // Inbox is purely additive — if there's nothing yet, don't take up screen
   // space. The page already has plenty going on.

@@ -187,7 +187,13 @@ export const useFamily = create<Store>((set, get) => ({
   async hydrateRequest(id) {
     const s = get().session;
     if (!s) return;
-    if (get().requestsById[id]) return;   // already cached
+    // Only skip when the cached entry is in a terminal state. A cached
+    // 'pending' row can still transition to approved/denied/expired on the
+    // server (resolved from another parent device, or server-side expiry),
+    // so we re-fetch it on every hydration pass to keep the inbox card in
+    // sync with the real status.
+    const cached = get().requestsById[id];
+    if (cached && cached.status !== 'pending') return;
     try {
       const { request } = await familyRequests.getById(s.token, id);
       set({ requestsById: { ...get().requestsById, [id]: request } });
