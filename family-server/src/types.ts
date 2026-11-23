@@ -16,6 +16,7 @@ export interface Env {
 
 export interface AuthContext {
   accountId: string;
+  tokenVersion: number;
 }
 
 export interface DeviceAuthContext {
@@ -31,6 +32,11 @@ export interface AccountRow {
   password_hash: string;
   created_at: string;
   email_verified_at: string | null;
+  // Bumped on password reset (and any other full-revocation event). Every
+  // issued JWT embeds the value as `tv`; the middleware rejects any token
+  // whose `tv` is less than the live column. 0 by default so pre-migration
+  // tokens (claim absent, treated as 0) remain valid until the first bump.
+  token_version: number;
 }
 
 export interface DeviceRow {

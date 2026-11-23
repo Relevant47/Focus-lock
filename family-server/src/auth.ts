@@ -1,6 +1,7 @@
 import { hashPassword, signJwt, verifyJwt, verifyPassword } from './crypto';
 import {
-  createAccount, findAccountByEmail, isResetJtiUsed, logAudit, markResetJtiUsed, updatePassword,
+  bumpAccountTokenVersion, createAccount, findAccountByEmail, isResetJtiUsed, logAudit,
+  markResetJtiUsed, updatePassword,
 } from './db';
 import { sendResetEmail } from './email';
 import {
@@ -28,8 +29,18 @@ interface AuthBody { email?: unknown; password?: unknown }
 interface ResetRequestBody  { email?: unknown }
 interface ResetConfirmBody  { token?: unknown; newPassword?: unknown }
 
-async function issueSession(env: Env, accountId: string): Promise<Response> {
-  const token = await signJwt({ sub: accountId }, env.JWT_SECRET, SESSION_TTL_SECONDS);
+/// Signs a parent-session JWT. `tokenVersion` is embedded as the `tv` claim
+/// and must match `accounts.token_version` at verify time — bumping that
+/// column (e.g. on password reset) therefore revokes every previously issued
+/// token for the account.
+async function issueSession(
+  env: Env, accountId: string, tokenVersion: number,
+): Promise<Response> {
+  const token = await signJwt(
+    { sub: accountId, tv: tokenVersion },
+    env.JWT_SECRET,
+    SESSION_TTL_SECONDS,
+  );
   return json({ token, accountId, expiresIn: SESSION_TTL_SECONDS });
 }
 
@@ -49,7 +60,7 @@ export async function signup(req: Request, env: Env): Promise<Response> {
   const hash = await hashPassword(password);
   const account = await createAccount(env.DB, email, hash);
   await logAudit(env.DB, account.id, null, 'signup', { email }, clientIp(req));
-  return issueSession(env, account.id);
+  return issueSession(env, account.id, account.token_version);
 }
 
 export async function login(req: Request, env: Env): Promise<Response> {
@@ -97,13 +108,13 @@ export async function login(req: Request, env: Env): Promise<Response> {
   }
   await recordSuccess(env, rlKey);
   await logAudit(env.DB, account.id, null, 'login', null, clientIp(req));
-  return issueSession(env, account.id);
+  return issueSession(env, account.id, account.token_version ?? 0);
 }
 
 export async function refresh(req: Request, env: Env): Promise<Response> {
   const ctx = await requireAuth(req, env);
   if (!ctx) return unauthorized();
-  return issueSession(env, ctx.accountId);
+  return issueSession(env, ctx.accountId, ctx.tokenVersion);
 }
 
 export async function resetRequest(req: Request, env: Env): Promise<Response> {
@@ -178,6 +189,10 @@ export async function resetConfirm(req: Request, env: Env): Promise<Response> {
   }
   const newHash = await hashPassword(body.newPassword);
   await updatePassword(env.DB, verified.payload.sub, newHash);
+  // Revoke every session minted before this reset. The attacker whose
+  // leaked session triggered the reset now has 0 live tokens — which is
+  // the whole point of asking the user to reset.
+  const newTokenVersion = await bumpAccountTokenVersion(env.DB, verified.payload.sub);
   if (jti) {
     // exp is in seconds; the cleanup column wants ms.
     const expMs = typeof verified.payload.exp === 'number'
@@ -186,5 +201,5 @@ export async function resetConfirm(req: Request, env: Env): Promise<Response> {
     await markResetJtiUsed(env.DB, jti, expMs);
   }
   await logAudit(env.DB, verified.payload.sub, null, 'password_reset_completed', null, clientIp(req));
-  return issueSession(env, verified.payload.sub);
+  return issueSession(env, verified.payload.sub, newTokenVersion);
 }
