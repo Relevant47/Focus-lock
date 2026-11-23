@@ -22,11 +22,27 @@ export async function createAccount(db: D1Database, email: string, passwordHash:
   const lower = email.toLowerCase();
   await db.prepare('INSERT INTO accounts (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)')
     .bind(id, lower, passwordHash, now).run();
-  return { id, email: lower, password_hash: passwordHash, created_at: now, email_verified_at: null };
+  return {
+    id, email: lower, password_hash: passwordHash,
+    created_at: now, email_verified_at: null, token_version: 0,
+  };
 }
 
 export async function updatePassword(db: D1Database, accountId: string, newHash: string): Promise<void> {
   await db.prepare('UPDATE accounts SET password_hash = ? WHERE id = ?').bind(newHash, accountId).run();
+}
+
+/// Bumps `accounts.token_version` by one and returns the new value. Called
+/// from password-reset-confirm so every JWT issued before the bump stops
+/// being accepted by the auth middleware. The RETURNING row avoids a second
+/// round-trip to re-read the column.
+export async function bumpAccountTokenVersion(
+  db: D1Database, accountId: string,
+): Promise<number> {
+  const row = await db.prepare(
+    'UPDATE accounts SET token_version = token_version + 1 WHERE id = ? RETURNING token_version',
+  ).bind(accountId).first<{ token_version: number }>();
+  return row?.token_version ?? 0;
 }
 
 /// Deletes the account and everything that hangs off it. FK cascade handles

@@ -1,4 +1,5 @@
 import { verifyJwt } from './crypto';
+import { findAccountById } from './db';
 import type { AuthContext, DeviceAuthContext, Env } from './types';
 
 export function json(data: unknown, status = 200): Response {
@@ -50,7 +51,16 @@ export async function requireAuth(req: Request, env: Env): Promise<AuthContext |
   // Reset tokens and device tokens cannot be used as parent sessions.
   if (!verified || verified.payload.kind === 'reset' || verified.payload.kind === 'device') return null;
   if (typeof verified.payload.sub !== 'string') return null;
-  return { accountId: verified.payload.sub };
+  // Session revocation: reject any token whose embedded `tv` is behind the
+  // account's live `token_version`. Pre-migration tokens have no `tv`
+  // claim; treat that as 0 so they stay valid until the account hits its
+  // first reset-driven bump.
+  const account = await findAccountById(env.DB, verified.payload.sub);
+  if (!account) return null;
+  const tokenVersion = typeof verified.payload.tv === 'number' ? verified.payload.tv : 0;
+  const liveVersion = account.token_version ?? 0;
+  if (tokenVersion < liveVersion) return null;
+  return { accountId: account.id, tokenVersion: liveVersion };
 }
 
 export async function requireDeviceAuth(req: Request, env: Env): Promise<DeviceAuthContext | null> {
