@@ -27,6 +27,21 @@ export async function runWeeklyDigests(env: Env, now: Date = new Date()): Promis
   const startIso = periodStart.toISOString();
   const endIso = periodEnd.toISOString();
 
+  // Idempotency-check floor: shift startIso forward by a buffer so the
+  // PREVIOUS week's digest (written ~7 days ago, ≈ a few seconds after its
+  // own startIso) falls OUTSIDE this week's idempotency window. Without this
+  // shift, `created_at >= startIso` catches last week's digest and every
+  // regular weekly run after the first is silently skipped. See #623.
+  //
+  // 1 hour is far larger than Cloudflare's cron jitter (seconds) and far
+  // smaller than the 7-day window, so retries of the current invocation
+  // (digest written at ~endIso, i.e. startIso + 7 days) stay inside the
+  // window while last week's digest (startIso + seconds) stays outside.
+  const IDEMPOTENCY_BUFFER_MS = 60 * 60 * 1000;
+  const idempotencyFloorIso = new Date(
+    periodStart.getTime() + IDEMPOTENCY_BUFFER_MS,
+  ).toISOString();
+
   // Pull every block_now rule created in the window. We exclude `unblock_all`
   // (those are the parent lifting locks — opposite of the digest's intent) and
   // `schedule` (those describe recurring policy, not this-week activity).
@@ -72,7 +87,7 @@ export async function runWeeklyDigests(env: Env, now: Date = new Date()): Promis
          AND kind = 'weekly_digest'
          AND created_at >= ?
        LIMIT 1`,
-    ).bind(accountId, startIso).first();
+    ).bind(accountId, idempotencyFloorIso).first();
     if (existing) continue;
 
     const appCounts = new Map<string, number>();
