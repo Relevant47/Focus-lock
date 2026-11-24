@@ -1343,6 +1343,11 @@ function AskUnblockRow({ targetKind, target, anyPendingOnDevice }: {
         {error && <span className="text-danger">{error}</span>}
       </div>
       {rejection && <p className="text-faint text-xs">{rejection}</p>}
+      {!rejection && !error && anyPendingOnDevice && (
+        <p className="text-faint text-xs">
+          You already have a pending request — wait for a reply first.
+        </p>
+      )}
     </div>
   );
 }
