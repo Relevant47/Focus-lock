@@ -61,6 +61,9 @@ updater.key.pub.bak2
 # Claude Code local settings (per-user, not for the repo)
 .claude/settings.local.json
 
+# Internal AI-assisted planning/spec notes — not public documentation
+docs/superpowers/
+
 # macOS
 .DS_Store
 **/.DS_Store
