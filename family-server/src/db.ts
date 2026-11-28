@@ -373,15 +373,21 @@ export async function findApprovalRequestById(
 
 /// Returns an existing pending row for the same target on the same device.
 /// Used for dedup so a retry picks up the existing request rather than
-/// spawning duplicates the parent then has to triage.
+/// spawning duplicates the parent then has to triage. Mirrors the
+/// expires_at filter the cron sweep applies, so a logically-expired row
+/// the sweep hasn't flipped yet is not returned as an active request —
+/// otherwise the child's retry would receive a row whose expiresAt is
+/// already in the past and appear to expire the moment it was submitted.
 export async function findPendingApprovalForTarget(
   db: D1Database, deviceId: string, targetKind: 'app' | 'domain', target: string,
 ): Promise<ApprovalRequestRow | null> {
+  const now = new Date().toISOString();
   const row = await db.prepare(
     `SELECT * FROM approval_requests
-     WHERE device_id = ? AND target_kind = ? AND target = ? AND status = 'pending'
+     WHERE device_id = ? AND target_kind = ? AND target = ?
+       AND status = 'pending' AND expires_at > ?
      LIMIT 1`,
-  ).bind(deviceId, targetKind, target).first();
+  ).bind(deviceId, targetKind, target, now).first();
   return row as ApprovalRequestRow | null;
 }
 
